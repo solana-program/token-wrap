@@ -22,7 +22,8 @@ pub enum TokenWrapInstruction {
     /// 5. `[]` SPL Token program for wrapped mint
     ///
     /// Data expected by this instruction:
-    ///   * bool: true = idempotent creation, false = non-idempotent creation
+    ///   * `bool`: If true, idempotent creation. If false, fail if the mint
+    ///   already exists.
     CreateMint,
 
     /// Wrap tokens
@@ -45,11 +46,11 @@ pub enum TokenWrapInstruction {
     /// 6. `[]` SPL Token program for unwrapped mint
     /// 7. `[]` SPL Token program for wrapped mint
     /// 8. `[signer]` Transfer authority on unwrapped token account
-    /// 9. ..8+M. `[signer]` (Optional) M multisig signers on unwrapped token
+    /// 9. `..8+M` `[signer]` (Optional) M multisig signers on unwrapped token
     ///    account
     ///
     /// Data expected by this instruction:
-    ///   * little-endian u64 representing the amount to wrap
+    ///   * little-endian `u64` representing the amount to wrap
     Wrap,
 
     /// Unwrap tokens
@@ -72,10 +73,10 @@ pub enum TokenWrapInstruction {
     /// 6. `[]` SPL Token program for wrapped mint
     /// 7. `[]` SPL Token program for unwrapped mint
     /// 8. `[signer]` Transfer authority on wrapped token account
-    /// 9. ..8+M. `[signer]` (Optional) M multisig signers on wrapped token
+    /// 9. `..8+M` `[signer]` (Optional) M multisig signers on wrapped token
     ///    account
     ///
     /// Data expected by this instruction:
-    ///   * little-endian u64 representing the amount to unwrap
+    ///   * little-endian `u64` representing the amount to unwrap
     Unwrap,
 }
