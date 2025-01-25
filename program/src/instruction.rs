@@ -23,7 +23,7 @@ pub enum TokenWrapInstruction {
     ///
     /// Data expected by this instruction:
     ///   * `bool`: If true, idempotent creation. If false, fail if the mint
-    ///   already exists.
+    ///     already exists.
     CreateMint,
 
     /// Wrap tokens
