@@ -321,8 +321,8 @@ fn test_create_mint_backpointer_insufficient_funds() {
 fn test_success() {
     let program_id = Pubkey::new_unique();
 
-    let wrapped_mint_account = Pubkey::new_unique();
-    let wrapped_backpointer_account = Pubkey::new_unique();
+    let wrapped_mint_account = Pubkey::new_unique(); // TODO: Don't use a random one, create a real mint
+    let wrapped_backpointer_account = Pubkey::new_unique(); // TODO: Don't use a random one, create a real mint
     let unwrapped_mint_account = Pubkey::new_unique();
     let wrapped_token_program_id = spl_token_2022::id();
 

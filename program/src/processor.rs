@@ -2,8 +2,9 @@
 
 use crate::state::Backpointer;
 use crate::{
-    get_wrapped_mint_address, get_wrapped_mint_backpointer_address,
-    get_wrapped_mint_backpointer_address_seeds, get_wrapped_mint_seeds,
+    _get_wrapped_mint_signer_seeds, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
+    get_wrapped_mint_backpointer_address, get_wrapped_mint_backpointer_address_seeds,
+    get_wrapped_mint_seeds,
 };
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke_signed;
@@ -31,6 +32,7 @@ pub fn process_create_mint(
     let system_program_account = next_account_info(account_info_iter)?; // TODO: What is this for?
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
+    // TODO: Can remove --
     if !wrapped_mint_account.is_writable
         || !wrapped_backpointer_account.is_writable
         || unwrapped_mint_account.is_writable
@@ -52,13 +54,17 @@ pub fn process_create_mint(
 
     // Initialize wrapped mint PDA
 
-    let wrapped_mint_address = get_wrapped_mint_address(
+    let (wrapped_mint_address, bump) = get_wrapped_mint_address_with_seed(
         unwrapped_mint_account.key,
         wrapped_token_program_account.key,
     );
-    let signer_seeds = get_wrapped_mint_seeds(
+
+    // TODO: this needs bump seed coming from above
+    let bump_seed = [bump];
+    let signer_seeds = _get_wrapped_mint_signer_seeds(
         unwrapped_mint_account.key,
         wrapped_token_program_account.key,
+        &bump_seed,
     );
     let space = spl_token_2022::state::Mint::get_packed_len();
 
@@ -78,11 +84,17 @@ pub fn process_create_mint(
         &[wrapped_mint_account.clone()],
         &[&signer_seeds],
     )?;
+
+    // TODO: Assign it to the token program
     invoke_signed(
-        &system_instruction::assign(&wrapped_mint_address, program_id),
+        &system_instruction::assign(&wrapped_mint_address, program_id), // change this
         &[wrapped_mint_account.clone()],
         &[&signer_seeds],
     )?;
+
+    // TODO: initialize the mint
+    //       - currently has zero bytes, need to set mint authority--> PDA of token wrapped program
+    //       - get_wrapped_mint_authority()
 
     // Initialize backpointer PDA
 
@@ -93,6 +105,7 @@ pub fn process_create_mint(
         return Err(ProgramError::InvalidSeeds);
     }
 
+    // TODO: Get bump seed like above
     let backpointer_signer_seeds =
         get_wrapped_mint_backpointer_address_seeds(wrapped_mint_account.key);
     let backpointer_space = std::mem::size_of::<Backpointer>();
