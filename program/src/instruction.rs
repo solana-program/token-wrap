@@ -1,30 +1,35 @@
 //! Program instructions
 
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use solana_program::instruction::{AccountMeta, Instruction};
+use solana_program::program_error::ProgramError;
+use solana_program::pubkey::Pubkey;
+use std::convert::TryInto;
 
 /// Instructions supported by the Token Wrap program
-#[derive(Clone, Debug, PartialEq, TryFromPrimitive, IntoPrimitive)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum TokenWrapInstruction {
-    /// Create a wrapped token mint
+    /// Create a wrapped token mint. Assumes caller has pre-allocated wrapped mint
+    /// and backpointer account.
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[writeable,signer]` Funding account for mint and backpointer (must
-    ///    be a system account)
-    /// 1. `[writeable]` Unallocated wrapped mint account to create, address
-    ///    must be: `get_wrapped_mint_address(unwrapped_mint_address,
+    /// 0. `[writeable]` Unallocated wrapped mint account to create (PDA),
+    ///    address must be: `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
-    /// 2. `[writeable]` Unallocated wrapped backpointer account to create
+    /// 1. `[writeable]` Unallocated wrapped backpointer account to create (PDA)
     ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
-    /// 3. `[]` Existing unwrapped mint
-    /// 4. `[]` System program
-    /// 5. `[]` SPL Token program for wrapped mint
+    /// 2. `[]` Existing unwrapped mint
+    /// 3. `[]` System program
+    /// 4. `[]` SPL Token program for wrapped mint
     ///
     /// Data expected by this instruction:
     ///   * `bool`: If true, idempotent creation. If false, fail if the mint
     ///     already exists.
-    CreateMint,
+    CreateMint {
+        /// TODO: Add docs
+        idempotent: bool,
+    },
 
     /// Wrap tokens
     ///
@@ -51,7 +56,10 @@ pub enum TokenWrapInstruction {
     ///
     /// Data expected by this instruction:
     ///   * little-endian `u64` representing the amount to wrap
-    Wrap,
+    Wrap {
+        /// TODO: Add docs
+        amount: u64,
+    },
 
     /// Unwrap tokens
     ///
@@ -78,5 +86,148 @@ pub enum TokenWrapInstruction {
     ///
     /// Data expected by this instruction:
     ///   * little-endian `u64` representing the amount to unwrap
-    Unwrap,
+    UnWrap {
+        /// TODO: Add docs
+        amount: u64,
+    },
+}
+
+impl TokenWrapInstruction {
+    /// TODO: Add docs
+    pub fn pack(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        match self {
+            TokenWrapInstruction::CreateMint { idempotent } => {
+                buf.push(0);
+                buf.push(if *idempotent { 1 } else { 0 });
+            }
+
+            TokenWrapInstruction::Wrap { amount } => {
+                buf.push(1);
+                buf.extend_from_slice(&amount.to_le_bytes());
+            }
+            TokenWrapInstruction::UnWrap { amount } => {
+                buf.push(2);
+                buf.extend_from_slice(&amount.to_le_bytes());
+            }
+        }
+        buf
+    }
+
+    /// TODO: Add docs
+    pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
+        let (&tag, rest) = input
+            .split_first()
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        match tag {
+            0 => {
+                if rest.len() != 1 {
+                    return Err(ProgramError::InvalidInstructionData);
+                }
+                let idempotent = rest[0] != 0;
+                Ok(TokenWrapInstruction::CreateMint { idempotent })
+            }
+            1 => {
+                if rest.len() != 8 {
+                    return Err(ProgramError::InvalidInstructionData);
+                }
+                let amount = u64::from_le_bytes(
+                    rest.try_into()
+                        .map_err(|_| ProgramError::InvalidInstructionData)?,
+                );
+                Ok(TokenWrapInstruction::Wrap { amount })
+            }
+            2 => {
+                if rest.len() != 8 {
+                    return Err(ProgramError::InvalidInstructionData);
+                }
+                let amount = u64::from_le_bytes(
+                    rest.try_into()
+                        .map_err(|_| ProgramError::InvalidInstructionData)?,
+                );
+                Ok(TokenWrapInstruction::UnWrap { amount })
+            }
+            _ => Err(ProgramError::InvalidInstructionData),
+        }
+    }
+}
+
+/// Creates `CreateMint` instruction.
+pub fn create_mint(
+    program_id: &Pubkey,
+    wrapped_mint_address: &Pubkey,
+    wrapped_backpointer_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    wrapped_token_program_id: &Pubkey,
+    idempotent: bool,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*wrapped_mint_address, false),
+        AccountMeta::new(*wrapped_backpointer_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new_readonly(solana_program::system_program::id(), false),
+        AccountMeta::new_readonly(*wrapped_token_program_id, false),
+    ];
+    let data = TokenWrapInstruction::CreateMint { idempotent }.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `Wrap` instruction.
+#[allow(clippy::too_many_arguments)]
+pub fn wrap(
+    program_id: &Pubkey,
+    unwrapped_token_account_address: &Pubkey,
+    wrapped_escrow_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    wrapped_mint_address: &Pubkey,
+    recipient_wrapped_token_account_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
+    unwrapped_token_program_id: &Pubkey,
+    wrapped_token_program_id: &Pubkey,
+    transfer_authority_address: &Pubkey,
+    amount: u64,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*unwrapped_token_account_address, false),
+        AccountMeta::new(*wrapped_escrow_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new(*wrapped_mint_address, false),
+        AccountMeta::new(*recipient_wrapped_token_account_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
+        AccountMeta::new_readonly(*unwrapped_token_program_id, false),
+        AccountMeta::new_readonly(*wrapped_token_program_id, false),
+        AccountMeta::new_readonly(*transfer_authority_address, true),
+    ];
+    let data = TokenWrapInstruction::Wrap { amount }.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `UnWrap` instruction.
+#[allow(clippy::too_many_arguments)]
+pub fn unwrap(
+    program_id: &Pubkey,
+    wrapped_token_account_address: &Pubkey,
+    wrapped_mint_address: &Pubkey,
+    wrapped_escrow_address: &Pubkey,
+    recipient_unwrapped_token_account_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
+    wrapped_token_program_id: &Pubkey,
+    unwrapped_token_program_id: &Pubkey,
+    transfer_authority_address: &Pubkey,
+    amount: u64,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*wrapped_token_account_address, false),
+        AccountMeta::new(*wrapped_mint_address, false),
+        AccountMeta::new(*wrapped_escrow_address, false),
+        AccountMeta::new(*recipient_unwrapped_token_account_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
+        AccountMeta::new_readonly(*wrapped_token_program_id, false),
+        AccountMeta::new_readonly(*unwrapped_token_program_id, false),
+        AccountMeta::new_readonly(*transfer_authority_address, true),
+    ];
+    let data = TokenWrapInstruction::UnWrap { amount }.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
 }
