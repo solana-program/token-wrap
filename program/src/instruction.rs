@@ -22,12 +22,8 @@ pub enum TokenWrapInstruction {
     /// 2. `[]` Existing unwrapped mint
     /// 3. `[]` System program
     /// 4. `[]` SPL Token program for wrapped mint
-    ///
-    /// Data expected by this instruction:
-    ///   * `bool`: If true, idempotent creation. If false, fail if the mint
-    ///     already exists.
     CreateMint {
-        /// TODO: Add docs
+        /// If true, idempotent creation. If false, fail if the mint already exists.
         idempotent: bool,
     },
 
@@ -53,11 +49,8 @@ pub enum TokenWrapInstruction {
     /// 8. `[signer]` Transfer authority on unwrapped token account
     /// 9. `..8+M` `[signer]` (Optional) M multisig signers on unwrapped token
     ///    account
-    ///
-    /// Data expected by this instruction:
-    ///   * little-endian `u64` representing the amount to wrap
     Wrap {
-        /// TODO: Add docs
+        /// little-endian `u64` representing the amount to wrap
         amount: u64,
     },
 
@@ -83,17 +76,14 @@ pub enum TokenWrapInstruction {
     /// 8. `[signer]` Transfer authority on wrapped token account
     /// 9. `..8+M` `[signer]` (Optional) M multisig signers on wrapped token
     ///    account
-    ///
-    /// Data expected by this instruction:
-    ///   * little-endian `u64` representing the amount to unwrap
     UnWrap {
-        /// TODO: Add docs
+        /// little-endian `u64` representing the amount to unwrap
         amount: u64,
     },
 }
 
 impl TokenWrapInstruction {
-    /// TODO: Add docs
+    /// Packs a [TokenWrapInstruction](enum.TokenWrapInstruction.html) into a byte array.
     pub fn pack(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         match self {
@@ -114,7 +104,7 @@ impl TokenWrapInstruction {
         buf
     }
 
-    /// TODO: Add docs
+    /// Unpacks a byte array into a [TokenWrapInstruction](enum.TokenWrapInstruction.html).
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         let (&tag, rest) = input
             .split_first()

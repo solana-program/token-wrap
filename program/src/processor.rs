@@ -1,16 +1,23 @@
 //! Program state processor
 
+use crate::state::Backpointer;
+use crate::{
+    get_wrapped_mint_address, get_wrapped_mint_backpointer_address,
+    get_wrapped_mint_backpointer_address_seeds, get_wrapped_mint_seeds,
+};
 use solana_program::account_info::next_account_info;
+use solana_program::program::invoke_signed;
 use solana_program::program_error::ProgramError;
+use solana_program::program_pack::Pack;
 use solana_program::rent::Rent;
+use solana_program::sysvar::Sysvar;
 use solana_program::{msg, system_instruction};
-use solana_program::{program::invoke_signed, program_pack::Pack};
 use {
     crate::instruction::TokenWrapInstruction,
     solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, pubkey::Pubkey},
 };
 
-/// TODO: Add docs
+/// Processes [CreateMint](enum.TokenWrapInstruction.html) instruction.
 pub fn process_create_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -21,21 +28,97 @@ pub fn process_create_mint(
     let wrapped_mint_account = next_account_info(account_info_iter)?;
     let wrapped_backpointer_account = next_account_info(account_info_iter)?;
     let unwrapped_mint_account = next_account_info(account_info_iter)?;
-    let system_program_account = next_account_info(account_info_iter)?;
+    let system_program_account = next_account_info(account_info_iter)?; // TODO: What is this for?
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
-    // TODO: Add account validation (has correct permissions, is passed in correct order, etc)
+    assert!(wrapped_mint_account.is_writable);
+    assert!(wrapped_backpointer_account.is_writable);
+    assert!(!unwrapped_mint_account.is_writable);
+    assert!(!system_program_account.is_writable);
+    assert!(!wrapped_token_program_account.is_writable);
 
-    // // --- Mint Existence Check and Idempotency ---
-    // if wrapped_mint_account.data_len() > 0 {
-    //     msg!("Wrapped mint account already exists");
-    //     return if !idempotent {
-    //         Err(ProgramError::AccountAlreadyInitialized)
-    //     } else {
-    //         msg!("Idempotent creation requested, skipping account creation and initialization.");
-    //         Ok(()) // Succeed silently as idempotent creation requested
-    //     };
-    // }
+    // Idempotency checks
+    if wrapped_mint_account.data_len() > 0 || wrapped_backpointer_account.data_len() > 0 {
+        msg!("Wrapped mint or backpointer account already initialized");
+        return if !idempotent {
+            Err(ProgramError::AccountAlreadyInitialized)
+        } else {
+            Ok(())
+        };
+    }
+
+    // Initialize wrapped mint PDA
+
+    let wrapped_mint_address = get_wrapped_mint_address(
+        unwrapped_mint_account.key,
+        wrapped_token_program_account.key,
+    );
+    let signer_seeds = get_wrapped_mint_seeds(
+        unwrapped_mint_account.key,
+        wrapped_token_program_account.key,
+    );
+    let space = spl_token_2022::state::Mint::get_packed_len();
+
+    let rent = Rent::get()?;
+    let mint_rent_required = rent.minimum_balance(space);
+    if wrapped_mint_account.lamports() < mint_rent_required {
+        msg!(
+            "Error: wrapped_mint_account requires pre-funding of {} lamports",
+            mint_rent_required
+        );
+        return Err(ProgramError::InsufficientFunds);
+    }
+
+    // TODO: Currently throwing --- An account required by the instruction is missing
+    invoke_signed(
+        &system_instruction::allocate(&wrapped_mint_address, space as u64),
+        &[wrapped_mint_account.clone()],
+        &[&signer_seeds],
+    )?;
+    invoke_signed(
+        &system_instruction::assign(&wrapped_mint_address, program_id),
+        &[wrapped_mint_account.clone()],
+        &[&signer_seeds],
+    )?;
+
+    // Initialize backpointer PDA
+
+    let wrapped_backpointer_address =
+        get_wrapped_mint_backpointer_address(wrapped_mint_account.key);
+    if *wrapped_backpointer_account.key != wrapped_backpointer_address {
+        msg!("Error: wrapped_backpointer_account address is not as expected");
+        return Err(ProgramError::InvalidSeeds);
+    }
+
+    let backpointer_signer_seeds =
+        get_wrapped_mint_backpointer_address_seeds(wrapped_mint_account.key);
+    let backpointer_space = std::mem::size_of::<Backpointer>();
+
+    let backpointer_rent_required = rent.minimum_balance(space);
+    if wrapped_backpointer_account.lamports() < rent.minimum_balance(backpointer_space) {
+        msg!(
+            "Error: wrapped_backpointer_account requires pre-funding of {} lamports",
+            backpointer_rent_required
+        );
+        return Err(ProgramError::InsufficientFunds);
+    }
+
+    invoke_signed(
+        &system_instruction::allocate(&wrapped_backpointer_address, backpointer_space as u64),
+        &[wrapped_backpointer_account.clone()],
+        &[&backpointer_signer_seeds],
+    )?;
+    invoke_signed(
+        &system_instruction::assign(&wrapped_backpointer_address, program_id),
+        &[wrapped_backpointer_account.clone()],
+        &[&backpointer_signer_seeds],
+    )?;
+
+    // Set data within backpointer PDA
+
+    let mut backpointer_account_data = wrapped_backpointer_account.try_borrow_mut_data()?;
+    let backpointer = bytemuck::from_bytes_mut::<Backpointer>(&mut backpointer_account_data[..]);
+    backpointer.unwrapped_mint = *unwrapped_mint_account.key;
 
     Ok(())
 }

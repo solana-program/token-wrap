@@ -26,6 +26,7 @@ pub(crate) fn get_wrapped_mint_address_with_seed(
     )
 }
 
+// TODO: Could someone else do a kind attack and pre-create these accounts with them as owner?
 pub(crate) fn get_wrapped_mint_seeds<'a>(
     unwrapped_mint: &'a Pubkey,
     wrapped_token_program_id: &'a Pubkey,
