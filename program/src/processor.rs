@@ -31,11 +31,14 @@ pub fn process_create_mint(
     let system_program_account = next_account_info(account_info_iter)?; // TODO: What is this for?
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
-    assert!(wrapped_mint_account.is_writable);
-    assert!(wrapped_backpointer_account.is_writable);
-    assert!(!unwrapped_mint_account.is_writable);
-    assert!(!system_program_account.is_writable);
-    assert!(!wrapped_token_program_account.is_writable);
+    if !wrapped_mint_account.is_writable
+        || !wrapped_backpointer_account.is_writable
+        || unwrapped_mint_account.is_writable
+        || system_program_account.is_writable
+        || wrapped_token_program_account.is_writable
+    {
+        return Err(ProgramError::InvalidArgument);
+    }
 
     // Idempotency checks
     if wrapped_mint_account.data_len() > 0 || wrapped_backpointer_account.data_len() > 0 {

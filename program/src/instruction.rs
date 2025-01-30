@@ -9,7 +9,7 @@ use std::convert::TryInto;
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum TokenWrapInstruction {
-    /// Create a wrapped token mint. Assumes caller has pre-allocated wrapped mint
+    /// Create a wrapped token mint. Assumes caller has pre-funded wrapped mint
     /// and backpointer account.
     ///
     /// Accounts expected by this instruction:
