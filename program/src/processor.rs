@@ -19,7 +19,7 @@ use {
     solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, pubkey::Pubkey},
 };
 
-/// Processes [CreateMint](enum.TokenWrapInstruction.html) instruction.
+/// Processes [`CreateMint`](enum.TokenWrapInstruction.html) instruction.
 pub fn process_create_mint(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -30,7 +30,7 @@ pub fn process_create_mint(
     let wrapped_mint_account = next_account_info(account_info_iter)?;
     let wrapped_backpointer_account = next_account_info(account_info_iter)?;
     let unwrapped_mint_account = next_account_info(account_info_iter)?;
-    let _system_program_account = next_account_info(account_info_iter)?; // TODO: This is not used 🤔
+    let _system_program_account = next_account_info(account_info_iter)?;
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
     // Idempotency checks

@@ -11,8 +11,8 @@ use std::convert::TryInto;
 pub enum TokenWrapInstruction {
     /// Create a wrapped token mint. Assumes caller has pre-funded wrapped mint
     /// and backpointer account. Supports both directions:
-    /// - spl-token -> token-2022
-    /// - token-2022 -> spl-token
+    /// - spl-token to token-2022
+    /// - token-2022 to spl-token
     ///
     /// Accounts expected by this instruction:
     ///
@@ -85,7 +85,7 @@ pub enum TokenWrapInstruction {
 }
 
 impl TokenWrapInstruction {
-    /// Packs a [TokenWrapInstruction](enum.TokenWrapInstruction.html) into a byte array.
+    /// Packs a [`TokenWrapInstruction`](enum.TokenWrapInstruction.html) into a byte array.
     pub fn pack(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         match self {
@@ -106,7 +106,7 @@ impl TokenWrapInstruction {
         buf
     }
 
-    /// Unpacks a byte array into a [TokenWrapInstruction](enum.TokenWrapInstruction.html).
+    /// Unpacks a byte array into a [`TokenWrapInstruction`](enum.TokenWrapInstruction.html).
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         let (&tag, rest) = input
             .split_first()
