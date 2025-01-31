@@ -10,7 +10,9 @@ use std::convert::TryInto;
 #[repr(u8)]
 pub enum TokenWrapInstruction {
     /// Create a wrapped token mint. Assumes caller has pre-funded wrapped mint
-    /// and backpointer account.
+    /// and backpointer account. Supports both directions:
+    /// - spl-token -> token-2022
+    /// - token-2022 -> spl-token
     ///
     /// Accounts expected by this instruction:
     ///
@@ -21,7 +23,7 @@ pub enum TokenWrapInstruction {
     ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
     /// 2. `[]` Existing unwrapped mint
     /// 3. `[]` System program
-    /// 4. `[]` SPL Token program for wrapped mint // TODO: BOTH DIRECTIONS
+    /// 4. `[]` SPL Token program for wrapped mint
     CreateMint {
         /// If true, idempotent creation. If false, fail if the mint already exists.
         idempotent: bool,
