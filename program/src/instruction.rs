@@ -164,36 +164,6 @@ pub fn create_mint(
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }
 
-/// Creates `Wrap` instruction.
-#[allow(clippy::too_many_arguments)]
-pub fn wrap(
-    program_id: &Pubkey,
-    unwrapped_token_account_address: &Pubkey,
-    wrapped_escrow_address: &Pubkey,
-    unwrapped_mint_address: &Pubkey,
-    wrapped_mint_address: &Pubkey,
-    recipient_wrapped_token_account_address: &Pubkey,
-    wrapped_mint_authority_address: &Pubkey,
-    unwrapped_token_program_id: &Pubkey,
-    wrapped_token_program_id: &Pubkey,
-    transfer_authority_address: &Pubkey,
-    amount: u64,
-) -> Instruction {
-    let accounts = vec![
-        AccountMeta::new(*unwrapped_token_account_address, false),
-        AccountMeta::new(*wrapped_escrow_address, false),
-        AccountMeta::new_readonly(*unwrapped_mint_address, false),
-        AccountMeta::new(*wrapped_mint_address, false),
-        AccountMeta::new(*recipient_wrapped_token_account_address, false),
-        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
-        AccountMeta::new_readonly(*unwrapped_token_program_id, false),
-        AccountMeta::new_readonly(*wrapped_token_program_id, false),
-        AccountMeta::new_readonly(*transfer_authority_address, true),
-    ];
-    let data = TokenWrapInstruction::Wrap { amount }.pack();
-    Instruction::new_with_bytes(*program_id, &data, accounts)
-}
-
 /// Creates `UnWrap` instruction.
 #[allow(clippy::too_many_arguments)]
 pub fn unwrap(
@@ -221,5 +191,35 @@ pub fn unwrap(
         AccountMeta::new_readonly(*transfer_authority_address, true),
     ];
     let data = TokenWrapInstruction::UnWrap { amount }.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `Wrap` instruction.
+#[allow(clippy::too_many_arguments)]
+pub fn wrap(
+    program_id: &Pubkey,
+    unwrapped_token_account_address: &Pubkey,
+    wrapped_escrow_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    wrapped_mint_address: &Pubkey,
+    recipient_wrapped_token_account_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
+    unwrapped_token_program_id: &Pubkey,
+    wrapped_token_program_id: &Pubkey,
+    transfer_authority_address: &Pubkey,
+    amount: u64,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*unwrapped_token_account_address, false),
+        AccountMeta::new(*wrapped_escrow_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new(*wrapped_mint_address, false),
+        AccountMeta::new(*recipient_wrapped_token_account_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
+        AccountMeta::new_readonly(*unwrapped_token_program_id, false),
+        AccountMeta::new_readonly(*wrapped_token_program_id, false),
+        AccountMeta::new_readonly(*transfer_authority_address, true),
+    ];
+    let data = TokenWrapInstruction::Wrap { amount }.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }

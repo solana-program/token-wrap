@@ -30,7 +30,7 @@ pub fn process_create_mint(
     let wrapped_mint_account = next_account_info(account_info_iter)?;
     let wrapped_backpointer_account = next_account_info(account_info_iter)?;
     let unwrapped_mint_account = next_account_info(account_info_iter)?;
-    let system_program_account = next_account_info(account_info_iter)?; // TODO: This is not used 🤔
+    let _system_program_account = next_account_info(account_info_iter)?; // TODO: This is not used 🤔
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
     // Idempotency checks

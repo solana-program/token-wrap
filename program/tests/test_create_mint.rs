@@ -5,18 +5,23 @@ use solana_program::system_program;
 use solana_sdk::account::Account;
 use spl_token_2022::state::Mint;
 use spl_token_wrap::state::Backpointer;
-use spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_backpointer_address};
+use spl_token_wrap::{
+    get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
+};
 use {
     mollusk_svm::{result::Check, Mollusk},
     solana_program::pubkey::Pubkey,
     spl_token_wrap::instruction::create_mint,
 };
 
+const MINT_DECIMALS: u8 = 12;
+const MINT_SUPPLY: u64 = 500_000_000;
+
 fn setup_spl_mint(rent: &Rent) -> Account {
     let state = spl_token::state::Mint {
-        decimals: 12,
+        decimals: MINT_DECIMALS,
         is_initialized: true,
-        supply: 500_000_000,
+        supply: MINT_SUPPLY,
         ..Default::default()
     };
     let mut data = vec![0u8; spl_token::state::Mint::LEN];
@@ -28,6 +33,26 @@ fn setup_spl_mint(rent: &Rent) -> Account {
         lamports,
         data,
         owner: spl_token::id(),
+        ..Default::default()
+    }
+}
+
+fn setup_token_2022_mint(rent: &Rent) -> Account {
+    let state = spl_token_2022::state::Mint {
+        decimals: MINT_DECIMALS,
+        is_initialized: true,
+        supply: MINT_SUPPLY,
+        ..Default::default()
+    };
+    let mut data = vec![0u8; spl_token_2022::state::Mint::LEN];
+    state.pack_into_slice(&mut data);
+
+    let lamports = rent.minimum_balance(data.len());
+
+    Account {
+        lamports,
+        data,
+        owner: spl_token_2022::id(),
         ..Default::default()
     }
 }
@@ -243,7 +268,7 @@ fn test_create_mint_backpointer_insufficient_funds() {
 }
 
 #[test]
-fn test_success() {
+fn test_successful_spl_token_to_token_2022() {
     let program_id = spl_token_wrap::id();
     let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
     mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
@@ -264,6 +289,8 @@ fn test_success() {
     );
 
     let rent = &mollusk.sysvars.rent;
+    let unwrapped_mint_account = setup_spl_mint(rent);
+
     let accounts = &[
         (
             wrapped_mint_address,
@@ -279,7 +306,7 @@ fn test_success() {
                 ..Default::default()
             },
         ),
-        (unwrapped_mint_address, setup_spl_mint(rent)),
+        (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
             system_program::id(),
             Account {
@@ -289,13 +316,125 @@ fn test_success() {
         ),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
-    mollusk.process_and_validate_instruction(&instruction, accounts, &[Check::success()]);
+    let result = mollusk.process_and_validate_instruction(
+        &instruction,
+        accounts,
+        &[
+            Check::success(),
+            // Ensure unwrapped_mint_account remains unchanged
+            Check::account(&unwrapped_mint_address)
+                .data(&unwrapped_mint_account.data)
+                .build(),
+        ],
+    );
 
-    // TODO: In progress. Should assert after success:
-    //       - wrapped_mint_account is initialized, owner is ?
-    //       - wrapped_backpointer_account, owner is token wrap program
-    //       - unwrapped_mint_account is unchanged
+    // Assert state of resulting wrapped mint account
+
+    let resulting_wrapped_mint_account = &result.resulting_accounts[0].1;
+    assert_eq!(resulting_wrapped_mint_account.owner, spl_token_2022::id());
+
+    let wrapped_mint_data = Mint::unpack(&resulting_wrapped_mint_account.data).unwrap();
+    assert_eq!(wrapped_mint_data.decimals, MINT_DECIMALS);
+    let expected_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+    assert_eq!(
+        wrapped_mint_data.mint_authority.unwrap(),
+        expected_mint_authority,
+    );
+    assert_eq!(wrapped_mint_data.supply, 0);
+    assert!(wrapped_mint_data.is_initialized);
+    assert!(wrapped_mint_data.freeze_authority.is_none());
+
+    // Assert state of resulting backpointer account
+
+    let resulting_backpointer_account = &result.resulting_accounts[1].1;
+    assert_eq!(resulting_backpointer_account.owner, program_id);
+
+    let backpointer = bytemuck::from_bytes::<Backpointer>(&resulting_backpointer_account.data[..]);
+    assert_eq!(backpointer.unwrapped_mint, unwrapped_mint_address);
 }
 
-// TODO: Test cases
-//       - spl-token -> token2022 and the reverse
+#[test]
+fn test_successful_token_2022_to_spl_token() {
+    let program_id = spl_token_wrap::id();
+    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
+    mollusk_svm_programs_token::token::add_program(&mut mollusk);
+
+    let unwrapped_mint_address = Pubkey::new_unique();
+    let wrapped_token_program_id = spl_token::id();
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program_id);
+    let wrapped_backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);
+
+    let instruction = create_mint(
+        &program_id,
+        &wrapped_mint_address,
+        &wrapped_backpointer_address,
+        &unwrapped_mint_address,
+        &wrapped_token_program_id,
+        false,
+    );
+
+    let rent = &mollusk.sysvars.rent;
+    let unwrapped_mint_account = setup_token_2022_mint(rent);
+
+    let accounts = &[
+        (
+            wrapped_mint_address,
+            Account {
+                lamports: 100_000_000,
+                ..Default::default()
+            },
+        ),
+        (
+            wrapped_backpointer_address,
+            Account {
+                lamports: 100_000_000,
+                ..Default::default()
+            },
+        ),
+        (unwrapped_mint_address, unwrapped_mint_account.clone()),
+        (
+            system_program::id(),
+            Account {
+                executable: true,
+                ..Default::default()
+            },
+        ),
+        mollusk_svm_programs_token::token::keyed_account(),
+    ];
+    let result = mollusk.process_and_validate_instruction(
+        &instruction,
+        accounts,
+        &[
+            Check::success(),
+            // Ensure unwrapped_mint_account remains unchanged
+            Check::account(&unwrapped_mint_address)
+                .data(&unwrapped_mint_account.data)
+                .build(),
+        ],
+    );
+
+    // Assert state of resulting wrapped mint account
+
+    let resulting_wrapped_mint_account = &result.resulting_accounts[0].1;
+    assert_eq!(resulting_wrapped_mint_account.owner, spl_token::id());
+
+    let wrapped_mint_data = Mint::unpack(&resulting_wrapped_mint_account.data).unwrap();
+    assert_eq!(wrapped_mint_data.decimals, MINT_DECIMALS);
+    let expected_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+    assert_eq!(
+        wrapped_mint_data.mint_authority.unwrap(),
+        expected_mint_authority,
+    );
+    assert_eq!(wrapped_mint_data.supply, 0);
+    assert!(wrapped_mint_data.is_initialized);
+    assert!(wrapped_mint_data.freeze_authority.is_none());
+
+    // Assert state of resulting backpointer account
+
+    let resulting_backpointer_account = &result.resulting_accounts[1].1;
+    assert_eq!(resulting_backpointer_account.owner, program_id);
+
+    let backpointer = bytemuck::from_bytes::<Backpointer>(&resulting_backpointer_account.data[..]);
+    assert_eq!(backpointer.unwrapped_mint, unwrapped_mint_address);
+}
