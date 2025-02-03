@@ -3,6 +3,7 @@ use solana_program::program_pack::Pack;
 use solana_program::rent::Rent;
 use solana_program::system_program;
 use solana_sdk::account::Account;
+use solana_sdk::program_option::COption;
 use spl_token_2022::state::Mint;
 use spl_token_wrap::state::Backpointer;
 use spl_token_wrap::{
@@ -16,12 +17,14 @@ use {
 
 const MINT_DECIMALS: u8 = 12;
 const MINT_SUPPLY: u64 = 500_000_000;
+const FREEZE_AUTHORITY: &str = "11111115q4EpJaTXAZWpCg3J2zppWGSZ46KXozzo9";
 
 fn setup_spl_mint(rent: &Rent) -> Account {
     let state = spl_token::state::Mint {
         decimals: MINT_DECIMALS,
         is_initialized: true,
         supply: MINT_SUPPLY,
+        freeze_authority: COption::Some(Pubkey::from_str_const(FREEZE_AUTHORITY)),
         ..Default::default()
     };
     let mut data = vec![0u8; spl_token::state::Mint::LEN];
@@ -42,6 +45,7 @@ fn setup_token_2022_mint(rent: &Rent) -> Account {
         decimals: MINT_DECIMALS,
         is_initialized: true,
         supply: MINT_SUPPLY,
+        freeze_authority: COption::Some(Pubkey::from_str_const(FREEZE_AUTHORITY)),
         ..Default::default()
     };
     let mut data = vec![0u8; spl_token_2022::state::Mint::LEN];
@@ -342,7 +346,10 @@ fn test_successful_spl_token_to_token_2022() {
     );
     assert_eq!(wrapped_mint_data.supply, 0);
     assert!(wrapped_mint_data.is_initialized);
-    assert!(wrapped_mint_data.freeze_authority.is_none());
+    assert_eq!(
+        wrapped_mint_data.freeze_authority.unwrap(),
+        Pubkey::from_str_const(FREEZE_AUTHORITY)
+    );
 
     // Assert state of resulting backpointer account
 
@@ -428,7 +435,10 @@ fn test_successful_token_2022_to_spl_token() {
     );
     assert_eq!(wrapped_mint_data.supply, 0);
     assert!(wrapped_mint_data.is_initialized);
-    assert!(wrapped_mint_data.freeze_authority.is_none());
+    assert_eq!(
+        wrapped_mint_data.freeze_authority.unwrap(),
+        Pubkey::from_str_const(FREEZE_AUTHORITY)
+    );
 
     // Assert state of resulting backpointer account
 

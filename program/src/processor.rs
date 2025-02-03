@@ -81,10 +81,11 @@ pub fn process_create_mint(
         &[&signer_seeds],
     )?;
 
-    // New wrapped mint matches decimals of unwrapped mint
+    // New wrapped mint matches decimals & freeze authority of unwrapped mint
     let unwrapped_mint_data = unwrapped_mint_account.try_borrow_data()?;
     let unpacked_unwrapped_mint = spl_token_2022::state::Mint::unpack(&unwrapped_mint_data)?;
     let decimals = unpacked_unwrapped_mint.decimals;
+    let freeze_authority = unpacked_unwrapped_mint.freeze_authority.as_ref().into();
 
     let (wrapped_mint_authority, authority_bump_seed) =
         get_wrapped_mint_authority_with_seed(wrapped_mint_account.key);
@@ -97,7 +98,7 @@ pub fn process_create_mint(
             wrapped_token_program_account.key,
             wrapped_mint_account.key,
             &wrapped_mint_authority,
-            None,
+            freeze_authority,
             decimals,
         )?,
         &[wrapped_mint_account.clone()],
