@@ -12,6 +12,27 @@ use {
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum TokenWrapInstruction {
+    /// Create a wrapped token mint. Assumes caller has pre-funded wrapped mint
+    /// and backpointer account. Supports both directions:
+    /// - spl-token to token-2022
+    /// - token-2022 to spl-token
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    /// 0. `[writeable]` Unallocated wrapped mint account to create (PDA),
+    ///    address must be: `get_wrapped_mint_address(unwrapped_mint_address,
+    ///    wrapped_token_program_id)`
+    /// 1. `[writeable]` Unallocated wrapped backpointer account to create (PDA)
+    ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
+    /// 2. `[]` Existing unwrapped mint
+    /// 3. `[]` System program
+    /// 4. `[]` SPL Token program for wrapped mint
+    CreateMint {
+        /// If true, idempotent creation. If false, fail if the mint already
+        /// exists.
+        idempotent: bool,
+    },
+
     /// Wrap tokens
     ///
     /// Move a user's unwrapped tokens into an escrow account and mint the same
@@ -37,27 +58,6 @@ pub enum TokenWrapInstruction {
     Wrap {
         /// little-endian `u64` representing the amount to wrap
         amount: u64,
-    },
-
-    /// Create a wrapped token mint. Assumes caller has pre-funded wrapped mint
-    /// and backpointer account. Supports both directions:
-    /// - spl-token to token-2022
-    /// - token-2022 to spl-token
-    ///
-    /// Accounts expected by this instruction:
-    ///
-    /// 0. `[writeable]` Unallocated wrapped mint account to create (PDA),
-    ///    address must be: `get_wrapped_mint_address(unwrapped_mint_address,
-    ///    wrapped_token_program_id)`
-    /// 1. `[writeable]` Unallocated wrapped backpointer account to create (PDA)
-    ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
-    /// 2. `[]` Existing unwrapped mint
-    /// 3. `[]` System program
-    /// 4. `[]` SPL Token program for wrapped mint
-    CreateMint {
-        /// If true, idempotent creation. If false, fail if the mint already
-        /// exists.
-        idempotent: bool,
     },
 
     /// Unwrap tokens
