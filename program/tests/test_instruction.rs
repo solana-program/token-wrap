@@ -29,7 +29,7 @@ fn test_pack_unpack_wrap() {
 
 #[test]
 fn test_pack_unpack_unwrap() {
-    let instruction = TokenWrapInstruction::UnWrap { amount: 100 };
+    let instruction = TokenWrapInstruction::Unwrap { amount: 100 };
     let packed = instruction.pack();
     assert_eq!(packed, vec![2, 100, 0, 0, 0, 0, 0, 0, 0]);
 
