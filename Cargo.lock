@@ -3515,6 +3515,7 @@ dependencies = [
  "solana-cpi",
  "solana-instruction",
  "solana-msg",
+ "solana-program",
  "solana-program-entrypoint",
  "solana-program-error",
  "solana-program-option",

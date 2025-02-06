@@ -10,6 +10,7 @@ use {
     solana_account_info::{next_account_info, AccountInfo},
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
+    solana_program::sysvar::Sysvar,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
@@ -17,7 +18,6 @@ use {
     solana_system_interface::instruction::{allocate, assign},
     spl_token_2022::{
         extension::PodStateWithExtensions, instruction::initialize_mint2, pod::PodMint,
-        solana_program::sysvar::Sysvar,
     },
 };
 
