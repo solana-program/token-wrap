@@ -10,13 +10,14 @@ use {
     solana_account_info::{next_account_info, AccountInfo},
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
-    solana_program::{system_instruction, sysvar::Sysvar},
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
+    solana_system_interface::instruction::{allocate, assign},
     spl_token_2022::{
         extension::PodStateWithExtensions, instruction::initialize_mint2, pod::PodMint,
+        solana_program::sysvar::Sysvar,
     },
 };
 
@@ -42,6 +43,18 @@ pub fn process_create_mint(
     let (wrapped_backpointer_address, backpointer_bump) =
         get_wrapped_mint_backpointer_address_with_seed(wrapped_mint_account.key);
 
+    // PDA derivation validation
+
+    if *wrapped_mint_account.key != wrapped_mint_address {
+        msg!("Wrapped mint account address does not match expected PDA");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    if *wrapped_backpointer_account.key != wrapped_backpointer_address {
+        msg!("Error: wrapped_backpointer_account address is not as expected");
+        return Err(ProgramError::InvalidSeeds);
+    }
+
     // Idempotency checks
 
     if wrapped_mint_account.data_len() > 0 || wrapped_backpointer_account.data_len() > 0 {
@@ -49,16 +62,8 @@ pub fn process_create_mint(
         if !idempotent {
             return Err(ProgramError::AccountAlreadyInitialized);
         }
-        if *wrapped_mint_account.key != wrapped_mint_address {
-            msg!("Wrapped mint account address does not match expected PDA");
-            return Err(ProgramError::InvalidAccountData);
-        }
-        if wrapped_mint_account.owner != program_id {
+        if wrapped_mint_account.owner != wrapped_token_program_account.key {
             msg!("Wrapped mint account owner is not the expected token program");
-            return Err(ProgramError::InvalidAccountData);
-        }
-        if *wrapped_backpointer_account.key != wrapped_backpointer_address {
-            msg!("Wrapped backpointer account address does not match expected PDA");
             return Err(ProgramError::InvalidAccountData);
         }
         if wrapped_backpointer_account.owner != program_id {
@@ -91,12 +96,12 @@ pub fn process_create_mint(
     // Initialize the wrapped mint
 
     invoke_signed(
-        &system_instruction::allocate(&wrapped_mint_address, space as u64),
+        &allocate(&wrapped_mint_address, space as u64),
         &[wrapped_mint_account.clone()],
         &[&signer_seeds],
     )?;
     invoke_signed(
-        &system_instruction::assign(&wrapped_mint_address, wrapped_token_program_account.key),
+        &assign(&wrapped_mint_address, wrapped_token_program_account.key),
         &[wrapped_mint_account.clone()],
         &[&signer_seeds],
     )?;
@@ -126,11 +131,6 @@ pub fn process_create_mint(
 
     // Initialize backpointer PDA
 
-    if *wrapped_backpointer_account.key != wrapped_backpointer_address {
-        msg!("Error: wrapped_backpointer_account address is not as expected");
-        return Err(ProgramError::InvalidSeeds);
-    }
-
     let backpointer_space = std::mem::size_of::<Backpointer>();
     let backpointer_rent_required = rent.minimum_balance(space);
     if wrapped_backpointer_account.lamports() < rent.minimum_balance(backpointer_space) {
@@ -145,12 +145,12 @@ pub fn process_create_mint(
     let backpointer_signer_seeds =
         get_wrapped_mint_backpointer_address_signer_seeds(wrapped_mint_account.key, &bump_seed);
     invoke_signed(
-        &system_instruction::allocate(&wrapped_backpointer_address, backpointer_space as u64),
+        &allocate(&wrapped_backpointer_address, backpointer_space as u64),
         &[wrapped_backpointer_account.clone()],
         &[&backpointer_signer_seeds],
     )?;
     invoke_signed(
-        &system_instruction::assign(&wrapped_backpointer_address, program_id),
+        &assign(&wrapped_backpointer_address, program_id),
         &[wrapped_backpointer_account.clone()],
         &[&backpointer_signer_seeds],
     )?;

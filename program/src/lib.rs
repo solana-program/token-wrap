@@ -7,9 +7,6 @@ pub mod instruction;
 pub mod processor;
 pub mod state;
 
-// Export current SDK types for downstream users building with a different SDK
-// version
-pub use solana_program;
 use solana_pubkey::Pubkey;
 
 solana_pubkey::declare_id!("TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR");

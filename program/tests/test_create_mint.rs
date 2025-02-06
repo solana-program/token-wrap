@@ -1,8 +1,6 @@
 use {
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
-    solana_instruction::error::InstructionError,
-    solana_program::system_program,
     solana_program_error::ProgramError,
     solana_program_option::COption,
     solana_program_pack::Pack,
@@ -85,7 +83,7 @@ fn test_idempotency_false_with_existing_account() {
         (wrapped_mint_address, account_with_data.clone()), // mint already exists
         (wrapped_backpointer_address, Account::default()),
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(
@@ -98,7 +96,7 @@ fn test_idempotency_false_with_existing_account() {
         (wrapped_mint_address, Account::default()),
         (wrapped_backpointer_address, account_with_data), // backpointer already exists
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(
@@ -132,7 +130,7 @@ fn test_idempotency_true_with_existing_valid_account() {
     // Simulating existing data on mint or backpointer
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: program_id,
+        owner: wrapped_token_program_id,
         ..Account::default()
     };
     let backpointer_account_with_data = Account {
@@ -145,7 +143,7 @@ fn test_idempotency_true_with_existing_valid_account() {
         (wrapped_mint_address, mint_account_with_data.clone()), // mint already exists
         (wrapped_backpointer_address, backpointer_account_with_data), // backpointer already exists
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(&instruction, accounts, &[Check::success()]);
@@ -162,42 +160,6 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
     let wrapped_mint_address =
         get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program_id);
     let wrapped_backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);
-
-    // Incorrectly derived wrapped mint address
-
-    let incorrect_wrapped_mint_addr = Pubkey::new_unique();
-
-    let instruction = create_mint(
-        &program_id,
-        &incorrect_wrapped_mint_addr,
-        &wrapped_backpointer_address,
-        &unwrapped_mint_address,
-        &wrapped_token_program_id,
-        true,
-    );
-
-    let mint_account_with_data = Account {
-        data: vec![1; 10],
-        owner: program_id,
-        ..Account::default()
-    };
-    let backpointer_account_with_data = Account {
-        owner: program_id,
-        ..Account::default()
-    };
-
-    let accounts = &[
-        (incorrect_wrapped_mint_addr, mint_account_with_data.clone()),
-        (wrapped_backpointer_address, backpointer_account_with_data),
-        (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
-        mollusk_svm_programs_token::token2022::keyed_account(),
-    ];
-    mollusk.process_and_validate_instruction(
-        &instruction,
-        accounts,
-        &[Check::err(ProgramError::InvalidAccountData)],
-    );
 
     // Incorrectly wrapped mint account owner
 
@@ -224,46 +186,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         (wrapped_mint_address, mint_account_with_data.clone()),
         (wrapped_backpointer_address, backpointer_account_with_data),
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
-        mollusk_svm_programs_token::token2022::keyed_account(),
-    ];
-    mollusk.process_and_validate_instruction(
-        &instruction,
-        accounts,
-        &[Check::err(ProgramError::InvalidAccountData)],
-    );
-
-    // Incorrectly derived wrapped backpointer account address
-
-    let incorrect_wrapped_backpointer_addr = Pubkey::new_unique();
-
-    let instruction = create_mint(
-        &program_id,
-        &wrapped_mint_address,
-        &incorrect_wrapped_backpointer_addr,
-        &unwrapped_mint_address,
-        &wrapped_token_program_id,
-        true,
-    );
-
-    let mint_account_with_data = Account {
-        data: vec![1; 10],
-        owner: program_id,
-        ..Account::default()
-    };
-    let backpointer_account_with_data = Account {
-        owner: program_id,
-        ..Account::default()
-    };
-
-    let accounts = &[
-        (wrapped_mint_address, mint_account_with_data.clone()),
-        (
-            incorrect_wrapped_backpointer_addr,
-            backpointer_account_with_data,
-        ),
-        (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(
@@ -285,7 +208,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
 
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: program_id,
+        owner: wrapped_token_program_id,
         ..Account::default()
     };
     let backpointer_account_with_data = Account {
@@ -297,7 +220,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         (wrapped_mint_address, mint_account_with_data.clone()),
         (wrapped_backpointer_address, backpointer_account_with_data),
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(
@@ -344,7 +267,7 @@ fn test_create_mint_insufficient_funds() {
         (wrapped_mint_address, wrapped_mint_account_insufficent_funds),
         (wrapped_backpointer_address, Account::default()),
         (unwrapped_mint_address, Account::default()),
-        (system_program::id(), Account::default()),
+        (solana_system_interface::program::id(), Account::default()),
         mollusk_svm_programs_token::token2022::keyed_account(),
     ];
     mollusk.process_and_validate_instruction(
@@ -402,7 +325,7 @@ fn test_create_mint_backpointer_insufficient_funds() {
         ),
         (unwrapped_mint_address, setup_mint(spl_token::id(), rent)),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()
@@ -462,7 +385,7 @@ fn test_improperly_derived_addresses_fail() {
         ),
         (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()
@@ -473,7 +396,7 @@ fn test_improperly_derived_addresses_fail() {
     mollusk.process_and_validate_instruction(
         &instruction,
         accounts,
-        &[Check::instruction_err(InstructionError::MissingAccount)],
+        &[Check::err(ProgramError::InvalidAccountData)],
     );
 
     // Incorrectly derived backpointer address
@@ -505,7 +428,7 @@ fn test_improperly_derived_addresses_fail() {
         ),
         (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()
@@ -548,7 +471,7 @@ fn test_improperly_derived_addresses_fail() {
         ),
         (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()
@@ -559,7 +482,7 @@ fn test_improperly_derived_addresses_fail() {
     mollusk.process_and_validate_instruction(
         &instruction,
         accounts,
-        &[Check::instruction_err(InstructionError::MissingAccount)],
+        &[Check::err(ProgramError::InvalidAccountData)],
     );
 }
 
@@ -604,7 +527,7 @@ fn test_successful_spl_token_to_token_2022() {
         ),
         (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()
@@ -714,7 +637,7 @@ fn test_successful_token_2022_to_spl_token() {
         ),
         (unwrapped_mint_address, unwrapped_mint_account.clone()),
         (
-            system_program::id(),
+            solana_system_interface::program::id(),
             Account {
                 executable: true,
                 ..Default::default()

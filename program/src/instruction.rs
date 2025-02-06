@@ -2,7 +2,6 @@
 
 use {
     solana_instruction::{AccountMeta, Instruction},
-    solana_program::system_program,
     solana_program_error::ProgramError,
     solana_pubkey::Pubkey,
     std::convert::TryInto,
@@ -16,6 +15,7 @@ pub enum TokenWrapInstruction {
     /// and backpointer account. Supports both directions:
     /// - spl-token to token-2022
     /// - token-2022 to spl-token
+    /// - token-2022 to token-2022 w/ new extensions
     ///
     /// Accounts expected by this instruction:
     ///
@@ -149,7 +149,7 @@ pub fn create_mint(
         AccountMeta::new(*wrapped_mint_address, false),
         AccountMeta::new(*wrapped_backpointer_address, false),
         AccountMeta::new_readonly(*unwrapped_mint_address, false),
-        AccountMeta::new_readonly(system_program::id(), false),
+        AccountMeta::new_readonly(solana_system_interface::program::id(), false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
     ];
     let data = TokenWrapInstruction::CreateMint { idempotent }.pack();
@@ -169,7 +169,7 @@ pub fn unwrap(
     wrapped_token_program_id: &Pubkey,
     unwrapped_token_program_id: &Pubkey,
     transfer_authority_address: &Pubkey,
-    signer_pubkeys: &[&Pubkey],
+    multisig_signer_pubkeys: &[&Pubkey],
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
@@ -181,9 +181,12 @@ pub fn unwrap(
         AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
         AccountMeta::new_readonly(*unwrapped_token_program_id, false),
-        AccountMeta::new_readonly(*transfer_authority_address, true),
+        AccountMeta::new_readonly(
+            *transfer_authority_address,
+            multisig_signer_pubkeys.is_empty(),
+        ),
     ];
-    for signer_pubkey in signer_pubkeys.iter() {
+    for signer_pubkey in multisig_signer_pubkeys.iter() {
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
     }
 
@@ -204,7 +207,7 @@ pub fn wrap(
     unwrapped_token_program_id: &Pubkey,
     wrapped_token_program_id: &Pubkey,
     transfer_authority_address: &Pubkey,
-    signer_pubkeys: &[&Pubkey],
+    multisig_signer_pubkeys: &[&Pubkey],
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
@@ -216,9 +219,12 @@ pub fn wrap(
         AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
         AccountMeta::new_readonly(*unwrapped_token_program_id, false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
-        AccountMeta::new_readonly(*transfer_authority_address, true),
+        AccountMeta::new_readonly(
+            *transfer_authority_address,
+            multisig_signer_pubkeys.is_empty(),
+        ),
     ];
-    for signer_pubkey in signer_pubkeys.iter() {
+    for signer_pubkey in multisig_signer_pubkeys.iter() {
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
     }
 
