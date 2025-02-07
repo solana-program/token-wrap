@@ -1,5 +1,9 @@
 //! Program state processor
 
+use crate::{
+    get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority_signer_seeds,
+    get_wrapped_mint_authority_with_seed,
+};
 use {
     crate::{
         get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
@@ -164,6 +168,107 @@ pub fn process_create_mint(
     Ok(())
 }
 
+/// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
+pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
+    if amount == 0 {
+        msg!("Wrap amount should be positive");
+        return Err(ProgramError::InvalidArgument);
+    }
+
+    let account_info_iter = &mut accounts.iter();
+
+    let transfer_authority = next_account_info(account_info_iter)?;
+    let unwrapped_escrow = next_account_info(account_info_iter)?;
+    let unwrapped_token_account = next_account_info(account_info_iter)?;
+    let recipient_wrapped_token_account = next_account_info(account_info_iter)?;
+    let wrapped_mint = next_account_info(account_info_iter)?;
+    let unwrapped_token_program = next_account_info(account_info_iter)?;
+    let wrapped_token_program = next_account_info(account_info_iter)?;
+    let unwrapped_mint = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority = next_account_info(account_info_iter)?;
+    let _signer_accounts = account_info_iter.as_slice();
+
+    // Validate accounts
+
+    let expected_wrapped_mint =
+        get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
+    if expected_wrapped_mint != *wrapped_mint.key {
+        msg!("Wrapped mint address does not match the derived address");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    let expected_authority = get_wrapped_mint_authority(wrapped_mint.key);
+    if *wrapped_mint_authority.key != expected_authority {
+        msg!("Wrapped mint authority does not match the derived address");
+        return Err(ProgramError::IncorrectAuthority);
+    }
+
+    let expected_escrow = get_escrow_address(transfer_authority.key, unwrapped_mint.key);
+    if expected_escrow != *unwrapped_escrow.key {
+        msg!("Escrow address does not match the derived address");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    {
+        let escrow_data = unwrapped_escrow.try_borrow_data()?;
+        let escrow_account = spl_token::state::Account::unpack(&escrow_data)?;
+        if escrow_account.owner != expected_authority {
+            msg!("Unwrapped escrow token owner is not set to token-wrap program");
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+    }
+
+    // Transfer unwrapped tokens from user to escrow
+
+    let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
+    let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
+
+    invoke_signed(
+        &spl_token::instruction::transfer_checked(
+            unwrapped_token_program.key,
+            unwrapped_token_account.key,
+            unwrapped_mint.key,
+            unwrapped_escrow.key,
+            transfer_authority.key,
+            &[],
+            amount,
+            unwrapped_mint_state.base.decimals,
+        )?,
+        &[
+            unwrapped_token_account.clone(),
+            unwrapped_mint.clone(),
+            unwrapped_escrow.clone(),
+            transfer_authority.clone(),
+        ],
+        &[],
+    )?;
+
+    // Mint wrapped tokens to recipient
+
+    let bump = get_wrapped_mint_authority_with_seed(wrapped_mint.key).1;
+    let bump_seed = [bump];
+    let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
+
+    invoke_signed(
+        &spl_token_2022::instruction::mint_to(
+            wrapped_token_program.key,
+            wrapped_mint.key,
+            recipient_wrapped_token_account.key,
+            wrapped_mint_authority.key,
+            &[],
+            amount,
+        )?,
+        &[
+            wrapped_mint.clone(),
+            recipient_wrapped_token_account.clone(),
+            wrapped_mint_authority.clone(),
+        ],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -175,9 +280,9 @@ pub fn process_instruction(
             msg!("Instruction: CreateMint");
             process_create_mint(program_id, accounts, idempotent)
         }
-        TokenWrapInstruction::Wrap { .. } => {
+        TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");
-            unimplemented!();
+            process_wrap(program_id, accounts, amount)
         }
         TokenWrapInstruction::Unwrap { .. } => {
             msg!("Instruction: Unwrap");

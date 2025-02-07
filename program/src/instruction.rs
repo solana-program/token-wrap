@@ -19,10 +19,10 @@ pub enum TokenWrapInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[writeable]` Unallocated wrapped mint account to create (PDA),
+    /// 0. `[w]` Unallocated wrapped mint account to create (PDA),
     ///    address must be: `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
-    /// 1. `[writeable]` Unallocated wrapped backpointer account to create (PDA)
+    /// 1. `[w]` Unallocated wrapped backpointer account to create (PDA)
     ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
     /// 2. `[]` Existing unwrapped mint
     /// 3. `[]` System program
@@ -40,18 +40,20 @@ pub enum TokenWrapInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[writeable]` Unwrapped token account to wrap
-    /// 1. `[writeable]` Escrow of unwrapped tokens, must be owned by:
+    /// 0. `[s]` Transfer authority on unwrapped token account
+    /// 1. `[w]` Escrow of unwrapped tokens, must be owned by:
+    /// 2. `[w]` Unwrapped token account to wrap
     ///    `get_wrapped_mint_authority(wrapped_mint_address)`
-    /// 2. `[]` Unwrapped token mint
-    /// 3. `[writeable]` Wrapped mint, must be initialized, address must be:
+    /// 3. `[w]` Recipient wrapped token account
+    /// 4. `[w]` Wrapped mint, must be initialized, address must be:
     ///    `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
-    /// 4. `[writeable]` Recipient wrapped token account
     /// 5. `[]` SPL Token program for unwrapped mint
     /// 6. `[]` SPL Token program for wrapped mint
-    /// 7. `[signer]` Transfer authority on unwrapped token account
-    /// 8. `..8+M` `[signer]` (Optional) M multisig signers on unwrapped token
+    /// 7. `[]` Unwrapped token mint
+    /// 8. `[]` Wrapped mint authority, address must be:
+    ///    `get_wrapped_mint_authority(wrapped_mint)`
+    /// 9. `..8+M` `[s]` (Optional) M multisig signers on unwrapped token
     ///    account
     Wrap {
         /// little-endian `u64` representing the amount to wrap
@@ -156,31 +158,30 @@ pub fn create_mint(
 #[allow(clippy::too_many_arguments)]
 pub fn wrap(
     program_id: &Pubkey,
-    unwrapped_token_account_address: &Pubkey,
+    transfer_authority_address: &Pubkey,
     unwrapped_escrow_address: &Pubkey,
-    unwrapped_mint_address: &Pubkey,
-    wrapped_mint_address: &Pubkey,
+    unwrapped_token_account_address: &Pubkey,
     recipient_wrapped_token_account_address: &Pubkey,
+    wrapped_mint_address: &Pubkey,
     unwrapped_token_program_id: &Pubkey,
     wrapped_token_program_id: &Pubkey,
-    transfer_authority_address: &Pubkey,
-    multisig_signer_pubkeys: &[&Pubkey],
+    unwrapped_mint_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
+    signer_pubkeys: &[&Pubkey],
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
-        AccountMeta::new(*unwrapped_token_account_address, false),
+        AccountMeta::new_readonly(*transfer_authority_address, true),
         AccountMeta::new(*unwrapped_escrow_address, false),
-        AccountMeta::new_readonly(*unwrapped_mint_address, false),
-        AccountMeta::new(*wrapped_mint_address, false),
+        AccountMeta::new(*unwrapped_token_account_address, false),
         AccountMeta::new(*recipient_wrapped_token_account_address, false),
+        AccountMeta::new(*wrapped_mint_address, false),
         AccountMeta::new_readonly(*unwrapped_token_program_id, false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
-        AccountMeta::new_readonly(
-            *transfer_authority_address,
-            multisig_signer_pubkeys.is_empty(),
-        ),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
     ];
-    for signer_pubkey in multisig_signer_pubkeys.iter() {
+    for signer_pubkey in signer_pubkeys.iter() {
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
     }
 

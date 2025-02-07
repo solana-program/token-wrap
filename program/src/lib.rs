@@ -61,7 +61,7 @@ pub(crate) fn get_wrapped_mint_authority_seeds(wrapped_mint: &Pubkey) -> [&[u8];
     [WRAPPED_MINT_AUTHORITY_SEED, wrapped_mint.as_ref()]
 }
 
-pub(crate) fn _get_wrapped_mint_authority_signer_seeds<'a>(
+pub(crate) fn get_wrapped_mint_authority_signer_seeds<'a>(
     wrapped_mint: &'a Pubkey,
     bump_seed: &'a [u8],
 ) -> [&'a [u8]; 3] {
@@ -110,4 +110,38 @@ pub(crate) fn get_wrapped_mint_backpointer_address_with_seed(
 /// Derive the SPL Token wrapped mint backpointer address
 pub fn get_wrapped_mint_backpointer_address(wrapped_mint: &Pubkey) -> Pubkey {
     get_wrapped_mint_backpointer_address_with_seed(wrapped_mint).0
+}
+
+const ESCROW_SEED: &[u8] = br"escrow";
+
+pub(crate) fn get_escrow_address_seeds<'a>(
+    authority: &'a Pubkey,
+    unwrapped_mint: &'a Pubkey,
+) -> [&'a [u8]; 3] {
+    [ESCROW_SEED, authority.as_ref(), unwrapped_mint.as_ref()]
+}
+
+pub(crate) fn _get_escrow_address_signer_seeds<'a>(
+    authority: &'a Pubkey,
+    unwrapped_mint: &'a Pubkey,
+    bump_seed: &'a [u8],
+) -> [&'a [u8]; 4] {
+    [
+        ESCROW_SEED,
+        authority.as_ref(),
+        unwrapped_mint.as_ref(),
+        bump_seed,
+    ]
+}
+
+pub(crate) fn get_escrow_address_with_seed(
+    authority: &Pubkey,
+    unwrapped_mint: &Pubkey,
+) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&get_escrow_address_seeds(authority, unwrapped_mint), &id())
+}
+
+/// Derive the escrow address for a user's unwrapped tokens
+pub fn get_escrow_address(authority: &Pubkey, unwrapped_mint: &Pubkey) -> Pubkey {
+    get_escrow_address_with_seed(authority, unwrapped_mint).0
 }
