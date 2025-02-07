@@ -1,22 +1,27 @@
-use mollusk_svm::result::Check;
-use mollusk_svm::Mollusk;
-use solana_account::Account;
-use solana_program::system_program;
-use solana_program_option::COption;
-use solana_program_pack::Pack;
-use solana_pubkey::Pubkey;
-use solana_rent::Rent;
-use spl_pod::optional_keys::OptionalNonZeroPubkey;
-use spl_pod::primitives::{PodBool, PodU64};
-use spl_token_2022::extension::mint_close_authority::MintCloseAuthority;
-use spl_token_2022::extension::{
-    BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
+use {
+    mollusk_svm::{result::Check, Mollusk},
+    solana_account::Account,
+    solana_program::system_program,
+    solana_program_option::COption,
+    solana_program_pack::Pack,
+    solana_pubkey::Pubkey,
+    solana_rent::Rent,
+    spl_pod::{
+        optional_keys::OptionalNonZeroPubkey,
+        primitives::{PodBool, PodU64},
+    },
+    spl_token_2022::{
+        extension::{
+            mint_close_authority::MintCloseAuthority, BaseStateWithExtensionsMut, ExtensionType,
+            PodStateWithExtensionsMut,
+        },
+        pod::{PodCOption, PodMint},
+    },
+    spl_token_wrap::{
+        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
+    },
+    std::convert::TryFrom,
 };
-use spl_token_2022::pod::{PodCOption, PodMint};
-use spl_token_wrap::{
-    get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
-};
-use std::convert::TryFrom;
 
 pub const MINT_DECIMALS: u8 = 12;
 pub const MINT_SUPPLY: u64 = 500_000_000;
@@ -30,12 +35,15 @@ pub struct CreateMintResult {
 }
 
 #[derive(Debug, Clone)]
+#[cfg(test)]
 pub struct KeyedAccount {
     pub key: Pubkey,
     pub account: Account,
 }
 
+#[cfg(test)]
 impl KeyedAccount {
+    #[cfg(test)]
     pub fn pair(&self) -> (Pubkey, Account) {
         (self.key, self.account.clone())
     }
@@ -106,11 +114,6 @@ impl<'a> MintBuilder<'a> {
 
     pub fn unwrapped_mint_addr(mut self, key: Pubkey) -> Self {
         self.unwrapped_mint_addr = Some(key);
-        self
-    }
-
-    pub fn unwrapped_mint_account(mut self, account: Account) -> Self {
-        self.unwrapped_mint_account = Some(account);
         self
     }
 

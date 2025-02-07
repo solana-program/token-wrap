@@ -19,8 +19,8 @@ pub enum TokenWrapInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Unallocated wrapped mint account to create (PDA),
-    ///    address must be: `get_wrapped_mint_address(unwrapped_mint_address,
+    /// 0. `[w]` Unallocated wrapped mint account to create (PDA), address must
+    ///    be: `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
     /// 1. `[w]` Unallocated wrapped backpointer account to create (PDA)
     ///    `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
@@ -167,7 +167,7 @@ pub fn wrap(
     wrapped_token_program_id: &Pubkey,
     unwrapped_mint_address: &Pubkey,
     wrapped_mint_authority_address: &Pubkey,
-    signer_pubkeys: &[&Pubkey],
+    multisig_signer_pubkeys: &[&Pubkey],
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
@@ -181,7 +181,7 @@ pub fn wrap(
         AccountMeta::new_readonly(*unwrapped_mint_address, false),
         AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
     ];
-    for signer_pubkey in signer_pubkeys.iter() {
+    for signer_pubkey in multisig_signer_pubkeys.iter() {
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
     }
 

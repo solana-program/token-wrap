@@ -1,6 +1,6 @@
-use crate::helpers::mint_builder::MintBuilder;
-use helpers::mint_builder::{TokenProgram, FREEZE_AUTHORITY, MINT_DECIMALS};
 use {
+    crate::helpers::mint_builder::MintBuilder,
+    helpers::mint_builder::{TokenProgram, FREEZE_AUTHORITY, MINT_DECIMALS},
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
     solana_program_error::ProgramError,
@@ -12,7 +12,7 @@ use {
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, state::Backpointer},
 };
 
-mod helpers;
+pub mod helpers;
 
 #[test]
 fn test_idempotency_false_with_existing_account() {

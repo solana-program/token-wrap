@@ -1,13 +1,10 @@
 //! Program state processor
 
-use crate::{
-    get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority_signer_seeds,
-    get_wrapped_mint_authority_with_seed,
-};
 use {
     crate::{
-        get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
-        get_wrapped_mint_backpointer_address_signer_seeds,
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
+        get_wrapped_mint_authority, get_wrapped_mint_authority_signer_seeds,
+        get_wrapped_mint_authority_with_seed, get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction, state::Backpointer,
     },
@@ -222,9 +219,8 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
 
     let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
     let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-
     invoke_signed(
-        &spl_token::instruction::transfer_checked(
+        &spl_token_2022::instruction::transfer_checked(
             unwrapped_token_program.key,
             unwrapped_token_account.key,
             unwrapped_mint.key,
@@ -244,7 +240,6 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     )?;
 
     // Mint wrapped tokens to recipient
-
     let bump = get_wrapped_mint_authority_with_seed(wrapped_mint.key).1;
     let bump_seed = [bump];
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
