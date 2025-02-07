@@ -64,11 +64,11 @@ pub fn process_create_mint(
         }
         if wrapped_mint_account.owner != wrapped_token_program_account.key {
             msg!("Wrapped mint account owner is not the expected token program");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(ProgramError::InvalidAccountOwner);
         }
         if wrapped_backpointer_account.owner != program_id {
             msg!("Wrapped backpointer account owner is not the expected token wrap program");
-            return Err(ProgramError::InvalidAccountData);
+            return Err(ProgramError::InvalidAccountOwner);
         }
         return Ok(());
     }
@@ -90,7 +90,7 @@ pub fn process_create_mint(
             "Error: wrapped_mint_account requires pre-funding of {} lamports",
             mint_rent_required
         );
-        return Err(ProgramError::InsufficientFunds);
+        return Err(ProgramError::AccountNotRentExempt);
     }
 
     // Initialize the wrapped mint
@@ -180,7 +180,7 @@ pub fn process_instruction(
             unimplemented!();
         }
         TokenWrapInstruction::Unwrap { .. } => {
-            msg!("Instruction: UnWrap");
+            msg!("Instruction: Unwrap");
             unimplemented!();
         }
     }

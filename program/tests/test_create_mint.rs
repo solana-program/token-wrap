@@ -192,7 +192,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
     mollusk.process_and_validate_instruction(
         &instruction,
         accounts,
-        &[Check::err(ProgramError::InvalidAccountData)],
+        &[Check::err(ProgramError::InvalidAccountOwner)],
     );
 
     // Incorrect owner on wrapped backpointer account
@@ -226,7 +226,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
     mollusk.process_and_validate_instruction(
         &instruction,
         accounts,
-        &[Check::err(ProgramError::InvalidAccountData)],
+        &[Check::err(ProgramError::InvalidAccountOwner)],
     );
 }
 
@@ -273,7 +273,7 @@ fn test_create_mint_insufficient_funds() {
     mollusk.process_and_validate_instruction(
         &instruction,
         accounts,
-        &[Check::err(ProgramError::InsufficientFunds)],
+        &[Check::err(ProgramError::AccountNotRentExempt)],
     );
 }
 
