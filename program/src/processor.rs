@@ -174,15 +174,15 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
 
     let account_info_iter = &mut accounts.iter();
 
-    let transfer_authority = next_account_info(account_info_iter)?;
     let unwrapped_escrow = next_account_info(account_info_iter)?;
     let unwrapped_token_account = next_account_info(account_info_iter)?;
     let recipient_wrapped_token_account = next_account_info(account_info_iter)?;
     let wrapped_mint = next_account_info(account_info_iter)?;
-    let unwrapped_token_program = next_account_info(account_info_iter)?;
-    let wrapped_token_program = next_account_info(account_info_iter)?;
     let unwrapped_mint = next_account_info(account_info_iter)?;
     let wrapped_mint_authority = next_account_info(account_info_iter)?;
+    let unwrapped_token_program = next_account_info(account_info_iter)?;
+    let wrapped_token_program = next_account_info(account_info_iter)?;
+    let transfer_authority = next_account_info(account_info_iter)?;
     let _signer_accounts = account_info_iter.as_slice();
 
     // Validate accounts
@@ -191,7 +191,7 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
         get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
     if expected_wrapped_mint != *wrapped_mint.key {
         msg!("Wrapped mint address does not match the derived address");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(ProgramError::InvalidArgument);
     }
 
     let expected_authority = get_wrapped_mint_authority(wrapped_mint.key);
@@ -211,7 +211,7 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
         let escrow_account = spl_token::state::Account::unpack(&escrow_data)?;
         if escrow_account.owner != expected_authority {
             msg!("Unwrapped escrow token owner is not set to token-wrap program");
-            return Err(ProgramError::InvalidAccountOwner);
+            return Err(ProgramError::IncorrectAuthority);
         }
     }
 

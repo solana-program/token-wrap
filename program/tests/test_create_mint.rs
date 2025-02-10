@@ -1,7 +1,10 @@
 use {
-    crate::helpers::mint_builder::MintBuilder,
-    helpers::mint_builder::{TokenProgram, FREEZE_AUTHORITY, MINT_DECIMALS},
-    mollusk_svm::{result::Check, Mollusk},
+    crate::helpers::{
+        common::{FREEZE_AUTHORITY, MINT_DECIMALS},
+        mint_builder::MintBuilder,
+    },
+    helpers::mint_builder::TokenProgram,
+    mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,
     solana_program_pack::Pack,
@@ -16,23 +19,19 @@ pub mod helpers;
 
 #[test]
 fn test_idempotency_false_with_existing_account() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     let account_with_data = Account {
         data: vec![1; 10],
         ..Account::default()
     };
 
     // Test case 1: mint already exists
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .wrapped_mint_account(account_with_data.clone())
         .check(Check::err(ProgramError::AccountAlreadyInitialized))
         .execute();
 
     // Test case 2: backpointer already exists
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .backpointer_account(account_with_data)
         .check(Check::err(ProgramError::AccountAlreadyInitialized))
         .execute();
@@ -40,10 +39,6 @@ fn test_idempotency_false_with_existing_account() {
 
 #[test]
 fn test_idempotency_true_with_existing_valid_account() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     // Simulating existing data on mint or backpointer
     let mint_account_with_data = Account {
         data: vec![1; 10],
@@ -51,12 +46,12 @@ fn test_idempotency_true_with_existing_valid_account() {
         ..Account::default()
     };
     let backpointer_account_with_data = Account {
-        owner: program_id,
+        owner: spl_token_wrap::id(),
         ..Account::default()
     };
 
     // idempotent: true causes these to return successfully
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
         .backpointer_account(backpointer_account_with_data)
@@ -65,10 +60,6 @@ fn test_idempotency_true_with_existing_valid_account() {
 
 #[test]
 fn test_idempotency_true_with_existing_invalid_accounts() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     // Incorrectly wrapped mint account owner
 
     let mint_account_with_data = Account {
@@ -77,7 +68,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         ..Account::default()
     };
 
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
         .check(Check::err(ProgramError::InvalidAccountOwner))
@@ -87,7 +78,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
 
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: program_id,
+        owner: spl_token_wrap::id(),
         ..Account::default()
     };
 
@@ -97,7 +88,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         ..Account::default()
     };
 
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
         .backpointer_account(backpointer_account_with_data)
@@ -107,10 +98,6 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
 
 #[test]
 fn test_create_mint_insufficient_funds() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     // Calculate minimum rent for Mint account
     let rent = Rent::default(); // Using default rent for test
     let space = Mint::get_packed_len();
@@ -123,7 +110,7 @@ fn test_create_mint_insufficient_funds() {
         ..Account::default()
     };
 
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .wrapped_mint_account(wrapped_mint_account_insufficent_funds)
         .check(Check::err(ProgramError::AccountNotRentExempt))
         .execute();
@@ -131,10 +118,6 @@ fn test_create_mint_insufficient_funds() {
 
 #[test]
 fn test_create_mint_backpointer_insufficient_funds() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     // Calculate minimum rent for Backpointer account
     let rent = Rent::default(); // Using default rent for test
     let backpointer_space = std::mem::size_of::<Backpointer>();
@@ -147,7 +130,7 @@ fn test_create_mint_backpointer_insufficient_funds() {
         ..Account::default()
     };
 
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .backpointer_account(wrapped_backpointer_account_insufficent_funds)
         .check(Check::err(ProgramError::InsufficientFunds))
         .execute();
@@ -155,14 +138,10 @@ fn test_create_mint_backpointer_insufficient_funds() {
 
 #[test]
 fn test_improperly_derived_addresses_fail() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
     // Incorrectly derived wrapped mint address
 
     let incorrect_wrapped_mint_addr = Pubkey::new_unique();
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .wrapped_mint_addr(incorrect_wrapped_mint_addr)
         .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
@@ -170,7 +149,7 @@ fn test_improperly_derived_addresses_fail() {
     // Incorrectly derived backpointer address
 
     let incorrect_backpointer = Pubkey::new_unique();
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .backpointer_addr(incorrect_backpointer)
         .check(Check::err(ProgramError::InvalidSeeds))
         .execute();
@@ -178,7 +157,7 @@ fn test_improperly_derived_addresses_fail() {
     // Incorrect token program address passed
 
     let incorrect_token_program = Pubkey::new_unique();
-    MintBuilder::new(&mut mollusk)
+    MintBuilder::default()
         .token_program_addr(incorrect_token_program)
         .check(Check::err(ProgramError::IncorrectProgramId))
         .execute();
@@ -186,11 +165,7 @@ fn test_improperly_derived_addresses_fail() {
 
 #[test]
 fn test_successful_spl_token_to_token_2022() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
-
-    let result = MintBuilder::new(&mut mollusk)
+    let result = MintBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
         .wrapped_token_program(TokenProgram::Token2022)
         .execute();
@@ -214,7 +189,10 @@ fn test_successful_spl_token_to_token_2022() {
 
     // Assert state of resulting backpointer account
 
-    assert_eq!(result.wrapped_backpointer.account.owner, program_id);
+    assert_eq!(
+        result.wrapped_backpointer.account.owner,
+        spl_token_wrap::id()
+    );
     let backpointer =
         bytemuck::from_bytes::<Backpointer>(&result.wrapped_backpointer.account.data[..]);
     assert_eq!(backpointer.unwrapped_mint, result.unwrapped_mint.key);
@@ -222,16 +200,12 @@ fn test_successful_spl_token_to_token_2022() {
 
 #[test]
 fn test_successful_token_2022_to_spl_token() {
-    let program_id = spl_token_wrap::id();
-    let mut mollusk = Mollusk::new(&program_id, "spl_token_wrap");
-    mollusk_svm_programs_token::token::add_program(&mut mollusk);
-
     let unwrapped_mint_address = Pubkey::new_unique();
     let wrapped_token_program_id = spl_token::id();
     let wrapped_mint_address =
         get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program_id);
 
-    let result = MintBuilder::new(&mut mollusk)
+    let result = MintBuilder::default()
         .unwrapped_mint_addr(unwrapped_mint_address)
         .unwrapped_token_program(TokenProgram::Token2022)
         .wrapped_mint_addr(wrapped_mint_address)
@@ -268,7 +242,10 @@ fn test_successful_token_2022_to_spl_token() {
 
     // Assert state of resulting backpointer account
 
-    assert_eq!(result.wrapped_backpointer.account.owner, program_id);
+    assert_eq!(
+        result.wrapped_backpointer.account.owner,
+        spl_token_wrap::id()
+    );
 
     let backpointer =
         bytemuck::from_bytes::<Backpointer>(&result.wrapped_backpointer.account.data[..]);

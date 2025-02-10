@@ -1,32 +1,13 @@
 use {
+    crate::helpers::common::{init_mollusk, setup_mint},
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
     solana_program::system_program,
-    solana_program_option::COption,
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    solana_rent::Rent,
-    spl_pod::{
-        optional_keys::OptionalNonZeroPubkey,
-        primitives::{PodBool, PodU64},
-    },
-    spl_token_2022::{
-        extension::{
-            mint_close_authority::MintCloseAuthority, BaseStateWithExtensionsMut, ExtensionType,
-            PodStateWithExtensionsMut,
-        },
-        pod::{PodCOption, PodMint},
-    },
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
-    std::convert::TryFrom,
 };
-
-pub const MINT_DECIMALS: u8 = 12;
-pub const MINT_SUPPLY: u64 = 500_000_000;
-pub const FREEZE_AUTHORITY: Pubkey =
-    Pubkey::from_str_const("11111115q4EpJaTXAZWpCg3J2zppWGSZ46KXozzo9");
 
 pub struct CreateMintResult {
     pub unwrapped_mint: KeyedAccount,
@@ -62,10 +43,17 @@ impl TokenProgram {
             TokenProgram::Token2022 => spl_token_2022::id(),
         }
     }
+
+    pub fn keyed_account(&self) -> (Pubkey, Account) {
+        match self {
+            TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
+            TokenProgram::Token2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+        }
+    }
 }
 
 pub struct MintBuilder<'a> {
-    mollusk: &'a mut Mollusk,
+    mollusk: Mollusk,
     wrapped_token_program: TokenProgram,
     wrapped_token_program_addr: Option<Pubkey>,
     unwrapped_mint_addr: Option<Pubkey>,
@@ -79,10 +67,10 @@ pub struct MintBuilder<'a> {
     checks: Vec<Check<'a>>,
 }
 
-impl<'a> MintBuilder<'a> {
-    pub fn new(mollusk: &'a mut Mollusk) -> Self {
+impl<'a> Default for MintBuilder<'a> {
+    fn default() -> Self {
         Self {
-            mollusk,
+            mollusk: init_mollusk(),
             wrapped_token_program: TokenProgram::Token2022,
             wrapped_token_program_addr: None,
             unwrapped_mint_addr: None,
@@ -96,7 +84,9 @@ impl<'a> MintBuilder<'a> {
             checks: vec![],
         }
     }
+}
 
+impl<'a> MintBuilder<'a> {
     pub fn wrapped_token_program(mut self, program: TokenProgram) -> Self {
         self.wrapped_token_program = program;
         self
@@ -146,63 +136,19 @@ impl<'a> MintBuilder<'a> {
         self
     }
 
-    fn token_2022_with_extension_data(&self) -> Vec<u8> {
-        let mint_size = ExtensionType::try_calculate_account_len::<PodMint>(&[
-            ExtensionType::MintCloseAuthority,
-        ])
-        .unwrap();
-        let mut buffer = vec![0; mint_size];
-        let mut state =
-            PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut buffer).unwrap();
-        state.base.decimals = MINT_DECIMALS;
-        state.base.is_initialized = PodBool::from_bool(true);
-        state.base.supply = PodU64::from(MINT_SUPPLY);
-        state.base.freeze_authority = PodCOption::from(COption::Some(FREEZE_AUTHORITY));
-        state.init_account_type().unwrap();
-
-        let extension = state.init_extension::<MintCloseAuthority>(true).unwrap();
-        let close_authority =
-            OptionalNonZeroPubkey::try_from(Some(Pubkey::new_from_array([1; 32]))).unwrap();
-        extension.close_authority = close_authority;
-
-        buffer
-    }
-
-    // Spl_token and token_2022 are the same account structure except for owner
-    fn setup_mint(&self, rent: &Rent) -> Account {
-        let state = spl_token::state::Mint {
-            decimals: MINT_DECIMALS,
-            is_initialized: true,
-            supply: MINT_SUPPLY,
-            freeze_authority: COption::Some(FREEZE_AUTHORITY),
-            ..Default::default()
-        };
-        let mut data = match self.unwrapped_token_program {
-            TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-            TokenProgram::Token2022 => self.token_2022_with_extension_data(),
-        };
-        state.pack_into_slice(&mut data);
-
-        let lamports = rent.minimum_balance(data.len());
-
-        Account {
-            lamports,
-            data,
-            owner: self.unwrapped_token_program.id(),
-            ..Default::default()
-        }
-    }
-
     pub fn execute(mut self) -> CreateMintResult {
         let unwrapped_mint_addr = self.unwrapped_mint_addr.unwrap_or_else(Pubkey::new_unique);
         let wrapped_token_program_id = self
             .wrapped_token_program_addr
             .unwrap_or_else(|| self.wrapped_token_program.id());
 
-        let unwrapped_mint_account = self
-            .unwrapped_mint_account
-            .clone()
-            .unwrap_or_else(|| self.setup_mint(&self.mollusk.sysvars.rent));
+        let unwrapped_mint_account = self.unwrapped_mint_account.clone().unwrap_or_else(|| {
+            setup_mint(
+                self.unwrapped_token_program,
+                &self.mollusk.sysvars.rent,
+                Pubkey::new_unique(),
+            )
+        });
 
         let wrapped_mint_addr = self.wrapped_mint_addr.unwrap_or_else(|| {
             get_wrapped_mint_address(&unwrapped_mint_addr, &wrapped_token_program_id)
