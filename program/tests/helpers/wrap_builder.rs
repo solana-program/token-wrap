@@ -185,7 +185,7 @@ impl<'a> WrapBuilder<'a> {
 
         let wrapped_token_program = self
             .wrapped_token_program
-            .unwrap_or(TokenProgram::Token2022);
+            .unwrap_or(TokenProgram::SplToken2022);
 
         let wrapped_mint = self
             .wrapped_mint

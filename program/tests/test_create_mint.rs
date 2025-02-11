@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{FREEZE_AUTHORITY, MINT_DECIMALS},
-        mint_builder::MintBuilder,
+        mint_builder::CreateMintBuilder,
     },
     helpers::mint_builder::TokenProgram,
     mollusk_svm::result::Check,
@@ -12,7 +12,10 @@ use {
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{extension::PodStateWithExtensions, pod::PodMint, state::Mint},
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, state::Backpointer},
+    spl_token_wrap::{
+        error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
+        state::Backpointer,
+    },
 };
 
 pub mod helpers;
@@ -25,13 +28,13 @@ fn test_idempotency_false_with_existing_account() {
     };
 
     // Test case 1: mint already exists
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .wrapped_mint_account(account_with_data.clone())
         .check(Check::err(ProgramError::AccountAlreadyInitialized))
         .execute();
 
     // Test case 2: backpointer already exists
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .backpointer_account(account_with_data)
         .check(Check::err(ProgramError::AccountAlreadyInitialized))
         .execute();
@@ -51,7 +54,7 @@ fn test_idempotency_true_with_existing_valid_account() {
     };
 
     // idempotent: true causes these to return successfully
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
         .backpointer_account(backpointer_account_with_data)
@@ -68,17 +71,17 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         ..Account::default()
     };
 
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
-        .check(Check::err(ProgramError::InvalidAccountOwner))
+        .check(Check::err(TokenWrapError::InvalidWrappedMintOwner.into()))
         .execute();
 
     // Incorrect owner on wrapped backpointer account
 
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: spl_token_wrap::id(),
+        owner: spl_token_2022::id(),
         ..Account::default()
     };
 
@@ -88,11 +91,11 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
         ..Account::default()
     };
 
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .idempotent()
         .wrapped_mint_account(mint_account_with_data)
         .backpointer_account(backpointer_account_with_data)
-        .check(Check::err(ProgramError::InvalidAccountOwner))
+        .check(Check::err(TokenWrapError::InvalidBackpointerOwner.into()))
         .execute();
 }
 
@@ -110,7 +113,7 @@ fn test_create_mint_insufficient_funds() {
         ..Account::default()
     };
 
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .wrapped_mint_account(wrapped_mint_account_insufficent_funds)
         .check(Check::err(ProgramError::AccountNotRentExempt))
         .execute();
@@ -130,9 +133,9 @@ fn test_create_mint_backpointer_insufficient_funds() {
         ..Account::default()
     };
 
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .backpointer_account(wrapped_backpointer_account_insufficent_funds)
-        .check(Check::err(ProgramError::InsufficientFunds))
+        .check(Check::err(ProgramError::AccountNotRentExempt))
         .execute();
 }
 
@@ -141,33 +144,33 @@ fn test_improperly_derived_addresses_fail() {
     // Incorrectly derived wrapped mint address
 
     let incorrect_wrapped_mint_addr = Pubkey::new_unique();
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .wrapped_mint_addr(incorrect_wrapped_mint_addr)
-        .check(Check::err(ProgramError::InvalidAccountData))
+        .check(Check::err(TokenWrapError::WrappedMintMismatch.into()))
         .execute();
 
     // Incorrectly derived backpointer address
 
     let incorrect_backpointer = Pubkey::new_unique();
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .backpointer_addr(incorrect_backpointer)
-        .check(Check::err(ProgramError::InvalidSeeds))
+        .check(Check::err(TokenWrapError::BackpointerMismatch.into()))
         .execute();
 
     // Incorrect token program address passed
 
     let incorrect_token_program = Pubkey::new_unique();
-    MintBuilder::default()
+    CreateMintBuilder::default()
         .token_program_addr(incorrect_token_program)
         .check(Check::err(ProgramError::IncorrectProgramId))
         .execute();
 }
 
 #[test]
-fn test_successful_spl_token_to_token_2022() {
-    let result = MintBuilder::default()
+fn test_successful_spl_token_to_spl_token_2022() {
+    let result = CreateMintBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::Token2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
         .execute();
 
     // Assert state of resulting wrapped mint account
@@ -199,15 +202,15 @@ fn test_successful_spl_token_to_token_2022() {
 }
 
 #[test]
-fn test_successful_token_2022_to_spl_token() {
+fn test_successful_spl_token_2022_to_spl_token() {
     let unwrapped_mint_address = Pubkey::new_unique();
     let wrapped_token_program_id = spl_token::id();
     let wrapped_mint_address =
         get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program_id);
 
-    let result = MintBuilder::default()
+    let result = CreateMintBuilder::default()
         .unwrapped_mint_addr(unwrapped_mint_address)
-        .unwrapped_token_program(TokenProgram::Token2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_mint_addr(wrapped_mint_address)
         .wrapped_token_program(TokenProgram::SplToken)
         .execute();

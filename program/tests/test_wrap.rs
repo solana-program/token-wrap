@@ -1,6 +1,6 @@
 use {
     crate::helpers::{
-        mint_builder::{KeyedAccount, MintBuilder, TokenProgram},
+        mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         wrap_builder::{WrapBuilder, WrapResult},
     },
     mollusk_svm::result::Check,
@@ -8,6 +8,7 @@ use {
     solana_program_error::ProgramError,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
+    spl_token_wrap::error::TokenWrapError,
 };
 
 pub mod helpers;
@@ -16,13 +17,13 @@ pub mod helpers;
 fn test_zero_amount_wrap() {
     WrapBuilder::default()
         .wrap_amount(0)
-        .check(Check::err(ProgramError::InvalidArgument))
+        .check(Check::err(TokenWrapError::ZeroWrapAmount.into()))
         .execute();
 }
 
 #[test]
 fn test_incorrect_wrapped_mint_address() {
-    let mint_result = MintBuilder::default().execute();
+    let mint_result = CreateMintBuilder::default().execute();
 
     let incorrect_wrapped_mint = KeyedAccount {
         key: Pubkey::new_unique(), // Wrong mint address
@@ -31,7 +32,7 @@ fn test_incorrect_wrapped_mint_address() {
 
     WrapBuilder::default()
         .wrapped_mint(incorrect_wrapped_mint)
-        .check(Check::err(ProgramError::InvalidArgument))
+        .check(Check::err(TokenWrapError::WrappedMintMismatch.into()))
         .execute();
 }
 
@@ -40,16 +41,7 @@ fn test_incorrect_wrapped_mint_authority() {
     let incorrect_authority = Pubkey::new_unique();
     WrapBuilder::default()
         .wrapped_mint_authority(incorrect_authority)
-        .check(Check::err(ProgramError::IncorrectAuthority))
-        .execute();
-}
-
-#[test]
-fn test_incorrect_escrow_address() {
-    let incorrect_escrow_addr = Pubkey::new_unique();
-    WrapBuilder::default()
-        .unwrapped_escrow_addr(incorrect_escrow_addr)
-        .check(Check::err(ProgramError::InvalidAccountData))
+        .check(Check::err(TokenWrapError::MintAuthorityMismatch.into()))
         .execute();
 }
 
@@ -58,7 +50,7 @@ fn test_incorrect_escrow_owner() {
     let incorrect_escrow_owner = Pubkey::new_unique();
     WrapBuilder::default()
         .unwrapped_escrow_owner(incorrect_escrow_owner)
-        .check(Check::err(ProgramError::IncorrectAuthority))
+        .check(Check::err(TokenWrapError::EscrowOwnerMismatch.into()))
         .execute();
 }
 
@@ -125,7 +117,7 @@ fn test_successful_spl_token_wrap() {
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::Token2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -134,12 +126,12 @@ fn test_successful_spl_token_wrap() {
 }
 
 #[test]
-fn test_successful_token_2022_to_spl_token_wrap() {
+fn test_successful_spl_token_2022_to_spl_token_wrap() {
     let starting_amount = 64_532;
     let wrap_amount = 7_543;
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::Token2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_program(TokenProgram::SplToken)
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
@@ -149,13 +141,13 @@ fn test_successful_token_2022_to_spl_token_wrap() {
 }
 
 #[test]
-fn test_successful_token_2022_to_token_2022() {
+fn test_successful_spl_token_2022_to_token_2022() {
     let starting_amount = 345;
     let wrap_amount = 599;
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::Token2022)
-        .wrapped_token_program(TokenProgram::Token2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();

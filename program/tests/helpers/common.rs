@@ -12,8 +12,8 @@ use {
     },
     spl_token_2022::{
         extension::{
-            mint_close_authority::MintCloseAuthority, BaseStateWithExtensionsMut, ExtensionType,
-            PodStateWithExtensionsMut,
+            mint_close_authority::MintCloseAuthority, transfer_fee::TransferFeeConfig,
+            BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
         },
         pod::{PodCOption, PodMint},
     },
@@ -33,9 +33,11 @@ pub const FREEZE_AUTHORITY: Pubkey =
     Pubkey::from_str_const("11111115q4EpJaTXAZWpCg3J2zppWGSZ46KXozzo9");
 
 fn token_2022_with_extension_data(supply: u64) -> Vec<u8> {
-    let mint_size =
-        ExtensionType::try_calculate_account_len::<PodMint>(&[ExtensionType::MintCloseAuthority])
-            .unwrap();
+    let mint_size = ExtensionType::try_calculate_account_len::<PodMint>(&[
+        ExtensionType::MintCloseAuthority,
+        ExtensionType::TransferFeeConfig,
+    ])
+    .unwrap();
     let mut buffer = vec![0; mint_size];
     let mut state =
         PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut buffer).unwrap();
@@ -45,15 +47,25 @@ fn token_2022_with_extension_data(supply: u64) -> Vec<u8> {
     state.base.freeze_authority = PodCOption::from(COption::Some(FREEZE_AUTHORITY));
     state.init_account_type().unwrap();
 
-    let extension = state.init_extension::<MintCloseAuthority>(true).unwrap();
-    let close_authority =
-        OptionalNonZeroPubkey::try_from(Some(Pubkey::new_from_array([1; 32]))).unwrap();
+    // Initialize MintCloseAuthority extension
+    let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
+    let close_authority = OptionalNonZeroPubkey::try_from(Some(Pubkey::new_unique())).unwrap();
     extension.close_authority = close_authority;
+
+    // Initialize TransferFeeConfig extension
+    let transfer_fee_ext = state.init_extension::<TransferFeeConfig>(false).unwrap();
+    let transfer_fee_config_authority = Pubkey::new_unique();
+    let withdraw_withheld_authority = Pubkey::new_unique();
+    transfer_fee_ext.transfer_fee_config_authority =
+        OptionalNonZeroPubkey::try_from(Some(transfer_fee_config_authority)).unwrap();
+    transfer_fee_ext.withdraw_withheld_authority =
+        OptionalNonZeroPubkey::try_from(Some(withdraw_withheld_authority)).unwrap();
+    transfer_fee_ext.withheld_amount = PodU64::from(0);
 
     buffer
 }
 
-// Spl_token and token_2022 are the same account structure except for owner
+// spl_token and spl_token_2022 are the same account structure except for owner
 pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubkey) -> Account {
     let state = spl_token::state::Mint {
         decimals: MINT_DECIMALS,
@@ -64,7 +76,7 @@ pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubk
     };
     let mut data = match token_program {
         TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-        TokenProgram::Token2022 => token_2022_with_extension_data(MINT_SUPPLY),
+        TokenProgram::SplToken2022 => token_2022_with_extension_data(MINT_SUPPLY),
     };
     state.pack_into_slice(&mut data);
 

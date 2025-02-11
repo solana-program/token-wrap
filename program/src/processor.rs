@@ -2,7 +2,7 @@
 
 use {
     crate::{
-        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
+        error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
         get_wrapped_mint_authority, get_wrapped_mint_authority_signer_seeds,
         get_wrapped_mint_authority_with_seed, get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
@@ -18,7 +18,9 @@ use {
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
     spl_token_2022::{
-        extension::PodStateWithExtensions, instruction::initialize_mint2, pod::PodMint,
+        extension::PodStateWithExtensions,
+        instruction::initialize_mint2,
+        pod::{PodAccount, PodMint},
     },
 };
 
@@ -47,13 +49,11 @@ pub fn process_create_mint(
     // PDA derivation validation
 
     if *wrapped_mint_account.key != wrapped_mint_address {
-        msg!("Wrapped mint account address does not match expected PDA");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(TokenWrapError::WrappedMintMismatch.log_into());
     }
 
     if *wrapped_backpointer_account.key != wrapped_backpointer_address {
-        msg!("Error: wrapped_backpointer_account address is not as expected");
-        return Err(ProgramError::InvalidSeeds);
+        return Err(TokenWrapError::BackpointerMismatch.log_into());
     }
 
     // Idempotency checks
@@ -64,12 +64,10 @@ pub fn process_create_mint(
             return Err(ProgramError::AccountAlreadyInitialized);
         }
         if wrapped_mint_account.owner != wrapped_token_program_account.key {
-            msg!("Wrapped mint account owner is not the expected token program");
-            return Err(ProgramError::InvalidAccountOwner);
+            return Err(TokenWrapError::InvalidWrappedMintOwner.log_into());
         }
         if wrapped_backpointer_account.owner != program_id {
-            msg!("Wrapped backpointer account owner is not the expected token wrap program");
-            return Err(ProgramError::InvalidAccountOwner);
+            return Err(TokenWrapError::InvalidBackpointerOwner.log_into());
         }
         return Ok(());
     }
@@ -139,7 +137,7 @@ pub fn process_create_mint(
             "Error: wrapped_backpointer_account requires pre-funding of {} lamports",
             backpointer_rent_required
         );
-        return Err(ProgramError::InsufficientFunds);
+        return Err(ProgramError::AccountNotRentExempt);
     }
 
     let bump_seed = [backpointer_bump];
@@ -168,8 +166,7 @@ pub fn process_create_mint(
 /// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
 pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     if amount == 0 {
-        msg!("Wrap amount should be positive");
-        return Err(ProgramError::InvalidArgument);
+        return Err(TokenWrapError::ZeroWrapAmount.log_into());
     }
 
     let account_info_iter = &mut accounts.iter();
@@ -190,28 +187,19 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     let expected_wrapped_mint =
         get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
     if expected_wrapped_mint != *wrapped_mint.key {
-        msg!("Wrapped mint address does not match the derived address");
-        return Err(ProgramError::InvalidArgument);
+        return Err(TokenWrapError::WrappedMintMismatch.log_into());
     }
 
-    let expected_authority = get_wrapped_mint_authority(wrapped_mint.key);
+    let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
     if *wrapped_mint_authority.key != expected_authority {
-        msg!("Wrapped mint authority does not match the derived address");
-        return Err(ProgramError::IncorrectAuthority);
-    }
-
-    let expected_escrow = get_escrow_address(transfer_authority.key, unwrapped_mint.key);
-    if expected_escrow != *unwrapped_escrow.key {
-        msg!("Escrow address does not match the derived address");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(TokenWrapError::MintAuthorityMismatch.log_into());
     }
 
     {
         let escrow_data = unwrapped_escrow.try_borrow_data()?;
-        let escrow_account = spl_token::state::Account::unpack(&escrow_data)?;
-        if escrow_account.owner != expected_authority {
-            msg!("Unwrapped escrow token owner is not set to token-wrap program");
-            return Err(ProgramError::IncorrectAuthority);
+        let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
+        if escrow_account.base.owner != expected_authority {
+            return Err(TokenWrapError::EscrowOwnerMismatch.log_into());
         }
     }
 
@@ -240,7 +228,6 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     )?;
 
     // Mint wrapped tokens to recipient
-    let bump = get_wrapped_mint_authority_with_seed(wrapped_mint.key).1;
     let bump_seed = [bump];
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 

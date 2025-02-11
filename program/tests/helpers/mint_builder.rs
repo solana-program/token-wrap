@@ -16,15 +16,12 @@ pub struct CreateMintResult {
 }
 
 #[derive(Debug, Clone)]
-#[cfg(test)]
 pub struct KeyedAccount {
     pub key: Pubkey,
     pub account: Account,
 }
 
-#[cfg(test)]
 impl KeyedAccount {
-    #[cfg(test)]
     pub fn pair(&self) -> (Pubkey, Account) {
         (self.key, self.account.clone())
     }
@@ -33,26 +30,26 @@ impl KeyedAccount {
 #[derive(Debug, Clone, Copy)]
 pub enum TokenProgram {
     SplToken,
-    Token2022,
+    SplToken2022,
 }
 
 impl TokenProgram {
     pub fn id(&self) -> Pubkey {
         match self {
             TokenProgram::SplToken => spl_token::id(),
-            TokenProgram::Token2022 => spl_token_2022::id(),
+            TokenProgram::SplToken2022 => spl_token_2022::id(),
         }
     }
 
     pub fn keyed_account(&self) -> (Pubkey, Account) {
         match self {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::Token2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
         }
     }
 }
 
-pub struct MintBuilder<'a> {
+pub struct CreateMintBuilder<'a> {
     mollusk: Mollusk,
     wrapped_token_program: TokenProgram,
     wrapped_token_program_addr: Option<Pubkey>,
@@ -67,11 +64,11 @@ pub struct MintBuilder<'a> {
     checks: Vec<Check<'a>>,
 }
 
-impl<'a> Default for MintBuilder<'a> {
+impl<'a> Default for CreateMintBuilder<'a> {
     fn default() -> Self {
         Self {
             mollusk: init_mollusk(),
-            wrapped_token_program: TokenProgram::Token2022,
+            wrapped_token_program: TokenProgram::SplToken2022,
             wrapped_token_program_addr: None,
             unwrapped_mint_addr: None,
             unwrapped_mint_account: None,
@@ -86,7 +83,7 @@ impl<'a> Default for MintBuilder<'a> {
     }
 }
 
-impl<'a> MintBuilder<'a> {
+impl<'a> CreateMintBuilder<'a> {
     pub fn wrapped_token_program(mut self, program: TokenProgram) -> Self {
         self.wrapped_token_program = program;
         self
@@ -179,7 +176,7 @@ impl<'a> MintBuilder<'a> {
 
         let mut keyed_token_program = match self.wrapped_token_program {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::Token2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
         };
         keyed_token_program.0 = wrapped_token_program_id;
 
