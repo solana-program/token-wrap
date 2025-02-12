@@ -1,5 +1,5 @@
 use {
-    crate::helpers::mint_builder::TokenProgram,
+    crate::helpers::create_mint_builder::TokenProgram,
     mollusk_svm::Mollusk,
     solana_account::Account,
     solana_program_option::COption,

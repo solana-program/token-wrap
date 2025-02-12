@@ -1,6 +1,7 @@
 use {
     crate::helpers::{
-        mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
+        common::MINT_SUPPLY,
+        create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         wrap_builder::{WrapBuilder, WrapResult},
     },
     mollusk_svm::result::Check,
@@ -8,6 +9,10 @@ use {
     solana_program_error::ProgramError,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
+    spl_token_2022::{
+        extension::PodStateWithExtensions,
+        pod::{PodAccount, PodMint},
+    },
     spl_token_wrap::error::TokenWrapError,
 };
 
@@ -66,19 +71,20 @@ fn assert_wrap_result(starting_amount: u64, wrap_amount: u64, wrap_result: &Wrap
     assert_eq!(unwrapped_token.amount, 0);
 
     // Verify wrapped tokens were minted to recipient
-    let recipient_token =
-        spl_token::state::Account::unpack(&wrap_result.recipient_wrapped_token.account.data)
-            .unwrap();
+    let recipient_token = PodStateWithExtensions::<PodAccount>::unpack(
+        &wrap_result.recipient_wrapped_token.account.data,
+    )
+    .unwrap();
     assert_eq!(
-        recipient_token.amount,
-        starting_amount.checked_add(wrap_amount).unwrap()
+        recipient_token.base.amount,
+        starting_amount.checked_add(wrap_amount).unwrap().into()
     );
-    assert_eq!(recipient_token.mint, wrap_result.wrapped_mint.key);
+    assert_eq!(recipient_token.base.mint, wrap_result.wrapped_mint.key);
 
-    // // Verify wrapped mint supply increased
-    // let wrapped_mint =
-    //     spl_token_2022::state::Mint::unpack(&wrap_result.wrapped_mint.
-    // account.data).unwrap(); assert_eq!(wrapped_mint.supply, wrap_amount);
+    // Verify wrapped mint supply increased
+    let mint =
+        PodStateWithExtensions::<PodMint>::unpack(&wrap_result.wrapped_mint.account.data).unwrap();
+    assert_eq!(u64::from(mint.base.supply), MINT_SUPPLY + wrap_amount);
 }
 
 #[test]

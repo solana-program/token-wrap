@@ -49,11 +49,11 @@ pub fn process_create_mint(
     // PDA derivation validation
 
     if *wrapped_mint_account.key != wrapped_mint_address {
-        return Err(TokenWrapError::WrappedMintMismatch.log_into());
+        Err(TokenWrapError::WrappedMintMismatch)?;
     }
 
     if *wrapped_backpointer_account.key != wrapped_backpointer_address {
-        return Err(TokenWrapError::BackpointerMismatch.log_into());
+        Err(TokenWrapError::BackpointerMismatch)?;
     }
 
     // Idempotency checks
@@ -64,10 +64,10 @@ pub fn process_create_mint(
             return Err(ProgramError::AccountAlreadyInitialized);
         }
         if wrapped_mint_account.owner != wrapped_token_program_account.key {
-            return Err(TokenWrapError::InvalidWrappedMintOwner.log_into());
+            Err(TokenWrapError::InvalidWrappedMintOwner)?;
         }
         if wrapped_backpointer_account.owner != program_id {
-            return Err(TokenWrapError::InvalidBackpointerOwner.log_into());
+            Err(TokenWrapError::InvalidBackpointerOwner)?;
         }
         return Ok(());
     }
@@ -166,7 +166,7 @@ pub fn process_create_mint(
 /// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
 pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     if amount == 0 {
-        return Err(TokenWrapError::ZeroWrapAmount.log_into());
+        Err(TokenWrapError::ZeroWrapAmount)?;
     }
 
     let account_info_iter = &mut accounts.iter();
@@ -187,19 +187,19 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     let expected_wrapped_mint =
         get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
     if expected_wrapped_mint != *wrapped_mint.key {
-        return Err(TokenWrapError::WrappedMintMismatch.log_into());
+        Err(TokenWrapError::WrappedMintMismatch)?;
     }
 
     let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
     if *wrapped_mint_authority.key != expected_authority {
-        return Err(TokenWrapError::MintAuthorityMismatch.log_into());
+        Err(TokenWrapError::MintAuthorityMismatch)?;
     }
 
     {
         let escrow_data = unwrapped_escrow.try_borrow_data()?;
         let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
         if escrow_account.base.owner != expected_authority {
-            return Err(TokenWrapError::EscrowOwnerMismatch.log_into());
+            Err(TokenWrapError::EscrowOwnerMismatch)?;
         }
     }
 

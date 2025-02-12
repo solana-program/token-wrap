@@ -1,3 +1,3 @@
 pub mod common;
-pub mod mint_builder;
+pub mod create_mint_builder;
 pub mod wrap_builder;

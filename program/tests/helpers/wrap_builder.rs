@@ -1,15 +1,20 @@
 use {
     crate::helpers::{
         common::{init_mollusk, setup_mint},
-        mint_builder::{KeyedAccount, TokenProgram},
+        create_mint_builder::{KeyedAccount, TokenProgram},
     },
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    spl_token_wrap::{
-        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
+    spl_token_2022::{
+        extension::{
+            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType,
+            PodStateWithExtensionsMut,
+        },
+        pod::{PodAccount, PodCOption},
     },
+    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
 };
 
 pub struct WrapBuilder<'a> {
@@ -118,27 +123,53 @@ impl<'a> WrapBuilder<'a> {
         })
     }
 
-    pub fn setup_token_account(&self, wrapped_mint: &KeyedAccount) -> KeyedAccount {
+    pub fn setup_token_account(
+        &self,
+        token_program: TokenProgram,
+        wrapped_mint: &KeyedAccount,
+    ) -> KeyedAccount {
         let recipient_addr = Pubkey::new_unique();
+
+        let extensions = match token_program {
+            TokenProgram::SplToken => vec![],
+            TokenProgram::SplToken2022 => vec![ExtensionType::TransferFeeAmount],
+        };
+
+        let account_size =
+            ExtensionType::try_calculate_account_len::<PodAccount>(&extensions).unwrap();
 
         let mut recipient_token_account = Account {
             lamports: 100_000_000,
             owner: wrapped_mint.account.owner,
-            data: vec![0; spl_token::state::Account::LEN],
+            data: vec![0; account_size],
             ..Default::default()
         };
-        let recipient_account_data = spl_token::state::Account {
+
+        let recipient_account_data = PodAccount {
             mint: wrapped_mint.key,
             owner: recipient_addr,
-            amount: self.recipient_starting_amount.unwrap_or(0),
-            delegate: None.into(),
-            state: spl_token::state::AccountState::Initialized,
-            is_native: None.into(),
-            delegated_amount: 0,
-            close_authority: None.into(),
+            amount: self.recipient_starting_amount.unwrap_or(0).into(),
+            delegate: PodCOption::none(),
+            state: spl_token_2022::state::AccountState::Initialized.into(),
+            is_native: PodCOption::none(),
+            delegated_amount: 0.into(),
+            close_authority: PodCOption::none(),
         };
-        spl_token::state::Account::pack(recipient_account_data, &mut recipient_token_account.data)
-            .unwrap();
+
+        let mut state = PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(
+            &mut recipient_token_account.data,
+        )
+        .unwrap();
+        *state.base = recipient_account_data;
+        state.init_account_type().unwrap();
+
+        // For SPL Token 2022, initialize the TransferFeeAmount extension
+        if let TokenProgram::SplToken2022 = token_program {
+            state.init_extension::<TransferFeeAmount>(true).unwrap();
+            let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
+            fee_extension.withheld_amount = 12.into();
+        }
+
         KeyedAccount {
             key: recipient_addr,
             account: recipient_token_account,
@@ -219,11 +250,11 @@ impl<'a> WrapBuilder<'a> {
         let recipient = self
             .recipient
             .clone()
-            .unwrap_or_else(|| self.setup_token_account(&wrapped_mint));
+            .unwrap_or_else(|| self.setup_token_account(wrapped_token_program, &wrapped_mint));
 
-        let unwrapped_escrow_address = self.unwrapped_escrow_addr.unwrap_or_else(|| {
-            get_escrow_address(&unwrapped_token_account_authority, &unwrapped_mint.key)
-        });
+        let unwrapped_escrow_address = self
+            .unwrapped_escrow_addr
+            .unwrap_or_else(Pubkey::new_unique);
 
         let instruction = wrap(
             &spl_token_wrap::id(),

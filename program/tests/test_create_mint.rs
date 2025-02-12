@@ -1,9 +1,9 @@
 use {
     crate::helpers::{
         common::{FREEZE_AUTHORITY, MINT_DECIMALS},
-        mint_builder::CreateMintBuilder,
+        create_mint_builder::CreateMintBuilder,
     },
-    helpers::mint_builder::TokenProgram,
+    helpers::create_mint_builder::TokenProgram,
     mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,

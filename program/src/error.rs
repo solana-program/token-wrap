@@ -27,8 +27,8 @@ pub enum TokenWrapError {
     /// Wrapped mint authority does not match expected PDA
     #[error("Wrapped mint authority does not match expected PDA")]
     MintAuthorityMismatch,
-    /// Unwrapped escrow token owner is not set to token-wrap program
-    #[error("Unwrapped escrow token owner is not set to token-wrap program")]
+    /// Unwrapped escrow token owner is not set to expected PDA
+    #[error("Unwrapped escrow token owner is not set to expected PDA")]
     EscrowOwnerMismatch,
 
     // 5
@@ -38,17 +38,6 @@ pub enum TokenWrapError {
     /// Wrapped backpointer account owner is not the expected token wrap program
     #[error("Wrapped backpointer account owner is not the expected token wrap program")]
     InvalidBackpointerOwner,
-}
-
-impl TokenWrapError {
-    /// Log the error and convert it into a `ProgramError`.
-    ///
-    /// Call this method in place of a standard conversion when you want to have
-    /// the custom error logged.
-    pub fn log_into(self) -> ProgramError {
-        self.print::<TokenWrapError>();
-        ProgramError::Custom(self as u32)
-    }
 }
 
 impl From<TokenWrapError> for ProgramError {
