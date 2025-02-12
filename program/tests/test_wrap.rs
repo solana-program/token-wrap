@@ -84,7 +84,10 @@ fn assert_wrap_result(starting_amount: u64, wrap_amount: u64, wrap_result: &Wrap
     // Verify wrapped mint supply increased
     let mint =
         PodStateWithExtensions::<PodMint>::unpack(&wrap_result.wrapped_mint.account.data).unwrap();
-    assert_eq!(u64::from(mint.base.supply), MINT_SUPPLY + wrap_amount);
+    assert_eq!(
+        u64::from(mint.base.supply),
+        MINT_SUPPLY.checked_add(wrap_amount).unwrap()
+    );
 }
 
 #[test]

@@ -64,7 +64,7 @@ pub struct CreateMintBuilder<'a> {
     checks: Vec<Check<'a>>,
 }
 
-impl<'a> Default for CreateMintBuilder<'a> {
+impl Default for CreateMintBuilder<'_> {
     fn default() -> Self {
         Self {
             mollusk: init_mollusk(),

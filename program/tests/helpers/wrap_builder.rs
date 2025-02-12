@@ -33,7 +33,7 @@ pub struct WrapBuilder<'a> {
     wrapped_token_program: Option<TokenProgram>,
 }
 
-impl<'a> Default for WrapBuilder<'a> {
+impl Default for WrapBuilder<'_> {
     fn default() -> Self {
         Self {
             mollusk: init_mollusk(),
