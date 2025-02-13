@@ -49,11 +49,11 @@ pub fn process_create_mint(
     // PDA derivation validation
 
     if *wrapped_mint_account.key != wrapped_mint_address {
-        Err(TokenWrapError::WrappedMintMismatch)?;
+        Err(TokenWrapError::WrappedMintMismatch)?
     }
 
     if *wrapped_backpointer_account.key != wrapped_backpointer_address {
-        Err(TokenWrapError::BackpointerMismatch)?;
+        Err(TokenWrapError::BackpointerMismatch)?
     }
 
     // Idempotency checks
@@ -61,13 +61,13 @@ pub fn process_create_mint(
     if wrapped_mint_account.data_len() > 0 || wrapped_backpointer_account.data_len() > 0 {
         msg!("Wrapped mint or backpointer account already initialized");
         if !idempotent {
-            return Err(ProgramError::AccountAlreadyInitialized);
+            Err(ProgramError::AccountAlreadyInitialized)?
         }
         if wrapped_mint_account.owner != wrapped_token_program_account.key {
-            Err(TokenWrapError::InvalidWrappedMintOwner)?;
+            Err(TokenWrapError::InvalidWrappedMintOwner)?
         }
         if wrapped_backpointer_account.owner != program_id {
-            Err(TokenWrapError::InvalidBackpointerOwner)?;
+            Err(TokenWrapError::InvalidBackpointerOwner)?
         }
         return Ok(());
     }
@@ -89,7 +89,7 @@ pub fn process_create_mint(
             "Error: wrapped_mint_account requires pre-funding of {} lamports",
             mint_rent_required
         );
-        return Err(ProgramError::AccountNotRentExempt);
+        Err(ProgramError::AccountNotRentExempt)?
     }
 
     // Initialize the wrapped mint
@@ -137,7 +137,7 @@ pub fn process_create_mint(
             "Error: wrapped_backpointer_account requires pre-funding of {} lamports",
             backpointer_rent_required
         );
-        return Err(ProgramError::AccountNotRentExempt);
+        Err(ProgramError::AccountNotRentExempt)?
     }
 
     let bump_seed = [backpointer_bump];
@@ -166,7 +166,7 @@ pub fn process_create_mint(
 /// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
 pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     if amount == 0 {
-        Err(TokenWrapError::ZeroWrapAmount)?;
+        Err(TokenWrapError::ZeroWrapAmount)?
     }
 
     let account_info_iter = &mut accounts.iter();
@@ -187,19 +187,19 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     let expected_wrapped_mint =
         get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
     if expected_wrapped_mint != *wrapped_mint.key {
-        Err(TokenWrapError::WrappedMintMismatch)?;
+        Err(TokenWrapError::WrappedMintMismatch)?
     }
 
     let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
     if *wrapped_mint_authority.key != expected_authority {
-        Err(TokenWrapError::MintAuthorityMismatch)?;
+        Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
     {
         let escrow_data = unwrapped_escrow.try_borrow_data()?;
         let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
         if escrow_account.base.owner != expected_authority {
-            Err(TokenWrapError::EscrowOwnerMismatch)?;
+            Err(TokenWrapError::EscrowOwnerMismatch)?
         }
     }
 

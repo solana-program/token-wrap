@@ -57,11 +57,6 @@ impl PrintProgramError for TokenWrapError {
     where
         E: 'static + Error + DecodeError<E> + PrintProgramError + num_traits::FromPrimitive,
     {
-        msg!(
-            "{error_type}: {variant:?} - {description}",
-            error_type = E::type_of(),
-            variant = self,
-            description = self
-        );
+        msg!(&self.to_string());
     }
 }
