@@ -17,6 +17,12 @@ use {
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct TransferAuthority {
+    pub keyed_account: KeyedAccount,
+    pub signers: Vec<Pubkey>,
+}
+
 pub struct WrapBuilder<'a> {
     mollusk: Mollusk,
     wrap_amount: Option<u64>,
@@ -31,6 +37,7 @@ pub struct WrapBuilder<'a> {
     unwrapped_escrow_account: Option<Account>,
     unwrapped_token_program: Option<TokenProgram>,
     wrapped_token_program: Option<TokenProgram>,
+    transfer_authority: Option<TransferAuthority>,
 }
 
 impl Default for WrapBuilder<'_> {
@@ -49,6 +56,7 @@ impl Default for WrapBuilder<'_> {
             unwrapped_escrow_account: None,
             unwrapped_token_program: None,
             wrapped_token_program: None,
+            transfer_authority: None,
         }
     }
 }
@@ -101,6 +109,11 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn recipient_starting_amount(mut self, amount: u64) -> Self {
         self.recipient_starting_amount = Some(amount);
+        self
+    }
+
+    pub fn transfer_authority(mut self, auth: TransferAuthority) -> Self {
+        self.transfer_authority = Some(auth);
         self
     }
 
@@ -178,7 +191,7 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn execute(mut self) -> WrapResult {
         let unwrapped_token_account_address = Pubkey::new_unique();
-        let unwrapped_token_account_authority = Pubkey::new_unique();
+        let unwrapped_token_account_authority = self.transfer_authority.clone().unwrap_or_default();
 
         let unwrapped_token_program = self
             .unwrapped_token_program
@@ -204,7 +217,7 @@ impl<'a> WrapBuilder<'a> {
 
         let token = spl_token::state::Account {
             mint: unwrapped_mint.key,
-            owner: unwrapped_token_account_authority,
+            owner: unwrapped_token_account_authority.keyed_account.key,
             amount: self.unwrapped_token_starting_amount.unwrap_or(wrap_amount),
             delegate: None.into(),
             state: spl_token::state::AccountState::Initialized,
@@ -258,34 +271,41 @@ impl<'a> WrapBuilder<'a> {
 
         let instruction = wrap(
             &spl_token_wrap::id(),
-            &unwrapped_escrow_address,
-            &unwrapped_token_account_address,
             &recipient.key,
             &wrapped_mint.key,
-            &unwrapped_mint.key,
             &wrapped_mint_authority,
             &unwrapped_token_program.id(),
             &wrapped_token_program.id(),
-            &unwrapped_token_account_authority,
-            &[],
+            &unwrapped_token_account_address,
+            &unwrapped_mint.key,
+            &unwrapped_escrow_address,
+            &unwrapped_token_account_authority.keyed_account.key,
+            &unwrapped_token_account_authority
+                .signers
+                .iter()
+                .collect::<Vec<_>>(),
             wrap_amount,
         );
 
-        let accounts = &[
+        let mut accounts = vec![
+            recipient.pair(),
+            wrapped_mint.pair(),
+            (wrapped_mint_authority, Account::default()),
+            unwrapped_token_program.keyed_account(),
+            wrapped_token_program.keyed_account(),
+            (unwrapped_token_account_address, unwrapped_token_account),
+            unwrapped_mint.pair(),
             (
                 unwrapped_escrow_address,
                 self.unwrapped_escrow_account
                     .unwrap_or(unwrapped_escrow_account),
             ),
-            (unwrapped_token_account_address, unwrapped_token_account),
-            recipient.pair(),
-            wrapped_mint.pair(),
-            unwrapped_mint.pair(),
-            (wrapped_mint_authority, Account::default()),
-            unwrapped_token_program.keyed_account(),
-            wrapped_token_program.keyed_account(),
-            (unwrapped_token_account_authority, Account::default()),
+            unwrapped_token_account_authority.keyed_account.pair(),
         ];
+
+        for signer_key in &unwrapped_token_account_authority.signers {
+            accounts.push((*signer_key, Account::default()));
+        }
 
         if self.checks.is_empty() {
             self.checks.push(Check::success());
@@ -293,7 +313,7 @@ impl<'a> WrapBuilder<'a> {
 
         let result =
             self.mollusk
-                .process_and_validate_instruction(&instruction, accounts, &self.checks);
+                .process_and_validate_instruction(&instruction, &accounts, &self.checks);
 
         WrapResult {
             unwrapped_token: KeyedAccount {

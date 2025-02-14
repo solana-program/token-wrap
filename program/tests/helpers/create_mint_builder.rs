@@ -15,7 +15,7 @@ pub struct CreateMintResult {
     pub wrapped_backpointer: KeyedAccount,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct KeyedAccount {
     pub key: Pubkey,
     pub account: Account,

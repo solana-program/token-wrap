@@ -40,19 +40,19 @@ pub enum TokenWrapInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Escrow of unwrapped tokens, must be owned by:
-    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
-    /// 1. `[w]` Unwrapped token account to wrap
-    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
-    /// 2. `[w]` Recipient wrapped token account
-    /// 3. `[w]` Wrapped mint, must be initialized, address must be:
+    /// 0. `[w]` Recipient wrapped token account
+    /// 1. `[w]` Wrapped mint, must be initialized, address must be:
     ///    `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
-    /// 4. `[]` Unwrapped token mint
-    /// 5. `[]` Wrapped mint authority, address must be:
+    /// 2. `[]` Wrapped mint authority, address must be:
     ///    `get_wrapped_mint_authority(wrapped_mint)`
-    /// 6. `[]` SPL Token program for unwrapped mint
-    /// 7. `[]` SPL Token program for wrapped mint
+    /// 3. `[]` SPL Token program for unwrapped mint
+    /// 4. `[]` SPL Token program for wrapped mint
+    /// 5. `[w]` Unwrapped token account to wrap
+    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
+    /// 6. `[]` Unwrapped token mint
+    /// 7. `[w]` Escrow of unwrapped tokens, must be owned by:
+    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
     /// 8. `[s]` Transfer authority on unwrapped token account. Not required to
     ///    be a signer if it's a multisig.
     /// 9. `..8+M` `[s]` (Optional) M multisig signers on unwrapped token
@@ -160,27 +160,27 @@ pub fn create_mint(
 #[allow(clippy::too_many_arguments)]
 pub fn wrap(
     program_id: &Pubkey,
-    unwrapped_escrow_address: &Pubkey,
-    unwrapped_token_account_address: &Pubkey,
     recipient_wrapped_token_account_address: &Pubkey,
     wrapped_mint_address: &Pubkey,
-    unwrapped_mint_address: &Pubkey,
     wrapped_mint_authority_address: &Pubkey,
     unwrapped_token_program_id: &Pubkey,
     wrapped_token_program_id: &Pubkey,
+    unwrapped_token_account_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    unwrapped_escrow_address: &Pubkey,
     transfer_authority_address: &Pubkey,
     multisig_signer_pubkeys: &[&Pubkey],
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
-        AccountMeta::new(*unwrapped_escrow_address, false),
-        AccountMeta::new(*unwrapped_token_account_address, false),
         AccountMeta::new(*recipient_wrapped_token_account_address, false),
         AccountMeta::new(*wrapped_mint_address, false),
-        AccountMeta::new_readonly(*unwrapped_mint_address, false),
         AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
         AccountMeta::new_readonly(*unwrapped_token_program_id, false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
+        AccountMeta::new(*unwrapped_token_account_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new(*unwrapped_escrow_address, false),
         AccountMeta::new_readonly(
             *transfer_authority_address,
             multisig_signer_pubkeys.is_empty(),
