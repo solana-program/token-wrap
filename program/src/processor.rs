@@ -164,7 +164,7 @@ pub fn process_create_mint(
 }
 
 /// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
-pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
+pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     if amount == 0 {
         Err(TokenWrapError::ZeroWrapAmount)?
     }
@@ -251,6 +251,95 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
     Ok(())
 }
 
+/// Processes [`Unwrap`](enum.TokenWrapInstruction.html) instruction.
+pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
+    if amount == 0 {
+        Err(TokenWrapError::ZeroWrapAmount)?
+    }
+
+    let account_info_iter = &mut accounts.iter();
+
+    let unwrapped_escrow = next_account_info(account_info_iter)?;
+    let recipient_unwrapped_token = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority = next_account_info(account_info_iter)?;
+    let unwrapped_mint = next_account_info(account_info_iter)?;
+    let wrapped_token_program = next_account_info(account_info_iter)?;
+    let unwrapped_token_program = next_account_info(account_info_iter)?;
+    let wrapped_token_account = next_account_info(account_info_iter)?;
+    let wrapped_mint = next_account_info(account_info_iter)?;
+    let transfer_authority = next_account_info(account_info_iter)?;
+    let multisig_signer_accounts = account_info_iter.as_slice();
+
+    // Validate accounts
+
+    let expected_wrapped_mint =
+        get_wrapped_mint_address(unwrapped_mint.key, wrapped_token_program.key);
+    if expected_wrapped_mint != *wrapped_mint.key {
+        Err(TokenWrapError::WrappedMintMismatch)?
+    }
+
+    let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
+    if *wrapped_mint_authority.key != expected_authority {
+        Err(TokenWrapError::MintAuthorityMismatch)?
+    }
+
+    {
+        let escrow_data = unwrapped_escrow.try_borrow_data()?;
+        let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
+        if escrow_account.base.owner != expected_authority {
+            Err(TokenWrapError::EscrowOwnerMismatch)?
+        }
+    }
+
+    // Burn wrapped tokens
+
+    let multisig_signer_pubkeys = multisig_signer_accounts
+        .iter()
+        .map(|account| account.key)
+        .collect::<Vec<_>>();
+
+    invoke(
+        &spl_token_2022::instruction::burn(
+            wrapped_token_program.key,
+            wrapped_token_account.key,
+            wrapped_mint.key,
+            transfer_authority.key,
+            &multisig_signer_pubkeys,
+            amount,
+        )?,
+        &accounts[6..],
+    )?;
+
+    // Transfer unwrapped tokens from escrow to recipient
+
+    let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
+    let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
+    let bump_seed = [bump];
+    let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
+
+    invoke_signed(
+        &spl_token_2022::instruction::transfer_checked(
+            unwrapped_token_program.key,
+            unwrapped_escrow.key,
+            unwrapped_mint.key,
+            recipient_unwrapped_token.key,
+            wrapped_mint_authority.key,
+            &[],
+            amount,
+            unwrapped_mint_state.base.decimals,
+        )?,
+        &[
+            unwrapped_escrow.clone(),
+            unwrapped_mint.clone(),
+            recipient_unwrapped_token.clone(),
+            wrapped_mint_authority.clone(),
+        ],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -264,11 +353,11 @@ pub fn process_instruction(
         }
         TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");
-            process_wrap(program_id, accounts, amount)
+            process_wrap(accounts, amount)
         }
-        TokenWrapInstruction::Unwrap { .. } => {
+        TokenWrapInstruction::Unwrap { amount } => {
             msg!("Instruction: Unwrap");
-            unimplemented!();
+            process_unwrap(accounts, amount)
         }
     }
 }
