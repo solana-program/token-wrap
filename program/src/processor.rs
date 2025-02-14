@@ -171,16 +171,16 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
 
     let account_info_iter = &mut accounts.iter();
 
-    let unwrapped_escrow = next_account_info(account_info_iter)?;
-    let unwrapped_token_account = next_account_info(account_info_iter)?;
     let recipient_wrapped_token_account = next_account_info(account_info_iter)?;
     let wrapped_mint = next_account_info(account_info_iter)?;
-    let unwrapped_mint = next_account_info(account_info_iter)?;
     let wrapped_mint_authority = next_account_info(account_info_iter)?;
     let unwrapped_token_program = next_account_info(account_info_iter)?;
     let wrapped_token_program = next_account_info(account_info_iter)?;
+    let unwrapped_token_account = next_account_info(account_info_iter)?;
+    let unwrapped_mint = next_account_info(account_info_iter)?;
+    let unwrapped_escrow = next_account_info(account_info_iter)?;
     let transfer_authority = next_account_info(account_info_iter)?;
-    let _signer_accounts = account_info_iter.as_slice();
+    let multisig_signer_accounts = account_info_iter.as_slice();
 
     // Validate accounts
 
@@ -207,24 +207,24 @@ pub fn process_wrap(_program_id: &Pubkey, accounts: &[AccountInfo], amount: u64)
 
     let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
     let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-    invoke_signed(
+
+    let multisig_signer_pubkeys = multisig_signer_accounts
+        .iter()
+        .map(|account| account.key)
+        .collect::<Vec<_>>();
+
+    invoke(
         &spl_token_2022::instruction::transfer_checked(
             unwrapped_token_program.key,
             unwrapped_token_account.key,
             unwrapped_mint.key,
             unwrapped_escrow.key,
             transfer_authority.key,
-            &[],
+            &multisig_signer_pubkeys,
             amount,
             unwrapped_mint_state.base.decimals,
         )?,
-        &[
-            unwrapped_token_account.clone(),
-            unwrapped_mint.clone(),
-            unwrapped_escrow.clone(),
-            transfer_authority.clone(),
-        ],
-        &[],
+        &accounts[5..],
     )?;
 
     // Mint wrapped tokens to recipient

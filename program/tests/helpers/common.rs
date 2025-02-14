@@ -1,5 +1,8 @@
 use {
-    crate::helpers::create_mint_builder::TokenProgram,
+    crate::helpers::{
+        create_mint_builder::{KeyedAccount, TokenProgram},
+        wrap_builder::TransferAuthority,
+    },
     mollusk_svm::Mollusk,
     solana_account::Account,
     solana_program_option::COption,
@@ -87,5 +90,46 @@ pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubk
         data,
         owner: token_program.id(),
         ..Default::default()
+    }
+}
+
+pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
+    let multisig_key = Pubkey::new_unique();
+    let signer0_key = Pubkey::new_unique();
+    let signer1_key = Pubkey::new_unique();
+    let signer2_key = Pubkey::new_unique();
+
+    let mut multisig_account = Account {
+        lamports: 100_000_000,
+        owner: program.id(),
+        data: vec![0; spl_token_2022::state::Multisig::LEN],
+        ..Account::default()
+    };
+
+    let multisig_state = spl_token_2022::state::Multisig {
+        m: 2,
+        n: 3,
+        is_initialized: true,
+        signers: [
+            signer0_key,
+            signer1_key,
+            signer2_key,
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
+        ],
+    };
+    spl_token_2022::state::Multisig::pack(multisig_state, &mut multisig_account.data).unwrap();
+    TransferAuthority {
+        keyed_account: KeyedAccount {
+            key: multisig_key,
+            account: multisig_account,
+        },
+        signers: vec![signer0_key, signer1_key, signer2_key],
     }
 }

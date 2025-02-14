@@ -1,6 +1,6 @@
 use {
     crate::helpers::{
-        common::MINT_SUPPLY,
+        common::{setup_multisig, MINT_SUPPLY},
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         wrap_builder::{WrapBuilder, WrapResult},
     },
@@ -157,6 +157,37 @@ fn test_successful_spl_token_2022_to_token_2022() {
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_program(TokenProgram::SplToken2022)
+        .recipient_starting_amount(starting_amount)
+        .wrap_amount(wrap_amount)
+        .execute();
+
+    assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+}
+
+#[test]
+fn test_wrap_with_spl_token_multisig() {
+    let starting_amount = 500_000;
+    let wrap_amount = 8_000;
+    let multisig = setup_multisig(TokenProgram::SplToken);
+
+    let wrap_result = WrapBuilder::default()
+        .transfer_authority(multisig)
+        .recipient_starting_amount(starting_amount)
+        .wrap_amount(wrap_amount)
+        .execute();
+
+    assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+}
+
+#[test]
+fn test_wrap_with_token_2022_multisig() {
+    let starting_amount = 10_000;
+    let wrap_amount = 252;
+    let multisig = setup_multisig(TokenProgram::SplToken2022);
+
+    let wrap_result = WrapBuilder::default()
+        .transfer_authority(multisig)
+        .unwrapped_token_program(TokenProgram::SplToken2022)
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
