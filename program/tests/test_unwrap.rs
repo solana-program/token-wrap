@@ -49,22 +49,11 @@ fn test_incorrect_wrapped_mint_authority() {
 }
 
 #[test]
-fn test_incorrect_escrow_owner() {
-    let incorrect_escrow_owner = Pubkey::new_unique();
-    UnwrapBuilder::default()
-        .unwrapped_escrow_owner(incorrect_escrow_owner)
-        .check(Check::err(TokenWrapError::EscrowOwnerMismatch.into()))
-        .execute();
-}
-
-#[test]
 fn test_unwrap_amount_exceeds_unwrappers_balance() {
     let wrapped_balance = 1_000;
     let unwrap_amount = 42_000;
 
     UnwrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_starting_amount(wrapped_balance)
         .unwrap_amount(unwrap_amount)
         .check(Check::err(TokenError::InsufficientFunds.into()))
@@ -72,6 +61,7 @@ fn test_unwrap_amount_exceeds_unwrappers_balance() {
 }
 
 fn assert_unwrap_result(
+    source_starting_amount: u64,
     recipient_starting_amount: u64,
     escrow_starting_amount: u64,
     unwrap_amount: u64,
@@ -82,7 +72,13 @@ fn assert_unwrap_result(
         &unwrap_result.wrapped_token_account.account.data,
     )
     .unwrap();
-    assert_eq!(wrapped_token.base.amount, 0.into());
+    assert_eq!(
+        wrapped_token.base.amount,
+        source_starting_amount
+            .checked_sub(unwrap_amount)
+            .unwrap()
+            .into()
+    );
 
     // Verify wrapped mint supply decreased
     let mint = PodStateWithExtensions::<PodMint>::unpack(&unwrap_result.wrapped_mint.account.data)
@@ -116,11 +112,13 @@ fn assert_unwrap_result(
 
 #[test]
 fn test_successful_spl_token_2022_to_spl_token_unwrap() {
+    let source_starting_amount = 50_000;
     let recipient_starting_amount = 50_000;
     let escrow_starting_amount = 150_000;
     let unwrap_amount = 12_555;
 
     let wrap_result = UnwrapBuilder::default()
+        .wrapped_token_starting_amount(source_starting_amount)
         .unwrapped_token_program(TokenProgram::SplToken)
         .wrapped_token_program(TokenProgram::SplToken2022)
         .escrow_starting_amount(escrow_starting_amount)
@@ -130,6 +128,7 @@ fn test_successful_spl_token_2022_to_spl_token_unwrap() {
         .execute();
 
     assert_unwrap_result(
+        source_starting_amount,
         recipient_starting_amount,
         escrow_starting_amount,
         unwrap_amount,
@@ -139,6 +138,7 @@ fn test_successful_spl_token_2022_to_spl_token_unwrap() {
 
 #[test]
 fn test_successful_spl_token_to_spl_token_2022_unwrap() {
+    let source_starting_amount = 50_000;
     let recipient_starting_amount = 25_000;
     let escrow_starting_amount = 42_000;
     let unwrap_amount = 40_000;
@@ -147,12 +147,14 @@ fn test_successful_spl_token_to_spl_token_2022_unwrap() {
         .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_program(TokenProgram::SplToken)
         .escrow_starting_amount(escrow_starting_amount)
+        .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .unwrap_amount(unwrap_amount)
         .check(Check::success())
         .execute();
 
     assert_unwrap_result(
+        source_starting_amount,
         recipient_starting_amount,
         escrow_starting_amount,
         unwrap_amount,
@@ -162,6 +164,7 @@ fn test_successful_spl_token_to_spl_token_2022_unwrap() {
 
 #[test]
 fn test_successful_token_2022_to_token_2022_unwrap() {
+    let source_starting_amount = 150_000;
     let recipient_starting_amount = 0;
     let escrow_starting_amount = 100_000;
     let unwrap_amount = 100_000;
@@ -170,12 +173,14 @@ fn test_successful_token_2022_to_token_2022_unwrap() {
         .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_program(TokenProgram::SplToken2022)
         .escrow_starting_amount(escrow_starting_amount)
+        .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .unwrap_amount(unwrap_amount)
         .check(Check::success())
         .execute();
 
     assert_unwrap_result(
+        source_starting_amount,
         recipient_starting_amount,
         escrow_starting_amount,
         unwrap_amount,
@@ -187,6 +192,7 @@ fn test_successful_token_2022_to_token_2022_unwrap() {
 fn test_unwrap_with_spl_token_multisig() {
     let multisig = setup_multisig(TokenProgram::SplToken);
 
+    let source_starting_amount = 100_000;
     let recipient_starting_amount = 0;
     let escrow_starting_amount = 100_000;
     let unwrap_amount = 100_000;
@@ -196,12 +202,14 @@ fn test_unwrap_with_spl_token_multisig() {
         .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_token_program(TokenProgram::SplToken)
         .escrow_starting_amount(escrow_starting_amount)
+        .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .unwrap_amount(unwrap_amount)
         .check(Check::success())
         .execute();
 
     assert_unwrap_result(
+        source_starting_amount,
         recipient_starting_amount,
         escrow_starting_amount,
         unwrap_amount,
@@ -213,6 +221,7 @@ fn test_unwrap_with_spl_token_multisig() {
 fn test_unwrap_with_spl_token_2022_multisig() {
     let multisig = setup_multisig(TokenProgram::SplToken2022);
 
+    let source_starting_amount = 101;
     let recipient_starting_amount = 101;
     let escrow_starting_amount = 202;
     let unwrap_amount = 101;
@@ -222,12 +231,14 @@ fn test_unwrap_with_spl_token_2022_multisig() {
         .unwrapped_token_program(TokenProgram::SplToken)
         .wrapped_token_program(TokenProgram::SplToken2022)
         .escrow_starting_amount(escrow_starting_amount)
+        .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .unwrap_amount(unwrap_amount)
         .check(Check::success())
         .execute();
 
     assert_unwrap_result(
+        source_starting_amount,
         recipient_starting_amount,
         escrow_starting_amount,
         unwrap_amount,

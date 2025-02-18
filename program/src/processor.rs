@@ -283,14 +283,6 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
-    {
-        let escrow_data = unwrapped_escrow.try_borrow_data()?;
-        let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
-        if escrow_account.base.owner != expected_authority {
-            Err(TokenWrapError::EscrowOwnerMismatch)?
-        }
-    }
-
     // Burn wrapped tokens
 
     let multisig_signer_pubkeys = multisig_signer_accounts
