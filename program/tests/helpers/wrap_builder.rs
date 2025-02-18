@@ -29,6 +29,7 @@ pub struct WrapBuilder<'a> {
     recipient: Option<KeyedAccount>,
     checks: Vec<Check<'a>>,
     wrapped_mint: Option<KeyedAccount>,
+    unwrapped_mint: Option<KeyedAccount>,
     unwrapped_escrow_addr: Option<Pubkey>,
     wrapped_mint_authority: Option<Pubkey>,
     unwrapped_escrow_owner: Option<Pubkey>,
@@ -48,6 +49,7 @@ impl Default for WrapBuilder<'_> {
             recipient: None,
             checks: vec![],
             wrapped_mint: None,
+            unwrapped_mint: None,
             unwrapped_escrow_addr: None,
             wrapped_mint_authority: None,
             unwrapped_escrow_owner: None,
@@ -69,6 +71,11 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn unwrapped_token_starting_amount(mut self, amount: u64) -> Self {
         self.unwrapped_token_starting_amount = Some(amount);
+        self
+    }
+
+    pub fn unwrapped_mint(mut self, account: KeyedAccount) -> Self {
+        self.unwrapped_mint = Some(account);
         self
     }
 
@@ -197,14 +204,14 @@ impl<'a> WrapBuilder<'a> {
             .unwrapped_token_program
             .unwrap_or(TokenProgram::SplToken);
 
-        let unwrapped_mint = KeyedAccount {
+        let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
             key: Pubkey::new_unique(),
             account: setup_mint(
                 unwrapped_token_program,
                 &self.mollusk.sysvars.rent,
                 Pubkey::new_unique(),
             ),
-        };
+        });
 
         let mut unwrapped_token_account = Account {
             lamports: 100_000_000,

@@ -1,5 +1,7 @@
 //! Program state processor
 
+use spl_transfer_hook_interface::get_extra_account_metas_address;
+use spl_transfer_hook_interface::instruction::execute_with_extra_account_metas;
 use {
     crate::{
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
@@ -180,7 +182,24 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let unwrapped_mint = next_account_info(account_info_iter)?;
     let unwrapped_escrow = next_account_info(account_info_iter)?;
     let transfer_authority = next_account_info(account_info_iter)?;
-    let multisig_signer_accounts = account_info_iter.as_slice();
+
+    // The remaining accounts can include:
+    //  - Optional multisig signers for the transfer authority, and
+    //  - Transfer hook extra validation accounts.
+    let remaining_accounts = account_info_iter.as_slice();
+    // --- Account Splitting: Divide remaining accounts into multisig signers and transfer hook accounts ---
+    let mut multisig_signers = Vec::new();
+    let mut transfer_hook_accounts = Vec::new();
+
+    // For example, any account flagged as a signer we treat as a multisig signer.
+    // The remaining ones may be used in the transfer hook CPI.
+    for acct in remaining_accounts.iter() {
+        if acct.is_signer {
+            multisig_signers.push(acct.clone());
+        } else {
+            transfer_hook_accounts.push(acct.clone());
+        }
+    }
 
     // Validate accounts
 
@@ -203,15 +222,52 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         }
     }
 
-    // Transfer unwrapped tokens from user to escrow
+    if !transfer_hook_accounts.is_empty() {
+        // Find the transfer hook validation state account, which is expected when hooks are configured
+        let validation_state_pubkey =
+            get_extra_account_metas_address(unwrapped_mint.key, unwrapped_token_program.key);
+
+        // Build the hook CPI instruction.
+        let hook_instruction = execute_with_extra_account_metas(
+            unwrapped_token_program.key, // Hook program ID (if unwrapped token program is also the hook program)
+            unwrapped_token_account.key, // Source token account
+            unwrapped_mint.key,          // Unwrapped mint
+            unwrapped_escrow.key,        // Destination: escrow account
+            transfer_authority.key,      // Transfer authority
+            &validation_state_pubkey,    // PDA holding extra hook configuration
+            &[],                         // Provide extra AccountMeta if needed
+            amount,
+        );
+
+        // Construct an account list for hook CPI.
+        // Make sure the first element is the hook validation state account.
+        // (If multiple accounts are provided, ensure they’re in the order expected by the hook program.)
+        let mut hook_account_infos: Vec<AccountInfo> = vec![
+            unwrapped_token_account.clone(),
+            unwrapped_mint.clone(),
+            unwrapped_escrow.clone(),
+            transfer_authority.clone(),
+            // Use the first non-signer account as the validation state account.
+            transfer_hook_accounts.first().cloned().unwrap(),
+        ];
+        hook_account_infos.extend(transfer_hook_accounts);
+        hook_account_infos.extend(multisig_signers.clone());
+
+        msg!("Invoking transfer hook CPI call...");
+        invoke(&hook_instruction, &hook_account_infos)?;
+    } else {
+        msg!("No transfer hook accounts provided, skipping hook CPI call.");
+    }
+
+    let multisig_signer_pubkeys = multisig_signers
+        .iter()
+        .map(|account| account.key)
+        .collect::<Vec<_>>();
 
     let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
     let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
 
-    let multisig_signer_pubkeys = multisig_signer_accounts
-        .iter()
-        .map(|account| account.key)
-        .collect::<Vec<_>>();
+    // Transfer unwrapped tokens from user to escrow
 
     invoke(
         &spl_token_2022::instruction::transfer_checked(

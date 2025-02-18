@@ -1,3 +1,12 @@
+use crate::helpers::common::MINT_DECIMALS;
+use mollusk_svm::Mollusk;
+use solana_program_option::COption;
+use spl_pod::optional_keys::OptionalNonZeroPubkey;
+use spl_token_2022::extension::transfer_hook::TransferHook;
+use spl_token_2022::extension::{
+    BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
+};
+use spl_token_2022::state::Mint;
 use {
     crate::helpers::{
         common::{setup_multisig, MINT_SUPPLY},
@@ -192,5 +201,75 @@ fn test_wrap_with_token_2022_multisig() {
         .wrap_amount(wrap_amount)
         .execute();
 
+    assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+}
+
+#[test]
+fn test_wrap_with_transfer_hook() {
+    std::env::set_var("SBF_OUT_DIR", "../target/deploy");
+
+    let hook_program_id = test_transfer_hook::id();
+
+    let mut mollusk = Mollusk::default();
+    mollusk.add_program(
+        &hook_program_id,
+        "test_transfer_hook",
+        &mollusk_svm::program::loader_keys::LOADER_V2,
+    );
+
+    // Create mint with transfer hook extension
+    let unwrapped_mint = {
+        let mint_authority = Pubkey::new_unique();
+        let space =
+            ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook])
+                .unwrap();
+
+        let mut account = Account {
+            lamports: 1_000_000,
+            owner: spl_token_2022::id(),
+            data: vec![0; space],
+            ..Account::default()
+        };
+
+        let mut state =
+            StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut account.data).unwrap();
+        state.init_extension::<TransferHook>(true).unwrap();
+
+        // Set our hook program as the transfer hook
+        let extension = state.get_extension_mut::<TransferHook>().unwrap();
+        extension.program_id = OptionalNonZeroPubkey(Pubkey::new_unique());
+
+        state.base = Mint {
+            mint_authority: COption::Some(mint_authority),
+            supply: MINT_SUPPLY,
+            decimals: MINT_DECIMALS,
+            is_initialized: true,
+            freeze_authority: COption::None,
+        };
+        state.pack_base();
+
+        KeyedAccount {
+            key: Pubkey::new_unique(),
+            account,
+        }
+    };
+
+    // Now execute the wrap operation
+    let starting_amount = 50_000;
+    let wrap_amount = 12_555;
+
+    let wrap_result = WrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .recipient_starting_amount(starting_amount)
+        .wrap_amount(wrap_amount)
+        .unwrapped_mint(unwrapped_mint)
+        // .add_extra_account(KeyedAccount {
+        //     key: ??,
+        //     account: ??,
+        // })
+        .execute();
+
+    // Verify results
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 }
