@@ -39,6 +39,7 @@ pub struct WrapBuilder<'a> {
     unwrapped_token_program: Option<TokenProgram>,
     wrapped_token_program: Option<TokenProgram>,
     transfer_authority: Option<TransferAuthority>,
+    extra_accounts: Vec<KeyedAccount>,
 }
 
 impl Default for WrapBuilder<'_> {
@@ -59,6 +60,7 @@ impl Default for WrapBuilder<'_> {
             unwrapped_token_program: None,
             wrapped_token_program: None,
             transfer_authority: None,
+            extra_accounts: vec![],
         }
     }
 }
@@ -121,6 +123,11 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn transfer_authority(mut self, auth: TransferAuthority) -> Self {
         self.transfer_authority = Some(auth);
+        self
+    }
+
+    pub fn add_extra_account(mut self, keyed_account: KeyedAccount) -> Self {
+        self.extra_accounts.push(keyed_account);
         self
     }
 
@@ -291,6 +298,11 @@ impl<'a> WrapBuilder<'a> {
                 .signers
                 .iter()
                 .collect::<Vec<_>>(),
+            vec![],
+            // self.extra_accounts
+            //     .iter()
+            //     .map(|i| AccountMeta::new(i.key, false))
+            //     .collect(),
             wrap_amount,
         );
 
@@ -313,6 +325,10 @@ impl<'a> WrapBuilder<'a> {
         for signer_key in &unwrapped_token_account_authority.signers {
             accounts.push((*signer_key, Account::default()));
         }
+
+        // for extra_account in &self.extra_accounts {
+        //     accounts.push(extra_account.pair());
+        // }
 
         if self.checks.is_empty() {
             self.checks.push(Check::success());
@@ -345,6 +361,15 @@ impl<'a> WrapBuilder<'a> {
                 key: recipient.key,
                 account: result.get_account(&recipient.key).unwrap().clone(),
             },
+            extra_accounts: vec![],
+            // extra_accounts: self
+            //     .extra_accounts
+            //     .iter()
+            //     .map(|keyed_account| KeyedAccount {
+            //         key: keyed_account.key,
+            //         account: result.get_account(&keyed_account.key).unwrap().clone(),
+            //     })
+            //     .collect(),
         }
     }
 }
@@ -354,4 +379,5 @@ pub struct WrapResult {
     pub unwrapped_escrow: KeyedAccount,
     pub wrapped_mint: KeyedAccount,
     pub recipient_wrapped_token: KeyedAccount,
+    pub extra_accounts: Vec<KeyedAccount>,
 }

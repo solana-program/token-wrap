@@ -7,6 +7,7 @@ use spl_token_2022::extension::{
     BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
 };
 use spl_token_2022::state::Mint;
+use test_transfer_hook::state::Counter;
 use {
     crate::helpers::{
         common::{setup_multisig, MINT_SUPPLY},
@@ -206,7 +207,7 @@ fn test_wrap_with_token_2022_multisig() {
 
 #[test]
 fn test_wrap_with_transfer_hook() {
-    std::env::set_var("SBF_OUT_DIR", "../target/deploy");
+    // std::env::set_var("SBF_OUT_DIR", "../target/deploy");
 
     let hook_program_id = test_transfer_hook::id();
 
@@ -214,43 +215,49 @@ fn test_wrap_with_transfer_hook() {
     mollusk.add_program(
         &hook_program_id,
         "test_transfer_hook",
-        &mollusk_svm::program::loader_keys::LOADER_V2,
+        &mollusk_svm::program::loader_keys::LOADER_V4,
     );
 
-    // Create mint with transfer hook extension
+    let counter_key = Pubkey::new_unique();
+
+    let lamports = mollusk
+        .sysvars
+        .rent
+        .minimum_balance(spl_token_2022::state::Mint::LEN);
+    let counter_account = Account {
+        lamports,
+        owner: hook_program_id,
+        data: vec![0; std::mem::size_of::<Counter>()],
+        executable: false,
+        rent_epoch: 0,
+    };
+
     let unwrapped_mint = {
-        let mint_authority = Pubkey::new_unique();
-        let space =
+        let mint_len =
             ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook])
                 .unwrap();
+        let mut data = vec![0u8; mint_len];
+        let mut mint = StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut data).unwrap();
 
-        let mut account = Account {
-            lamports: 1_000_000,
-            owner: spl_token_2022::id(),
-            data: vec![0; space],
-            ..Account::default()
-        };
-
-        let mut state =
-            StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut account.data).unwrap();
-        state.init_extension::<TransferHook>(true).unwrap();
-
-        // Set our hook program as the transfer hook
-        let extension = state.get_extension_mut::<TransferHook>().unwrap();
+        let extension = mint.init_extension::<TransferHook>(true).unwrap();
         extension.program_id = OptionalNonZeroPubkey(Pubkey::new_unique());
 
-        state.base = Mint {
-            mint_authority: COption::Some(mint_authority),
-            supply: MINT_SUPPLY,
-            decimals: MINT_DECIMALS,
-            is_initialized: true,
-            freeze_authority: COption::None,
-        };
-        state.pack_base();
+        mint.base.mint_authority = COption::Some(Pubkey::new_unique());
+        mint.base.decimals = MINT_DECIMALS;
+        mint.base.supply = MINT_SUPPLY;
+        mint.base.is_initialized = true;
+        mint.base.freeze_authority = COption::None;
+        mint.pack_base();
+        mint.init_account_type().unwrap();
 
         KeyedAccount {
             key: Pubkey::new_unique(),
-            account,
+            account: Account {
+                lamports,
+                data,
+                owner: spl_token_2022::id(),
+                ..Default::default()
+            },
         }
     };
 
@@ -264,12 +271,16 @@ fn test_wrap_with_transfer_hook() {
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .unwrapped_mint(unwrapped_mint)
-        // .add_extra_account(KeyedAccount {
-        //     key: ??,
-        //     account: ??,
-        // })
+        .add_extra_account(KeyedAccount {
+            key: counter_key,
+            account: counter_account,
+        })
         .execute();
 
     // Verify results
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+
+    // Verify counter was incremented
+    // let counter = PodStateWithExtensions::<Counter>::unpack(&wrap_result.extra_accounts).unwrap();
+    // assert_eq!(counter.base.count, 1);
 }
