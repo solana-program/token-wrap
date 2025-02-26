@@ -1,3 +1,13 @@
+use crate::helpers::common::MINT_DECIMALS;
+use mollusk_svm::Mollusk;
+use solana_program_option::COption;
+use spl_pod::optional_keys::OptionalNonZeroPubkey;
+use spl_token_2022::extension::transfer_hook::TransferHook;
+use spl_token_2022::extension::{
+    BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
+};
+use spl_token_2022::state::Mint;
+use test_transfer_hook::state::Counter;
 use {
     crate::helpers::{
         common::{setup_multisig, MINT_SUPPLY},
@@ -194,3 +204,83 @@ fn test_wrap_with_token_2022_multisig() {
 
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 }
+
+// #[test]
+// fn test_wrap_with_transfer_hook() {
+//     // std::env::set_var("SBF_OUT_DIR", "../target/deploy");
+//
+//     let hook_program_id = test_transfer_hook::id();
+//
+//     let mut mollusk = Mollusk::default();
+//     mollusk.add_program(
+//         &hook_program_id,
+//         "test_transfer_hook",
+//         &mollusk_svm::program::loader_keys::LOADER_V4,
+//     );
+//
+//     let counter_key = Pubkey::new_unique();
+//
+//     let lamports = mollusk
+//         .sysvars
+//         .rent
+//         .minimum_balance(spl_token_2022::state::Mint::LEN);
+//     let counter_account = Account {
+//         lamports,
+//         owner: hook_program_id,
+//         data: vec![0; std::mem::size_of::<Counter>()],
+//         executable: false,
+//         rent_epoch: 0,
+//     };
+//
+//     let unwrapped_mint = {
+//         let mint_len =
+//             ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook])
+//                 .unwrap();
+//         let mut data = vec![0u8; mint_len];
+//         let mut mint = StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut data).unwrap();
+//
+//         let extension = mint.init_extension::<TransferHook>(true).unwrap();
+//         extension.program_id = OptionalNonZeroPubkey(hook_program_id);
+//
+//         mint.base.mint_authority = COption::Some(Pubkey::new_unique());
+//         mint.base.decimals = MINT_DECIMALS;
+//         mint.base.supply = MINT_SUPPLY;
+//         mint.base.is_initialized = true;
+//         mint.base.freeze_authority = COption::None;
+//         mint.pack_base();
+//         mint.init_account_type().unwrap();
+//
+//         KeyedAccount {
+//             key: Pubkey::new_unique(),
+//             account: Account {
+//                 lamports,
+//                 data,
+//                 owner: spl_token_2022::id(),
+//                 ..Default::default()
+//             },
+//         }
+//     };
+//
+//     // Now execute the wrap operation
+//     let starting_amount = 50_000;
+//     let wrap_amount = 12_555;
+//
+//     let wrap_result = WrapBuilder::default()
+//         .unwrapped_token_program(TokenProgram::SplToken2022)
+//         .wrapped_token_program(TokenProgram::SplToken2022)
+//         .recipient_starting_amount(starting_amount)
+//         .wrap_amount(wrap_amount)
+//         .unwrapped_mint(unwrapped_mint)
+//         .add_extra_account(KeyedAccount {
+//             key: counter_key,
+//             account: counter_account,
+//         })
+//         .execute();
+//
+//     // Verify results
+//     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+//
+//     // Verify counter was incremented
+//     // let counter = PodStateWithExtensions::<Counter>::unpack(&wrap_result.extra_accounts).unwrap();
+//     // assert_eq!(counter.base.count, 1);
+// }

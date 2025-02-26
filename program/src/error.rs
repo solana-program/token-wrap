@@ -1,15 +1,9 @@
 //! Error types
 
-use {
-    num_derive::FromPrimitive,
-    solana_program::{
-        decode_error::DecodeError,
-        msg,
-        program_error::{PrintProgramError, ProgramError},
-    },
-    std::error::Error,
-    thiserror::Error,
-};
+use solana_decode_error::DecodeError;
+use solana_msg::msg;
+use solana_program_error::{PrintProgramError, ProgramError};
+use {num_derive::FromPrimitive, std::error::Error, thiserror::Error};
 
 /// Errors that may be returned by the Token Wrap program.
 #[derive(Clone, Debug, Eq, Error, PartialEq, FromPrimitive)]

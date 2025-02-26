@@ -15,29 +15,34 @@ test-sbf = []
 bytemuck = { version = "1.21.0", features = ["derive"] }
 num-derive = "0.4.2"
 num-traits = "0.2.19"
-solana-account-info = "2.1.13"
-solana-cpi = "2.1.13"
-solana-instruction = "2.1.13"
-solana-msg = "2.1.13"
-solana-program-entrypoint = "2.1.13"
-solana-program-error = "2.1.13"
-solana-program-option = "2.1.13"
-solana-program-pack = "2.1.13"
-solana-pubkey = "2.1.13"
-solana-rent = "2.1.13"
+solana-account-info = "2.2.1"
+solana-decode-error = "2.2.1"
+solana-cpi = "2.2.1"
+solana-instruction = "2.2.1"
+solana-msg = "2.2.1"
+solana-program-entrypoint = "2.2.1"
+solana-program-error = "2.2.1"
+solana-program-option = "2.2.1"
+solana-program-pack = "2.2.1"
+solana-pubkey = "2.2.1"
+solana-rent = "2.2.1"
 solana-system-interface = { version = "1.0.0", features = ["bincode"] }
 spl-pod = "0.5.0"
 spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
-spl-token-2022 = { version = "7.0.0", features = ["no-entrypoint"] }
+spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "5f0af83bd2a09d311c27d482d96ed521f5ff01ee", features = ["no-entrypoint"] }
+spl-transfer-hook-interface = "0.9.0"
 thiserror = "2.0.11"
 
 # Only needed until solana-sysvar is bumped to 2.1
-solana-program = "2.1.13"
+#solana-program = "2.2.1"
 
 [dev-dependencies]
-mollusk-svm = "0.0.15"
-mollusk-svm-programs-token = "0.0.15"
-solana-account = "2.1.13"
+mollusk-svm = "0.1.1"
+mollusk-svm-programs-token = "0.1.1"
+spl-tlv-account-resolution = "0.9.0"
+solana-account = "2.2.1"
+solana-system-program = "2.2.0"
+test-transfer-hook = { path = "tests/helpers/test-transfer-hook", features = ["no-entrypoint"] }
 
 [lib]
 crate-type = ["cdylib", "lib"]

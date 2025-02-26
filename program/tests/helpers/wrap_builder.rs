@@ -1,3 +1,4 @@
+use solana_instruction::AccountMeta;
 use {
     crate::helpers::{
         common::{init_mollusk, setup_mint},
@@ -29,6 +30,7 @@ pub struct WrapBuilder<'a> {
     recipient: Option<KeyedAccount>,
     checks: Vec<Check<'a>>,
     wrapped_mint: Option<KeyedAccount>,
+    unwrapped_mint: Option<KeyedAccount>,
     unwrapped_escrow_addr: Option<Pubkey>,
     wrapped_mint_authority: Option<Pubkey>,
     unwrapped_escrow_owner: Option<Pubkey>,
@@ -38,6 +40,7 @@ pub struct WrapBuilder<'a> {
     unwrapped_token_program: Option<TokenProgram>,
     wrapped_token_program: Option<TokenProgram>,
     transfer_authority: Option<TransferAuthority>,
+    extra_accounts: Vec<KeyedAccount>,
 }
 
 impl Default for WrapBuilder<'_> {
@@ -48,6 +51,7 @@ impl Default for WrapBuilder<'_> {
             recipient: None,
             checks: vec![],
             wrapped_mint: None,
+            unwrapped_mint: None,
             unwrapped_escrow_addr: None,
             wrapped_mint_authority: None,
             unwrapped_escrow_owner: None,
@@ -57,6 +61,7 @@ impl Default for WrapBuilder<'_> {
             unwrapped_token_program: None,
             wrapped_token_program: None,
             transfer_authority: None,
+            extra_accounts: vec![],
         }
     }
 }
@@ -69,6 +74,11 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn unwrapped_token_starting_amount(mut self, amount: u64) -> Self {
         self.unwrapped_token_starting_amount = Some(amount);
+        self
+    }
+
+    pub fn unwrapped_mint(mut self, account: KeyedAccount) -> Self {
+        self.unwrapped_mint = Some(account);
         self
     }
 
@@ -114,6 +124,11 @@ impl<'a> WrapBuilder<'a> {
 
     pub fn transfer_authority(mut self, auth: TransferAuthority) -> Self {
         self.transfer_authority = Some(auth);
+        self
+    }
+
+    pub fn add_extra_account(mut self, keyed_account: KeyedAccount) -> Self {
+        self.extra_accounts.push(keyed_account);
         self
     }
 
@@ -197,14 +212,14 @@ impl<'a> WrapBuilder<'a> {
             .unwrapped_token_program
             .unwrap_or(TokenProgram::SplToken);
 
-        let unwrapped_mint = KeyedAccount {
+        let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
             key: Pubkey::new_unique(),
             account: setup_mint(
                 unwrapped_token_program,
                 &self.mollusk.sysvars.rent,
                 Pubkey::new_unique(),
             ),
-        };
+        });
 
         let mut unwrapped_token_account = Account {
             lamports: 100_000_000,
@@ -284,6 +299,10 @@ impl<'a> WrapBuilder<'a> {
                 .signers
                 .iter()
                 .collect::<Vec<_>>(),
+            self.extra_accounts
+                .iter()
+                .map(|i| AccountMeta::new(i.key, false))
+                .collect(),
             wrap_amount,
         );
 
@@ -305,6 +324,10 @@ impl<'a> WrapBuilder<'a> {
 
         for signer_key in &unwrapped_token_account_authority.signers {
             accounts.push((*signer_key, Account::default()));
+        }
+
+        for extra_account in &self.extra_accounts {
+            accounts.push(extra_account.pair());
         }
 
         if self.checks.is_empty() {
@@ -338,6 +361,15 @@ impl<'a> WrapBuilder<'a> {
                 key: recipient.key,
                 account: result.get_account(&recipient.key).unwrap().clone(),
             },
+            extra_accounts: vec![],
+            // extra_accounts: self
+            //     .extra_accounts
+            //     .iter()
+            //     .map(|keyed_account| KeyedAccount {
+            //         key: keyed_account.key,
+            //         account: result.get_account(&keyed_account.key).unwrap().clone(),
+            //     })
+            //     .collect(),
         }
     }
 }
@@ -347,4 +379,5 @@ pub struct WrapResult {
     pub unwrapped_escrow: KeyedAccount,
     pub wrapped_mint: KeyedAccount,
     pub recipient_wrapped_token: KeyedAccount,
+    pub extra_accounts: Vec<KeyedAccount>,
 }
