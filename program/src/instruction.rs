@@ -172,6 +172,7 @@ pub fn wrap(
     unwrapped_escrow_address: &Pubkey,
     transfer_authority_address: &Pubkey,
     multisig_signer_pubkeys: &[&Pubkey],
+    transfer_hook_metas: Vec<AccountMeta>,
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
@@ -192,6 +193,10 @@ pub fn wrap(
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
     }
 
+    for meta in transfer_hook_metas.into_iter() {
+        accounts.push(meta);
+    }
+
     let data = TokenWrapInstruction::Wrap { amount }.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }
@@ -210,6 +215,7 @@ pub fn unwrap(
     wrapped_mint_address: &Pubkey,
     transfer_authority_address: &Pubkey,
     multisig_signer_pubkeys: &[&Pubkey],
+    transfer_hook_metas: Vec<AccountMeta>,
     amount: u64,
 ) -> Instruction {
     let mut accounts = vec![
@@ -228,6 +234,10 @@ pub fn unwrap(
     ];
     for signer_pubkey in multisig_signer_pubkeys.iter() {
         accounts.push(AccountMeta::new_readonly(**signer_pubkey, true));
+    }
+
+    for meta in transfer_hook_metas.into_iter() {
+        accounts.push(meta);
     }
 
     let data = TokenWrapInstruction::Unwrap { amount }.pack();
