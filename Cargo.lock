@@ -3601,7 +3601,7 @@ dependencies = [
 [[package]]
 name = "spl-elgamal-registry"
 version = "0.1.1"
-source = "git+https://github.com/solana-program/token-2022?rev=5f0af83bd2a09d311c27d482d96ed521f5ff01ee#5f0af83bd2a09d311c27d482d96ed521f5ff01ee"
+source = "git+https://github.com/solana-program/token-2022?rev=44d94784019bf03ac51507249844677707a133d5#44d94784019bf03ac51507249844677707a133d5"
 dependencies = [
  "bytemuck",
  "solana-program",
@@ -3709,7 +3709,7 @@ dependencies = [
 [[package]]
 name = "spl-token-2022"
 version = "7.0.0"
-source = "git+https://github.com/solana-program/token-2022?rev=5f0af83bd2a09d311c27d482d96ed521f5ff01ee#5f0af83bd2a09d311c27d482d96ed521f5ff01ee"
+source = "git+https://github.com/solana-program/token-2022?rev=44d94784019bf03ac51507249844677707a133d5#44d94784019bf03ac51507249844677707a133d5"
 dependencies = [
  "arrayref",
  "bytemuck",
@@ -3736,7 +3736,7 @@ dependencies = [
 [[package]]
 name = "spl-token-confidential-transfer-ciphertext-arithmetic"
 version = "0.2.1"
-source = "git+https://github.com/solana-program/token-2022?rev=5f0af83bd2a09d311c27d482d96ed521f5ff01ee#5f0af83bd2a09d311c27d482d96ed521f5ff01ee"
+source = "git+https://github.com/solana-program/token-2022?rev=44d94784019bf03ac51507249844677707a133d5#44d94784019bf03ac51507249844677707a133d5"
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
@@ -3747,7 +3747,7 @@ dependencies = [
 [[package]]
 name = "spl-token-confidential-transfer-proof-extraction"
 version = "0.2.1"
-source = "git+https://github.com/solana-program/token-2022?rev=5f0af83bd2a09d311c27d482d96ed521f5ff01ee#5f0af83bd2a09d311c27d482d96ed521f5ff01ee"
+source = "git+https://github.com/solana-program/token-2022?rev=44d94784019bf03ac51507249844677707a133d5#44d94784019bf03ac51507249844677707a133d5"
 dependencies = [
  "bytemuck",
  "solana-curve25519",
@@ -3760,7 +3760,7 @@ dependencies = [
 [[package]]
 name = "spl-token-confidential-transfer-proof-generation"
 version = "0.3.0"
-source = "git+https://github.com/solana-program/token-2022?rev=5f0af83bd2a09d311c27d482d96ed521f5ff01ee#5f0af83bd2a09d311c27d482d96ed521f5ff01ee"
+source = "git+https://github.com/solana-program/token-2022?rev=44d94784019bf03ac51507249844677707a133d5#44d94784019bf03ac51507249844677707a133d5"
 dependencies = [
  "curve25519-dalek 4.1.3",
  "solana-zk-sdk",
