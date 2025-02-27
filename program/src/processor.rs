@@ -260,7 +260,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let wrapped_token_account = next_account_info(account_info_iter)?;
     let wrapped_mint = next_account_info(account_info_iter)?;
     let transfer_authority = next_account_info(account_info_iter)?;
-    let multisig_signer_accounts = account_info_iter.as_slice();
+    let additional_accounts = account_info_iter.as_slice();
 
     // Validate accounts
 
@@ -275,12 +275,28 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
+    // Classify additional accounts
+
+    let mut multisig_signers = Vec::new();
+    let mut transfer_hook_accounts = Vec::new();
+    for account in additional_accounts {
+        if account.is_signer {
+            multisig_signers.push(account);
+        } else {
+            transfer_hook_accounts.push(account.clone());
+        }
+    }
+
     // Burn wrapped tokens
 
-    let multisig_signer_pubkeys = multisig_signer_accounts
-        .iter()
-        .map(|account| account.key)
-        .collect::<Vec<_>>();
+    let multisig_keys = multisig_signers.iter().map(|s| s.key).collect::<Vec<_>>();
+
+    let mut burn_accounts = vec![
+        wrapped_token_account.clone(),
+        wrapped_mint.clone(),
+        transfer_authority.clone(),
+    ];
+    burn_accounts.extend(multisig_signers.into_iter().cloned());
 
     invoke(
         &spl_token_2022::instruction::burn(
@@ -288,10 +304,10 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             wrapped_token_account.key,
             wrapped_mint.key,
             transfer_authority.key,
-            &multisig_signer_pubkeys,
+            &multisig_keys,
             amount,
         )?,
-        &accounts[6..],
+        &burn_accounts,
     )?;
 
     // Transfer unwrapped tokens from escrow to recipient
@@ -301,18 +317,22 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let bump_seed = [bump];
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 
+    let mut transfer_accounts = vec![
+        unwrapped_escrow.clone(),
+        unwrapped_mint.clone(),
+        recipient_unwrapped_token.clone(),
+        wrapped_mint_authority.clone(),
+    ];
+
+    transfer_accounts.extend(transfer_hook_accounts.iter().cloned());
+
     invoke_transfer_checked(
         unwrapped_token_program.key,
         unwrapped_escrow.clone(),
         unwrapped_mint.clone(),
         recipient_unwrapped_token.clone(),
         wrapped_mint_authority.clone(),
-        &[
-            unwrapped_escrow.clone(),
-            unwrapped_mint.clone(),
-            recipient_unwrapped_token.clone(),
-            wrapped_mint_authority.clone(),
-        ], // TODO: need to account for extras, re-order args? [9..]
+        &transfer_accounts,
         amount,
         unwrapped_mint_state.base.decimals,
         &[&signer_seeds],
