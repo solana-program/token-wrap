@@ -30,14 +30,21 @@ solana-system-interface = { version = "1.0.0", features = ["bincode"] }
 solana-sysvar = "2.2.1"
 spl-pod = "0.5.0"
 spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
-spl-token-2022 = { version = "7.0.0", features = ["no-entrypoint"] }
+spl-transfer-hook-interface = "0.9.0"
 thiserror = "2.0.12"
 
+# Should depend on crate when subsequent version after 7.0.0 is live
+spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "5f0af83bd2a09d311c27d482d96ed521f5ff01ee", features = ["no-entrypoint"] }
+
 [dev-dependencies]
+bincode = "1.3.3"
 mollusk-svm = "0.1.1"
 mollusk-svm-programs-token = "0.1.1"
+spl-tlv-account-resolution = "0.9.0"
 solana-account = "2.2.1"
+solana-loader-v3-interface = "3.0.0"
 solana-system-program = "2.2.0"
+test-transfer-hook = { path = "tests/helpers/test-transfer-hook", features = ["no-entrypoint"] }
 
 [lib]
 crate-type = ["cdylib", "lib"]

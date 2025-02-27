@@ -27,6 +27,11 @@ pub fn init_mollusk() -> Mollusk {
     let mut mollusk = Mollusk::new(&spl_token_wrap::id(), "spl_token_wrap");
     mollusk_svm_programs_token::token::add_program(&mut mollusk);
     mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
+    mollusk.add_program(
+        &test_transfer_hook::id(),
+        "test_transfer_hook",
+        &mollusk_svm::program::loader_keys::LOADER_V3,
+    );
     mollusk
 }
 
