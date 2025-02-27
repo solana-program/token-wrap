@@ -3811,7 +3811,6 @@ dependencies = [
 name = "spl-token-wrap"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "bytemuck",
  "mollusk-svm",
  "mollusk-svm-programs-token",
@@ -3822,7 +3821,6 @@ dependencies = [
  "solana-cpi",
  "solana-decode-error",
  "solana-instruction",
- "solana-loader-v3-interface",
  "solana-msg",
  "solana-program-entrypoint",
  "solana-program-error",

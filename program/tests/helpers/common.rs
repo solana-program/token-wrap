@@ -13,14 +13,23 @@ use {
         optional_keys::OptionalNonZeroPubkey,
         primitives::{PodBool, PodU64},
     },
+    spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList},
     spl_token_2022::{
         extension::{
-            mint_close_authority::MintCloseAuthority, transfer_fee::TransferFeeConfig,
+            mint_close_authority::MintCloseAuthority,
+            transfer_fee::TransferFeeConfig,
+            transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
+            StateWithExtensionsMut,
         },
         pod::{PodCOption, PodMint},
+        state::{AccountState, Mint},
+    },
+    spl_transfer_hook_interface::{
+        get_extra_account_metas_address, instruction::ExecuteInstruction,
     },
     std::convert::TryFrom,
+    test_transfer_hook::state::Counter,
 };
 
 pub fn init_mollusk() -> Mollusk {
@@ -136,5 +145,109 @@ pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
             account: multisig_account,
         },
         signers: vec![signer0_key, signer1_key, signer2_key],
+    }
+}
+
+pub fn setup_counter(hook_program_id: Pubkey) -> KeyedAccount {
+    let counter_size = std::mem::size_of::<Counter>();
+    let mut account = Account {
+        lamports: Rent::default().minimum_balance(counter_size),
+        owner: hook_program_id,
+        data: vec![0; counter_size],
+        executable: false,
+        rent_epoch: 0,
+    };
+    let counter = Counter::default();
+    account.data.copy_from_slice(bytemuck::bytes_of(&counter));
+    KeyedAccount {
+        key: Pubkey::new_unique(),
+        account,
+    }
+}
+
+pub fn unwrapped_mint_with_transfer_hook(hook_program_id: Pubkey) -> KeyedAccount {
+    let mint_len =
+        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook]).unwrap();
+    let mut data = vec![0u8; mint_len];
+    let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
+
+    let extension = mint.init_extension::<TransferHook>(true).unwrap();
+    extension.program_id = OptionalNonZeroPubkey(hook_program_id);
+
+    mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
+    mint.base.decimals = MINT_DECIMALS;
+    mint.base.supply = MINT_SUPPLY.into();
+    mint.base.freeze_authority = PodCOption::none();
+    mint.base.is_initialized = PodBool::from_bool(true);
+
+    mint.init_account_type().unwrap();
+
+    KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: Account {
+            lamports: Rent::default().minimum_balance(Mint::LEN),
+            data,
+            owner: spl_token_2022::id(),
+            ..Default::default()
+        },
+    }
+}
+
+pub fn setup_transfer_hook_account(owner: &Pubkey, mint: &KeyedAccount, amount: u64) -> Account {
+    let account_size =
+        ExtensionType::try_calculate_account_len::<spl_token_2022::state::Account>(&[
+            ExtensionType::TransferHookAccount,
+        ])
+        .unwrap();
+    let mut account_data = vec![0; account_size];
+    let mut state = StateWithExtensionsMut::<spl_token_2022::state::Account>::unpack_uninitialized(
+        &mut account_data,
+    )
+    .unwrap();
+
+    let extension = state.init_extension::<TransferHookAccount>(true).unwrap();
+    extension.transferring = false.into();
+
+    state.base = spl_token_2022::state::Account {
+        mint: mint.key,
+        amount,
+        owner: *owner,
+        state: AccountState::Initialized,
+        ..Default::default()
+    };
+    state.pack_base();
+    state.init_account_type().unwrap();
+
+    Account {
+        lamports: Rent::default().minimum_balance(Mint::LEN),
+        data: account_data,
+        owner: spl_token_2022::id(),
+        ..Default::default()
+    }
+}
+
+pub fn setup_validation_state_account(
+    hook_program_id: &Pubkey,
+    counter: &KeyedAccount,
+    unwrapped_mint: &KeyedAccount,
+) -> KeyedAccount {
+    let validation_state_pubkey =
+        get_extra_account_metas_address(&unwrapped_mint.key, hook_program_id);
+    let extra_account_metas =
+        vec![ExtraAccountMeta::new_with_pubkey(&counter.key, false, true).unwrap()];
+    let account_size = ExtraAccountMetaList::size_of(extra_account_metas.len()).unwrap();
+    let mut validation_data = vec![0; account_size];
+    ExtraAccountMetaList::init::<ExecuteInstruction>(&mut validation_data, &extra_account_metas)
+        .unwrap();
+
+    KeyedAccount {
+        key: validation_state_pubkey,
+        account: Account {
+            lamports: Rent::default().minimum_balance(account_size),
+            data: validation_data,
+            owner: *hook_program_id,
+            executable: false,
+            rent_epoch: 0,
+        },
     }
 }

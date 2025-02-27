@@ -1,31 +1,22 @@
-use solana_loader_v3_interface::state::UpgradeableLoaderState;
 use {
     crate::helpers::{
-        common::{setup_multisig, MINT_DECIMALS, MINT_SUPPLY},
+        common::{
+            setup_counter, setup_multisig, setup_transfer_hook_account,
+            setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
+        },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         wrap_builder::{TransferAuthority, WrapBuilder, WrapResult},
     },
-    mollusk_svm::{program::loader_keys, result::Check},
+    mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     solana_account::Account,
     solana_program_error::ProgramError,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    solana_rent::Rent,
-    spl_pod::{optional_keys::OptionalNonZeroPubkey, primitives::PodBool},
-    spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList},
     spl_token_2022::{
-        extension::{
-            transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensions,
-            PodStateWithExtensionsMut, StateWithExtensionsMut,
-        },
-        pod::{PodAccount, PodCOption, PodMint},
-        state::{AccountState, Mint},
+        extension::PodStateWithExtensions,
+        pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
-    spl_transfer_hook_interface::{
-        get_extra_account_metas_address, instruction::ExecuteInstruction,
-    },
     test_transfer_hook::state::Counter,
 };
 
@@ -210,109 +201,13 @@ fn test_wrap_with_token_2022_multisig() {
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 }
 
-fn setup_transfer_hook_account(
-    owner: &Pubkey,
-    unwrapped_mint: &KeyedAccount,
-    amount: u64,
-) -> Account {
-    let account_size =
-        ExtensionType::try_calculate_account_len::<spl_token_2022::state::Account>(&[
-            ExtensionType::TransferHookAccount,
-        ])
-        .unwrap();
-    let mut account_data = vec![0; account_size];
-    let mut state = StateWithExtensionsMut::<spl_token_2022::state::Account>::unpack_uninitialized(
-        &mut account_data,
-    )
-    .unwrap();
-
-    let extension = state.init_extension::<TransferHookAccount>(true).unwrap();
-    extension.transferring = false.into();
-
-    state.base = spl_token_2022::state::Account {
-        mint: unwrapped_mint.key,
-        amount,
-        owner: *owner,
-        state: AccountState::Initialized,
-        ..Default::default()
-    };
-    state.pack_base();
-    state.init_account_type().unwrap();
-
-    Account {
-        lamports: Rent::default().minimum_balance(Mint::LEN),
-        data: account_data,
-        owner: spl_token_2022::id(),
-        ..Default::default()
-    }
-}
-
-fn create_program_account_loader_v3(program_id: &Pubkey) -> Account {
-    let (programdata_address, _) =
-        Pubkey::find_program_address(&[program_id.as_ref()], &loader_keys::LOADER_V3);
-    let data = bincode::serialize(&UpgradeableLoaderState::Program {
-        programdata_address,
-    })
-    .unwrap();
-    let lamports = Rent::default().minimum_balance(data.len());
-    Account {
-        lamports,
-        data,
-        owner: loader_keys::LOADER_V3,
-        executable: true,
-        ..Default::default()
-    }
-}
-
 #[test]
 fn test_wrap_with_transfer_hook() {
     let hook_program_id = test_transfer_hook::id();
 
     // Testing if counter account is incremented via transfer hook
-    let counter_key = Pubkey::new_unique();
-    let counter_size = std::mem::size_of::<Counter>();
-    let mut counter_account = Account {
-        lamports: Rent::default().minimum_balance(counter_size),
-        owner: hook_program_id,
-        data: vec![0; counter_size],
-        executable: false,
-        rent_epoch: 0,
-    };
-    let counter = Counter::default();
-    counter_account
-        .data
-        .copy_from_slice(bytemuck::bytes_of(&counter));
-
-    // Initialize mint w/ transfer hook
-    let unwrapped_mint = {
-        let mint_len =
-            ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook])
-                .unwrap();
-        let mut data = vec![0u8; mint_len];
-        let mut mint =
-            PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
-
-        let extension = mint.init_extension::<TransferHook>(true).unwrap();
-        extension.program_id = OptionalNonZeroPubkey(hook_program_id);
-
-        mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
-        mint.base.decimals = MINT_DECIMALS;
-        mint.base.supply = MINT_SUPPLY.into();
-        mint.base.freeze_authority = PodCOption::none();
-        mint.base.is_initialized = PodBool::from_bool(true);
-
-        mint.init_account_type().unwrap();
-
-        KeyedAccount {
-            key: Pubkey::new_unique(),
-            account: Account {
-                lamports: Rent::default().minimum_balance(Mint::LEN),
-                data,
-                owner: spl_token_2022::id(),
-                ..Default::default()
-            },
-        }
-    };
+    let counter = setup_counter(hook_program_id);
+    let unwrapped_mint = unwrapped_mint_with_transfer_hook(hook_program_id);
 
     // Escrow & unwrapped token account need to have TransferHook extension as well
     let wrap_amount = 12_555;
@@ -333,31 +228,10 @@ fn test_wrap_with_transfer_hook() {
         setup_transfer_hook_account(&mint_authority, &unwrapped_mint, 0)
     };
 
-    // Validation state account required in order for counter account to be passed in transfer hook
-    let validation_state_account = {
-        let validation_state_pubkey =
-            get_extra_account_metas_address(&unwrapped_mint.key, &hook_program_id);
-        let extra_account_metas =
-            vec![ExtraAccountMeta::new_with_pubkey(&counter_key, false, true).unwrap()];
-        let account_size = ExtraAccountMetaList::size_of(extra_account_metas.len()).unwrap();
-        let mut validation_data = vec![0; account_size];
-        ExtraAccountMetaList::init::<ExecuteInstruction>(
-            &mut validation_data,
-            &extra_account_metas,
-        )
-        .unwrap();
-
-        KeyedAccount {
-            key: validation_state_pubkey,
-            account: Account {
-                lamports: Rent::default().minimum_balance(account_size),
-                data: validation_data,
-                owner: hook_program_id,
-                executable: false,
-                rent_epoch: 0,
-            },
-        }
-    };
+    // Validation state account required in order for counter account to be passed
+    // in transfer hook
+    let validation_state_account =
+        setup_validation_state_account(&hook_program_id, &counter, &unwrapped_mint);
 
     let starting_amount = 50_000;
 
@@ -370,10 +244,7 @@ fn test_wrap_with_transfer_hook() {
         .transfer_authority(transfer_authority)
         .unwrapped_token_account(unwrapped_token_account.clone())
         .unwrapped_escrow_account(escrow_account)
-        .add_extra_account(KeyedAccount {
-            key: counter_key,
-            account: counter_account,
-        })
+        .add_extra_account(counter)
         .add_extra_account(KeyedAccount {
             key: hook_program_id,
             account: create_program_account_loader_v3(&hook_program_id),
@@ -386,7 +257,7 @@ fn test_wrap_with_transfer_hook() {
 
     // Verify counter was incremented
     let counter_data = wrap_result.extra_accounts[0].clone().account.data;
-    let counter_slice = &counter_data[..counter_size];
-    let counter = bytemuck::from_bytes::<Counter>(&counter_slice);
+    let counter_slice = &counter_data[..std::mem::size_of::<Counter>()];
+    let counter = bytemuck::from_bytes::<Counter>(counter_slice);
     assert_eq!(counter.count, 1)
 }
