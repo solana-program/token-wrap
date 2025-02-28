@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "programs:build": "zx ./scripts/rust/build-sbf.mjs program",
+    "programs:build": "zx ./scripts/rust/build-sbf.mjs",
     "programs:test": "zx ./scripts/rust/test-sbf.mjs program",
     "programs:format": "zx ./scripts/rust/format.mjs program",
     "programs:lint": "zx ./scripts/rust/lint.mjs program",
@@ -10,7 +10,7 @@
     "template:upgrade": "zx ./scripts/upgrade-template.mjs",
     "rust:spellcheck": "cargo spellcheck --code 1",
     "rust:audit": "zx ./scripts/rust/audit.mjs",
-    "rust:semver": "cargo semver-checks --manifest-path program/Cargo.toml"
+    "rust:semver": "cargo semver-checks"
   },
   "devDependencies": {
     "@iarna/toml": "^2.2.5",

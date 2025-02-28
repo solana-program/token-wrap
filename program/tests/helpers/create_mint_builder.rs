@@ -4,7 +4,7 @@ use {
     solana_account::Account,
     solana_pubkey::Pubkey,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
+        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, offchain::create_mint,
     },
 };
 

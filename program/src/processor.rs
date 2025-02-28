@@ -275,28 +275,13 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
-    // Classify additional accounts
-
-    let mut multisig_signers = Vec::new();
-    let mut transfer_hook_accounts = Vec::new();
-    for account in additional_accounts {
-        if account.is_signer {
-            multisig_signers.push(account);
-        } else {
-            transfer_hook_accounts.push(account.clone());
-        }
-    }
-
     // Burn wrapped tokens
 
-    let multisig_keys = multisig_signers.iter().map(|s| s.key).collect::<Vec<_>>();
-
-    let mut burn_accounts = vec![
-        wrapped_token_account.clone(),
-        wrapped_mint.clone(),
-        transfer_authority.clone(),
-    ];
-    burn_accounts.extend(multisig_signers.into_iter().cloned());
+    let multisig_keys = additional_accounts
+        .iter()
+        .filter(|i| i.is_signer)
+        .map(|i| i.key)
+        .collect::<Vec<_>>();
 
     invoke(
         &spl_token_2022::instruction::burn(
@@ -307,7 +292,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             &multisig_keys,
             amount,
         )?,
-        &burn_accounts,
+        &accounts[6..],
     )?;
 
     // Transfer unwrapped tokens from escrow to recipient
@@ -324,7 +309,11 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         wrapped_mint_authority.clone(),
     ];
 
-    transfer_accounts.extend(transfer_hook_accounts.iter().cloned());
+    for account in additional_accounts {
+        if !account.is_signer {
+            transfer_accounts.push(account.clone());
+        }
+    }
 
     invoke_transfer_checked(
         unwrapped_token_program.key,
