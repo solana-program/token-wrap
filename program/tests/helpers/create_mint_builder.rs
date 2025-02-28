@@ -5,7 +5,7 @@ use {
     solana_pubkey::Pubkey,
     solana_sdk_ids::system_program,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
+        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, offchain::create_mint,
     },
 };
 

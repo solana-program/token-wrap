@@ -15,7 +15,7 @@ use {
         },
         pod::{PodAccount, PodCOption},
     },
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
+    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, offchain::wrap},
 };
 
 #[derive(Debug, Clone, Default)]
