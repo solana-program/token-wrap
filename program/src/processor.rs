@@ -20,7 +20,7 @@ use {
     spl_token_2022::{
         extension::PodStateWithExtensions,
         instruction::initialize_mint2,
-        onchain::invoke_transfer_checked,
+        onchain::{extract_multisig_accounts, invoke_transfer_checked},
         pod::{PodAccount, PodMint},
     },
 };
@@ -277,10 +277,9 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     // Burn wrapped tokens
 
-    let multisig_keys = additional_accounts
+    let multisig_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
         .iter()
-        .filter(|i| i.is_signer)
-        .map(|i| i.key)
+        .map(|a| a.key)
         .collect::<Vec<_>>();
 
     invoke(
@@ -310,7 +309,8 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     ];
 
     for account in additional_accounts {
-        if !account.is_signer {
+        // Should filter down to only extra transfer hook accounts
+        if !multisig_keys.contains(&account.key) {
             transfer_accounts.push(account.clone());
         }
     }

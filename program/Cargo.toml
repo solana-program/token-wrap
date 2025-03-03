@@ -34,7 +34,7 @@ spl-transfer-hook-interface = "0.9.0"
 thiserror = "2.0.12"
 
 # Should depend on the next crate version after 7.0.0 when https://github.com/solana-program/token-2022/pull/233 is deployed
-spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "44d94784019bf03ac51507249844677707a133d5", features = ["no-entrypoint"] }
+spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "612ef3363fe17d6e883617989f58b45dbff92415", features = ["no-entrypoint"] }
 
 [dev-dependencies]
 mollusk-svm = "0.1.1"
