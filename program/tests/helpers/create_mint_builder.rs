@@ -185,7 +185,7 @@ impl<'a> CreateMintBuilder<'a> {
             (wrapped_backpointer_address, wrapped_backpointer_account),
             (unwrapped_mint_addr, unwrapped_mint_account),
             (
-                system_program::id(),
+                solana_system_program::id(),
                 Account {
                     executable: true,
                     ..Default::default()

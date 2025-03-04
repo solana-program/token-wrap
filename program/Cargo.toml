@@ -37,7 +37,7 @@ thiserror = "2.0.12"
 mollusk-svm = "0.1.1"
 mollusk-svm-programs-token = "0.1.1"
 solana-account = "2.2.1"
-solana-sdk-ids = "2.2.1"
+solana-system-program = "2.2.0"
 
 [lib]
 crate-type = ["cdylib", "lib"]
