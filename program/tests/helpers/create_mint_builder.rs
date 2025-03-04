@@ -3,6 +3,7 @@ use {
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
     solana_pubkey::Pubkey,
+    solana_sdk_ids::system_program,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
@@ -184,7 +185,7 @@ impl<'a> CreateMintBuilder<'a> {
             (wrapped_backpointer_address, wrapped_backpointer_account),
             (unwrapped_mint_addr, unwrapped_mint_account),
             (
-                solana_system_program::id(),
+                system_program::id(),
                 Account {
                     executable: true,
                     ..Default::default()
