@@ -3,8 +3,8 @@
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/solana-program/token-wrap/main.yml?logo=GitHub)](https://github.com/solana-program/token-wrap/actions/workflows/main.yml)
 
 This program enables the creation of "wrapped" versions of existing SPL tokens, facilitating interoperability
-between different token standards. If you are building a program and find yourself wishing you could take advantage of
-some of the latest features of a specific token program, this might be for you!
+between different token standards. If you are building an app with a mint/token and find yourself wishing you could take
+advantage of some of the latest features of a specific token program, this might be for you!
 
 ## Features
 
@@ -32,13 +32,13 @@ It supports three primary operations:
       address of the original *unwrapped* token mint. This allows anyone to easily determine the unwrapped token
       corresponding to a wrapped token, facilitating unwrapping.
 
-2. **`Wrap`:**  This operation takes unwrapped tokens and mints wrapped tokens.
+2. **`Wrap`:**  This operation accepts deposits of unwrapped tokens and mints wrapped tokens.
 
     * Unwrapped tokens are transferred from the user's account to an escrow account. The escrow account's owner is a PDA
       controlled by the Token Wrap program.
     * An equivalent amount of wrapped tokens is minted to the user's wrapped token account.
 
-3. **`Unwrap`:** This operation burns wrapped tokens and releases unwrapped tokens.
+3. **`Unwrap`:** This operation burns wrapped tokens and releases unwrapped token deposits.
 
     * Wrapped tokens are burned from the user's wrapped token account.
     * An equivalent amount of unwrapped tokens is transferred from the escrow account to the user's unwrapped token
@@ -51,27 +51,10 @@ wrapped tokens are always fully backed by their unwrapped counterparts.
 
 ### Prerequisites
 
-1. **Install Solana CLI (v2.1.0 or later):**
-
-   ```bash
-   sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.0/install)"
-   ```
-
-2. **Verify Installation:**
-
-   ```bash
-   solana --version
-   ```
-   Ensure the output shows version 2.1.0 or a compatible later version.
-
-3. **Install `pnpm`:**
-
-   This project uses `pnpm` for dependency management and scripting. If you don't have it installed:
-
-     ```bash
-      npm install -g pnpm
-     ```
-4. **Install Dependencies:**
+1. Install [Solana CLI](https://docs.anza.xyz/cli/install)
+    - Ensure version matches [the crate manifest](./Cargo.toml).
+2. Install [pnpm](https://pnpm.io/installation)
+3. Install project dependencies:
 
     ```bash
     pnpm install
@@ -84,14 +67,12 @@ wrapped tokens are always fully backed by their unwrapped counterparts.
    ```bash
    pnpm programs:build
    ```
-   This compiles the Rust program into a Solana executable (`.so` file).
 
 2. **Run Tests:**
 
    ```bash
    pnpm programs:test
    ```
-   This executes the integration tests to verify the program's functionality.
 
 ## License
 
