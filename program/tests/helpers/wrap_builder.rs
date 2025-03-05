@@ -15,7 +15,7 @@ use {
         },
         pod::{PodAccount, PodCOption},
     },
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, offchain::wrap},
+    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -294,7 +294,7 @@ impl<'a> WrapBuilder<'a> {
             .unwrapped_escrow_addr
             .unwrap_or_else(Pubkey::new_unique);
 
-        let instruction = wrap(
+        let mut instruction = wrap(
             &spl_token_wrap::id(),
             &recipient.key,
             &wrapped_mint.key,
@@ -309,10 +309,6 @@ impl<'a> WrapBuilder<'a> {
                 .signers
                 .iter()
                 .collect::<Vec<_>>(),
-            self.extra_accounts
-                .iter()
-                .map(|i| AccountMeta::new(i.key, false))
-                .collect(),
             wrap_amount,
         );
 
@@ -337,6 +333,9 @@ impl<'a> WrapBuilder<'a> {
         }
 
         for extra_account in &self.extra_accounts {
+            instruction
+                .accounts
+                .push(AccountMeta::new(extra_account.key, false));
             accounts.push(extra_account.pair());
         }
 

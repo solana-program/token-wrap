@@ -17,7 +17,6 @@ use {
         pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
-    test_transfer_hook::state::Counter,
 };
 
 pub mod helpers;
@@ -256,8 +255,6 @@ fn test_wrap_with_transfer_hook() {
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 
     // Verify counter was incremented
-    let counter_data = wrap_result.extra_accounts[0].clone().account.data;
-    let counter_slice = &counter_data[..std::mem::size_of::<Counter>()];
-    let counter = bytemuck::from_bytes::<Counter>(counter_slice);
-    assert_eq!(counter.count, 1)
+    let count = wrap_result.extra_accounts[0].clone().account.data[0];
+    assert_eq!(count, 1)
 }

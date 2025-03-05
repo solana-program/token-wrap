@@ -15,7 +15,7 @@ use {
         },
         pod::{PodAccount, PodCOption},
     },
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, offchain::unwrap},
+    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::unwrap},
 };
 
 pub struct UnwrapBuilder<'a> {
@@ -267,7 +267,7 @@ impl<'a> UnwrapBuilder<'a> {
             )
         });
 
-        let instruction = unwrap(
+        let mut instruction = unwrap(
             &spl_token_wrap::id(),
             &escrow.key,
             &recipient.key,
@@ -279,10 +279,6 @@ impl<'a> UnwrapBuilder<'a> {
             &wrapped_mint.key,
             &transfer_authority.keyed_account.key,
             &transfer_authority.signers.iter().collect::<Vec<_>>(),
-            self.extra_accounts
-                .iter()
-                .map(|i| AccountMeta::new(i.key, false))
-                .collect(),
             unwrap_amount,
         );
 
@@ -303,6 +299,9 @@ impl<'a> UnwrapBuilder<'a> {
         }
 
         for extra_account in &self.extra_accounts {
+            instruction
+                .accounts
+                .push(AccountMeta::new(extra_account.key, false));
             accounts.push(extra_account.pair());
         }
 

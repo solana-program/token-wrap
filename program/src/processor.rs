@@ -277,8 +277,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     // Burn wrapped tokens
 
-    let multisig_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
-        .iter()
+    let multisig_signer_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
         .map(|a| a.key)
         .collect::<Vec<_>>();
 
@@ -288,7 +287,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             wrapped_token_account.key,
             wrapped_mint.key,
             transfer_authority.key,
-            &multisig_keys,
+            &multisig_signer_keys,
             amount,
         )?,
         &accounts[6..],
@@ -310,7 +309,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     for account in additional_accounts {
         // Should filter down to only extra transfer hook accounts
-        if !multisig_keys.contains(&account.key) {
+        if !multisig_signer_keys.contains(&account.key) {
             transfer_accounts.push(account.clone());
         }
     }

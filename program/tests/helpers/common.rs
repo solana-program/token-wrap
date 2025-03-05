@@ -29,7 +29,6 @@ use {
         get_extra_account_metas_address, instruction::ExecuteInstruction,
     },
     std::convert::TryFrom,
-    test_transfer_hook::state::Counter,
 };
 
 pub fn init_mollusk() -> Mollusk {
@@ -149,16 +148,13 @@ pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
 }
 
 pub fn setup_counter(hook_program_id: Pubkey) -> KeyedAccount {
-    let counter_size = std::mem::size_of::<Counter>();
-    let mut account = Account {
-        lamports: Rent::default().minimum_balance(counter_size),
+    let account = Account {
+        lamports: Rent::default().minimum_balance(1),
         owner: hook_program_id,
-        data: vec![0; counter_size],
+        data: vec![0],
         executable: false,
         rent_epoch: 0,
     };
-    let counter = Counter::default();
-    account.data.copy_from_slice(bytemuck::bytes_of(&counter));
     KeyedAccount {
         key: Pubkey::new_unique(),
         account,
