@@ -2,8 +2,8 @@ use {
     crate::helpers::common::{init_mollusk, setup_mint},
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
-    solana_program::system_program,
     solana_pubkey::Pubkey,
+    solana_sdk_ids::system_program,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
