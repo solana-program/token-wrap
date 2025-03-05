@@ -278,6 +278,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     // Burn wrapped tokens
 
     let multisig_signer_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
+        .iter()
         .map(|a| a.key)
         .collect::<Vec<_>>();
 

@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "programs:build": "zx ./scripts/rust/build-sbf.mjs",
+    "programs:build": "cargo-build-sbf",
     "programs:test": "zx ./scripts/rust/test-sbf.mjs program",
     "programs:format": "zx ./scripts/rust/format.mjs program",
     "programs:lint": "zx ./scripts/rust/lint.mjs program",
