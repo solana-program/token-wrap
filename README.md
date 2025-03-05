@@ -10,8 +10,8 @@ advantage of some of the latest features of a specific token program, this might
 
 * **Bidirectional Wrapping:** Convert tokens between SPL Token and SPL Token 2022 standards in either direction,
   including conversions between different SPL Token 2022 mints.
-* **SPL Token 2022 Extension Support:**  Preserve or add SPL Token 2022 extensions (like transfer fees, confidential
-  transfers, etc.) during the wrapping process.
+* **SPL Token 2022 Extension Support:** Preserve or add SPL Token 2022 extensions (like transfer fees, confidential
+  transfers, etc.) during the wrapping process. Note: this requires forking and updating the `CreateMint` instruction.
 * **Transfer Hook Compatibility:**  Integrates with tokens that implement the SPL Transfer Hook interface,
   enabling custom logic on token transfers.
 * **Multisignature Support:** Compatible with multisig signers for both wrapping and unwrapping operations.
@@ -34,8 +34,8 @@ It supports three primary operations:
 
 2. **`Wrap`:**  This operation accepts deposits of unwrapped tokens and mints wrapped tokens.
 
-    * Unwrapped tokens are transferred from the user's account to an escrow account. The escrow account's owner is a PDA
-      controlled by the Token Wrap program.
+    * Unwrapped tokens are transferred from the user's account to an escrow account. Any unwrapped token account whose
+      owner is a PDA controlled by the Token Wrap program can be used.
     * An equivalent amount of wrapped tokens is minted to the user's wrapped token account.
 
 3. **`Unwrap`:** This operation burns wrapped tokens and releases unwrapped token deposits.
@@ -46,6 +46,18 @@ It supports three primary operations:
 
 The 1:1 relationship between wrapped and unwrapped tokens is maintained through the escrow mechanism, ensuring that
 wrapped tokens are always fully backed by their unwrapped counterparts.
+
+## Permissionless design
+
+The SPL Token Wrap program is designed to be **permissionless**. This means:
+
+* **Anyone can create a wrapped mint:**  No special permissions or whitelisting is required to create a wrapped
+  version of an existing mint. The `CreateMint` instruction is open to all users, provided they can
+  pay the required rent for the new accounts.
+* **Anyone can wrap and unwrap tokens:**  Once a wrapped mint has been created, any user holding the underlying
+  unwrapped tokens can use the `Wrap` and `Unwrap` instructions. All transfers are controlled by PDAs owned by the Token
+  Wrap program itself. However, it is important to note that if the *unwrapped* token has a freeze authority,
+  that freeze authority is *preserved* in the wrapped token.
 
 ## Getting Started
 
