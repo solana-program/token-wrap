@@ -307,13 +307,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         recipient_unwrapped_token.clone(),
         wrapped_mint_authority.clone(),
     ];
-
-    for account in additional_accounts {
-        // Should filter down to only extra transfer hook accounts
-        if !multisig_signer_keys.contains(&account.key) {
-            transfer_accounts.push(account.clone());
-        }
-    }
+    transfer_accounts.extend_from_slice(additional_accounts);
 
     invoke_transfer_checked(
         unwrapped_token_program.key,
