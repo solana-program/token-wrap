@@ -301,21 +301,13 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let bump_seed = [bump];
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 
-    let mut transfer_accounts = vec![
-        unwrapped_escrow.clone(),
-        unwrapped_mint.clone(),
-        recipient_unwrapped_token.clone(),
-        wrapped_mint_authority.clone(),
-    ];
-    transfer_accounts.extend_from_slice(additional_accounts);
-
     invoke_transfer_checked(
         unwrapped_token_program.key,
         unwrapped_escrow.clone(),
         unwrapped_mint.clone(),
         recipient_unwrapped_token.clone(),
         wrapped_mint_authority.clone(),
-        &transfer_accounts,
+        additional_accounts,
         amount,
         unwrapped_mint_state.base.decimals,
         &[&signer_seeds],
