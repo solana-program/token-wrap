@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{
-            setup_counter, setup_multisig, setup_transfer_hook_account,
+            setup_counter, setup_multisig, setup_native_token, setup_transfer_hook_account,
             setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
         },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
@@ -318,4 +318,41 @@ fn test_unwrap_with_transfer_hook() {
     // Verify counter was incremented
     let count = unwrap_result.extra_accounts[0].clone().account.data[0];
     assert_eq!(count, 1)
+}
+
+#[test]
+fn test_successfully_unwraps_to_native_mint() {
+    let source_starting_amount = 50_000;
+    let recipient_starting_amount = 25_000;
+    let escrow_starting_amount = 42_000;
+    let unwrap_amount = 40_000;
+
+    let transfer_authority = TransferAuthority {
+        keyed_account: Default::default(),
+        signers: vec![],
+    };
+
+    let (native_mint, native_token_account) =
+        setup_native_token(recipient_starting_amount, &transfer_authority);
+
+    let wrap_result = UnwrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_mint(native_mint)
+        .transfer_authority(transfer_authority)
+        .recipient_token_account(native_token_account)
+        .wrapped_token_program(TokenProgram::SplToken)
+        .escrow_starting_amount(escrow_starting_amount)
+        .wrapped_token_starting_amount(source_starting_amount)
+        .recipient_starting_amount(recipient_starting_amount)
+        .unwrap_amount(unwrap_amount)
+        .check(Check::success())
+        .execute();
+
+    assert_unwrap_result(
+        source_starting_amount,
+        recipient_starting_amount,
+        escrow_starting_amount,
+        unwrap_amount,
+        &wrap_result,
+    );
 }
