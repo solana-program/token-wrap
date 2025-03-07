@@ -1,17 +1,21 @@
 use {
     crate::helpers::{
-        common::{setup_multisig, MINT_SUPPLY},
+        common::{
+            setup_counter, setup_multisig, setup_transfer_hook_account,
+            setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
+        },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
+        wrap_builder::TransferAuthority,
     },
-    mollusk_svm::result::Check,
+    mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     solana_pubkey::Pubkey,
     spl_token_2022::{
         error::TokenError,
         extension::PodStateWithExtensions,
         pod::{PodAccount, PodMint},
     },
-    spl_token_wrap::error::TokenWrapError,
+    spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
 };
 
 pub mod helpers;
@@ -244,4 +248,74 @@ fn test_unwrap_with_spl_token_2022_multisig() {
         unwrap_amount,
         &wrap_result,
     );
+}
+
+#[test]
+fn test_unwrap_with_transfer_hook() {
+    let hook_program_id = test_transfer_hook::id();
+
+    // Testing if counter account is incremented via transfer hook
+    let counter = setup_counter(hook_program_id);
+    let unwrapped_mint = unwrapped_mint_with_transfer_hook(hook_program_id);
+
+    let source_starting_amount = 50_000;
+    let recipient_starting_amount = 50_000;
+    let escrow_starting_amount = 150_000;
+    let unwrap_amount = 12_555;
+
+    // Escrow & unwrapped token account need to have TransferHook extension as well
+    let transfer_authority = TransferAuthority {
+        keyed_account: Default::default(),
+        signers: vec![],
+    };
+    let recipient_token_account = setup_transfer_hook_account(
+        &transfer_authority.keyed_account.key,
+        &unwrapped_mint,
+        recipient_starting_amount,
+    );
+
+    let escrow_account = {
+        let wrapped_mint_addr =
+            get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+        let mint_authority = get_wrapped_mint_authority(&wrapped_mint_addr);
+        setup_transfer_hook_account(&mint_authority, &unwrapped_mint, escrow_starting_amount)
+    };
+
+    // Validation state account required in order for counter account to be passed
+    // in transfer hook
+    let validation_state_account =
+        setup_validation_state_account(&hook_program_id, &counter, &unwrapped_mint);
+
+    // Execute the unwrap instruction using our UnwrapBuilder.
+    let unwrap_result = UnwrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_starting_amount(source_starting_amount)
+        .recipient_starting_amount(recipient_starting_amount)
+        .recipient_token_account(recipient_token_account)
+        .transfer_authority(transfer_authority)
+        .escrow_starting_amount(escrow_starting_amount)
+        .unwrap_amount(unwrap_amount)
+        .unwrapped_mint(unwrapped_mint)
+        .unwrapped_escrow_account(escrow_account)
+        .add_extra_account(counter)
+        .add_extra_account(KeyedAccount {
+            key: hook_program_id,
+            account: create_program_account_loader_v3(&hook_program_id),
+        })
+        .add_extra_account(validation_state_account)
+        .check(Check::success())
+        .execute();
+
+    assert_unwrap_result(
+        source_starting_amount,
+        recipient_starting_amount,
+        escrow_starting_amount,
+        unwrap_amount,
+        &unwrap_result,
+    );
+
+    // Verify counter was incremented
+    let count = unwrap_result.extra_accounts[0].clone().account.data[0];
+    assert_eq!(count, 1)
 }

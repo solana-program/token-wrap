@@ -131,5 +131,10 @@ jobs:
           cargo-cache-fallback-key: cargo-programs
           solana: true
 
+      # Main program tests depend on the test-transfer-hook .so file,
+      # so it's required to build prior to testing
+      - name: Build Programs
+        run: pnpm programs:build
+
       - name: Test Programs
         run: pnpm programs:test

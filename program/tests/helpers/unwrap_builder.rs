@@ -6,6 +6,7 @@ use {
     },
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
+    solana_instruction::AccountMeta,
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
@@ -30,6 +31,10 @@ pub struct UnwrapBuilder<'a> {
     unwrapped_token_program: Option<TokenProgram>,
     wrapped_token_program: Option<TokenProgram>,
     transfer_authority: Option<TransferAuthority>,
+    unwrapped_mint: Option<KeyedAccount>,
+    unwrapped_escrow_account: Option<KeyedAccount>,
+    extra_accounts: Vec<KeyedAccount>,
+    recipient_token_account: Option<KeyedAccount>,
 }
 
 impl Default for UnwrapBuilder<'_> {
@@ -47,6 +52,10 @@ impl Default for UnwrapBuilder<'_> {
             unwrapped_token_program: None,
             wrapped_token_program: None,
             transfer_authority: None,
+            unwrapped_mint: None,
+            unwrapped_escrow_account: None,
+            extra_accounts: vec![],
+            recipient_token_account: None,
         }
     }
 }
@@ -69,6 +78,19 @@ impl<'a> UnwrapBuilder<'a> {
 
     pub fn unwrapped_escrow_owner(mut self, key: Pubkey) -> Self {
         self.unwrapped_escrow_owner = Some(key);
+        self
+    }
+
+    pub fn unwrapped_escrow_account(mut self, account: Account) -> Self {
+        self.unwrapped_escrow_account = Some(KeyedAccount {
+            key: Pubkey::new_unique(),
+            account,
+        });
+        self
+    }
+
+    pub fn unwrapped_mint(mut self, account: KeyedAccount) -> Self {
+        self.unwrapped_mint = Some(account);
         self
     }
 
@@ -97,8 +119,21 @@ impl<'a> UnwrapBuilder<'a> {
         self
     }
 
+    pub fn recipient_token_account(mut self, account: Account) -> Self {
+        self.recipient_token_account = Some(KeyedAccount {
+            key: Pubkey::new_unique(),
+            account,
+        });
+        self
+    }
+
     pub fn transfer_authority(mut self, auth: TransferAuthority) -> Self {
         self.transfer_authority = Some(auth);
+        self
+    }
+
+    pub fn add_extra_account(mut self, keyed_account: KeyedAccount) -> Self {
+        self.extra_accounts.push(keyed_account);
         self
     }
 
@@ -180,14 +215,14 @@ impl<'a> UnwrapBuilder<'a> {
             .unwrapped_token_program
             .unwrap_or(TokenProgram::SplToken);
 
-        let unwrapped_mint = KeyedAccount {
+        let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
             key: Pubkey::new_unique(),
             account: setup_mint(
                 unwrapped_token_program,
                 &self.mollusk.sysvars.rent,
                 Pubkey::new_unique(),
             ),
-        };
+        });
 
         let wrapped_token_program = self
             .wrapped_token_program
@@ -211,24 +246,28 @@ impl<'a> UnwrapBuilder<'a> {
         );
 
         // Setup escrow account
-        let escrow = self.setup_token_account(
-            unwrapped_token_program,
-            &unwrapped_mint,
-            &self
-                .unwrapped_escrow_owner
-                .unwrap_or(wrapped_mint_authority),
-            self.escrow_starting_amount.unwrap_or(100_000),
+        let escrow = self.unwrapped_escrow_account.clone().unwrap_or(
+            self.setup_token_account(
+                unwrapped_token_program,
+                &unwrapped_mint,
+                &self
+                    .unwrapped_escrow_owner
+                    .unwrap_or(wrapped_mint_authority),
+                self.escrow_starting_amount.unwrap_or(100_000),
+            ),
         );
 
         // Setup recipient account for unwrapped tokens
-        let recipient = self.setup_token_account(
-            unwrapped_token_program,
-            &unwrapped_mint,
-            &Pubkey::new_unique(),
-            self.recipient_starting_amount.unwrap_or(0),
-        );
+        let recipient = self.recipient_token_account.clone().unwrap_or_else(|| {
+            self.setup_token_account(
+                unwrapped_token_program,
+                &unwrapped_mint,
+                &Pubkey::new_unique(),
+                self.recipient_starting_amount.unwrap_or(0),
+            )
+        });
 
-        let instruction = unwrap(
+        let mut instruction = unwrap(
             &spl_token_wrap::id(),
             &escrow.key,
             &recipient.key,
@@ -259,6 +298,13 @@ impl<'a> UnwrapBuilder<'a> {
             accounts.push((*signer_key, Account::default()));
         }
 
+        for extra_account in &self.extra_accounts {
+            instruction
+                .accounts
+                .push(AccountMeta::new(extra_account.key, false));
+            accounts.push(extra_account.pair());
+        }
+
         if self.checks.is_empty() {
             self.checks.push(Check::success());
         }
@@ -287,6 +333,14 @@ impl<'a> UnwrapBuilder<'a> {
                 key: recipient.key,
                 account: result.get_account(&recipient.key).unwrap().clone(),
             },
+            extra_accounts: self
+                .extra_accounts
+                .iter()
+                .map(|keyed_account| KeyedAccount {
+                    key: keyed_account.key,
+                    account: result.get_account(&keyed_account.key).unwrap().clone(),
+                })
+                .collect(),
         }
     }
 }
@@ -296,4 +350,5 @@ pub struct UnwrapResult {
     pub unwrapped_escrow: KeyedAccount,
     pub wrapped_mint: KeyedAccount,
     pub recipient_unwrapped_token: KeyedAccount,
+    pub extra_accounts: Vec<KeyedAccount>,
 }

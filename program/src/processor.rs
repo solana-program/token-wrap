@@ -20,6 +20,7 @@ use {
     spl_token_2022::{
         extension::PodStateWithExtensions,
         instruction::initialize_mint2,
+        onchain::{extract_multisig_accounts, invoke_transfer_checked},
         pod::{PodAccount, PodMint},
     },
 };
@@ -180,7 +181,6 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let unwrapped_mint = next_account_info(account_info_iter)?;
     let unwrapped_escrow = next_account_info(account_info_iter)?;
     let transfer_authority = next_account_info(account_info_iter)?;
-    let multisig_signer_accounts = account_info_iter.as_slice();
 
     // Validate accounts
 
@@ -207,24 +207,16 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
     let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-
-    let multisig_signer_pubkeys = multisig_signer_accounts
-        .iter()
-        .map(|account| account.key)
-        .collect::<Vec<_>>();
-
-    invoke(
-        &spl_token_2022::instruction::transfer_checked(
-            unwrapped_token_program.key,
-            unwrapped_token_account.key,
-            unwrapped_mint.key,
-            unwrapped_escrow.key,
-            transfer_authority.key,
-            &multisig_signer_pubkeys,
-            amount,
-            unwrapped_mint_state.base.decimals,
-        )?,
-        &accounts[5..],
+    invoke_transfer_checked(
+        unwrapped_token_program.key,
+        unwrapped_token_account.clone(),
+        unwrapped_mint.clone(),
+        unwrapped_escrow.clone(),
+        transfer_authority.clone(),
+        &accounts[9..],
+        amount,
+        unwrapped_mint_state.base.decimals,
+        &[],
     )?;
 
     // Mint wrapped tokens to recipient
@@ -268,7 +260,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let wrapped_token_account = next_account_info(account_info_iter)?;
     let wrapped_mint = next_account_info(account_info_iter)?;
     let transfer_authority = next_account_info(account_info_iter)?;
-    let multisig_signer_accounts = account_info_iter.as_slice();
+    let additional_accounts = account_info_iter.as_slice();
 
     // Validate accounts
 
@@ -285,9 +277,9 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     // Burn wrapped tokens
 
-    let multisig_signer_pubkeys = multisig_signer_accounts
+    let multisig_signer_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
         .iter()
-        .map(|account| account.key)
+        .map(|a| a.key)
         .collect::<Vec<_>>();
 
     invoke(
@@ -296,7 +288,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             wrapped_token_account.key,
             wrapped_mint.key,
             transfer_authority.key,
-            &multisig_signer_pubkeys,
+            &multisig_signer_keys,
             amount,
         )?,
         &accounts[6..],
@@ -309,23 +301,15 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let bump_seed = [bump];
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 
-    invoke_signed(
-        &spl_token_2022::instruction::transfer_checked(
-            unwrapped_token_program.key,
-            unwrapped_escrow.key,
-            unwrapped_mint.key,
-            recipient_unwrapped_token.key,
-            wrapped_mint_authority.key,
-            &[],
-            amount,
-            unwrapped_mint_state.base.decimals,
-        )?,
-        &[
-            unwrapped_escrow.clone(),
-            unwrapped_mint.clone(),
-            recipient_unwrapped_token.clone(),
-            wrapped_mint_authority.clone(),
-        ],
+    invoke_transfer_checked(
+        unwrapped_token_program.key,
+        unwrapped_escrow.clone(),
+        unwrapped_mint.clone(),
+        recipient_unwrapped_token.clone(),
+        wrapped_mint_authority.clone(),
+        additional_accounts,
+        amount,
+        unwrapped_mint_state.base.decimals,
         &[&signer_seeds],
     )?;
 
