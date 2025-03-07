@@ -247,3 +247,40 @@ pub fn setup_validation_state_account(
         },
     }
 }
+
+pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAccount, Account) {
+    let native_mint = KeyedAccount {
+        key: spl_token_2022::native_mint::id(),
+        account: setup_mint(
+            TokenProgram::SplToken2022,
+            &Rent::default(),
+            Pubkey::new_unique(),
+        ),
+    };
+
+    let account_size =
+        ExtensionType::try_calculate_account_len::<spl_token_2022::state::Account>(&[]).unwrap();
+    let mut account_data = vec![0; account_size];
+    let mut state = StateWithExtensionsMut::<spl_token_2022::state::Account>::unpack_uninitialized(
+        &mut account_data,
+    )
+    .unwrap();
+
+    state.base = spl_token_2022::state::Account {
+        mint: native_mint.key,
+        amount: balance,
+        owner: owner.keyed_account.key,
+        state: AccountState::Initialized,
+        is_native: COption::Some(20),
+        ..Default::default()
+    };
+    state.pack_base();
+
+    let native_token_account = Account {
+        lamports: Rent::default().minimum_balance(Mint::LEN),
+        data: account_data,
+        owner: spl_token_2022::id(),
+        ..Default::default()
+    };
+    (native_mint, native_token_account)
+}

@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{
-            setup_counter, setup_multisig, setup_transfer_hook_account,
+            setup_counter, setup_multisig, setup_native_token, setup_transfer_hook_account,
             setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
         },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
@@ -257,4 +257,29 @@ fn test_wrap_with_transfer_hook() {
     // Verify counter was incremented
     let count = wrap_result.extra_accounts[0].clone().account.data[0];
     assert_eq!(count, 1)
+}
+
+#[test]
+fn test_successfully_wraps_native_mint() {
+    let starting_amount = 50_000;
+    let wrap_amount = 12_555;
+
+    let transfer_authority = TransferAuthority {
+        keyed_account: Default::default(),
+        signers: vec![],
+    };
+
+    let (native_mint, native_token_account) = setup_native_token(wrap_amount, &transfer_authority);
+
+    let wrap_result = WrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_account(native_token_account)
+        .unwrapped_mint(native_mint)
+        .transfer_authority(transfer_authority)
+        .wrapped_token_program(TokenProgram::SplToken)
+        .recipient_starting_amount(starting_amount)
+        .wrap_amount(wrap_amount)
+        .execute();
+
+    assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 }
