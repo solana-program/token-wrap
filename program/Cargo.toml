@@ -39,7 +39,7 @@ spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "
 [dev-dependencies]
 mollusk-svm = "0.1.1"
 mollusk-svm-programs-token = "0.1.1"
-spl-tlv-account-resolution = "0.9.0"
+spl-tlv-account-resolution = "0.10.0"
 solana-account = "2.2.1"
 solana-sdk-ids = "2.2.1"
 test-transfer-hook = { path = "tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
