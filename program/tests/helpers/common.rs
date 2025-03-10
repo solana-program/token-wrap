@@ -277,7 +277,10 @@ pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAcco
     state.pack_base();
 
     let native_token_account = Account {
-        lamports: Rent::default().minimum_balance(Mint::LEN),
+        lamports: Rent::default()
+            .minimum_balance(Mint::LEN)
+            .checked_add(balance)
+            .unwrap(),
         data: account_data,
         owner: spl_token_2022::id(),
         ..Default::default()
