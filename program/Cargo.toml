@@ -3,9 +3,9 @@ name = "spl-token-wrap"
 version = "0.1.0"
 description = "Solana Program Library Token Wrap"
 authors = ["Solana Maintainers <maintainers@solana.foundation>"]
-repository = "https://github.com/solana-labs/solana-program-library"
+repository = "https://github.com/solana-program/token-wrap"
 license = "Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [features]
 no-entrypoint = []
