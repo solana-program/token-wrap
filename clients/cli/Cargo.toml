@@ -1,0 +1,48 @@
+[package]
+name = "spl-token-wrap-cli"
+version = "1.0.0"
+description = "Solana Program Library Token Wrap command-line utility"
+authors = ["Anza Maintainers <maintainers@anza.xyz>"]
+repository = "https://github.com/solana-program/token-wrap"
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.97"
+clap = { version = "3.2.25", features = ["derive"] }
+serde = "1.0.219"
+serde_derive = "1.0.219"
+serde_with = "3.12.0"
+solana-clap-v3-utils = "2.2.1"
+solana-cli-config = "2.2.1"
+solana-cli-output = "2.2.1"
+solana-client = "2.2.1"
+solana-commitment-config = "2.2.1"
+solana-logger = "2.2.1"
+solana-instruction = "2.2.1"
+solana-program-pack = "2.2.1"
+solana-pubkey = "2.2.1"
+solana-remote-wallet = "2.2.1"
+solana-signature = "2.2.1"
+solana-signer = "2.2.1"
+solana-system-interface = { version = "1.0.0", features = ["bincode"] }
+solana-transaction = "2.2.1"
+spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
+spl-token-client = "0.14.0"
+tokio = { version = "1.44.1", features = ["full"] }
+
+spl-token-wrap = { path = "../../program", features = ["no-entrypoint"] }
+
+[dev-dependencies]
+bytemuck = "1.22.0"
+solana-keypair = "2.2.1"
+serial_test = "3.2.0"
+solana-test-validator = "2.2.1"
+solana-sdk-ids = "2.2.1"
+solana-system-interface = "1.0.0"
+spl-token-2022 = "7.0.0"
+tempfile = "3.19.0"
+
+[[bin]]
+name = "spl-token-wrap"
+path = "src/main.rs"

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["program", "program/tests/programs/test-transfer-hook"]
+members = ["program", "clients/cli", "program/tests/programs/test-transfer-hook"]
 
 [workspace.metadata.cli]
 solana = "2.2.0"
