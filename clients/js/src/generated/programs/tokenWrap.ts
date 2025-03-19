@@ -6,7 +6,17 @@
  * @see https://github.com/codama-idl/codama
  */
 
-import { type Address } from '@solana/kit';
+import {
+  containsBytes,
+  getU8Encoder,
+  type Address,
+  type ReadonlyUint8Array,
+} from '@solana/kit';
+import {
+  type ParsedCreateMintInstruction,
+  type ParsedUnwrapInstruction,
+  type ParsedWrapInstruction,
+} from '../instructions';
 
 export const TOKEN_WRAP_PROGRAM_ADDRESS =
   'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>;
@@ -14,3 +24,40 @@ export const TOKEN_WRAP_PROGRAM_ADDRESS =
 export enum TokenWrapAccount {
   Backpointer,
 }
+
+export enum TokenWrapInstruction {
+  CreateMint,
+  Wrap,
+  Unwrap,
+}
+
+export function identifyTokenWrapInstruction(
+  instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
+): TokenWrapInstruction {
+  const data = 'data' in instruction ? instruction.data : instruction;
+  if (containsBytes(data, getU8Encoder().encode(0), 0)) {
+    return TokenWrapInstruction.CreateMint;
+  }
+  if (containsBytes(data, getU8Encoder().encode(1), 0)) {
+    return TokenWrapInstruction.Wrap;
+  }
+  if (containsBytes(data, getU8Encoder().encode(2), 0)) {
+    return TokenWrapInstruction.Unwrap;
+  }
+  throw new Error(
+    'The provided instruction could not be identified as a tokenWrap instruction.'
+  );
+}
+
+export type ParsedTokenWrapInstruction<
+  TProgram extends string = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR',
+> =
+  | ({
+      instructionType: TokenWrapInstruction.CreateMint;
+    } & ParsedCreateMintInstruction<TProgram>)
+  | ({
+      instructionType: TokenWrapInstruction.Wrap;
+    } & ParsedWrapInstruction<TProgram>)
+  | ({
+      instructionType: TokenWrapInstruction.Unwrap;
+    } & ParsedUnwrapInstruction<TProgram>);

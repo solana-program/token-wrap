@@ -10,72 +10,49 @@ import {
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
 } from '@solana/kit';
+import { getMintSize } from '@solana-program/token-2022';
+import { IInstruction } from '@solana/instructions';
+import { getTransferSolInstruction } from '@solana-program/system';
 import {
-  BACKPOINTER_SIZE,
-  getBackpointerAddress,
-  getWrappedMintAddress,
-  MINT_SIZE,
-  TOKEN_WRAP_PROGRAM_ID,
-} from './common';
-import { AccountRole, IInstruction } from '@solana/instructions';
-import { getTransferSolInstruction, SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
+  findBackpointerPda,
+  findWrappedMintPda,
+  getBackpointerSize,
+  getCreateMintInstruction,
+  TOKEN_WRAP_PROGRAM_ADDRESS,
+} from './generated';
 
-export enum TokenWrapInstruction {
-  CreateMint = 0,
-  Wrap = 1,
-  Unwrap = 2,
-}
-
-const getCreateWrappedMintInstruction = ({
-  wrappedMint,
-  backpointer,
-  unwrappedMint,
-  wrappedTokenProgramId,
-  idempotent = false,
-}: {
-  wrappedMint: Address;
-  backpointer: Address;
-  unwrappedMint: Address;
-  wrappedTokenProgramId: Address;
-  idempotent: boolean;
-}): IInstruction => {
-  const data = new Uint8Array([TokenWrapInstruction.CreateMint, idempotent ? 1 : 0]);
-
-  return {
-    programAddress: TOKEN_WRAP_PROGRAM_ID,
-    accounts: [
-      { address: wrappedMint, role: AccountRole.WRITABLE },
-      { address: backpointer, role: AccountRole.WRITABLE },
-      { address: unwrappedMint, role: AccountRole.READONLY },
-      { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY },
-      { address: wrappedTokenProgramId, role: AccountRole.READONLY },
-    ],
-    data,
-  };
-};
-
-export const createMint = async ({
+export const executeCreateMint = async ({
   rpc,
   unwrappedMint,
-  wrappedTokenProgramId,
+  wrappedTokenProgram,
   payer,
   idempotent = false,
 }: {
   rpc: ReturnType<typeof createSolanaRpc>;
   unwrappedMint: Address;
-  wrappedTokenProgramId: Address;
+  wrappedTokenProgram: Address;
   payer: KeyPairSigner;
   idempotent: boolean;
 }) => {
-  const wrappedMint = await getWrappedMintAddress(unwrappedMint, wrappedTokenProgramId);
-  const backpointer = await getBackpointerAddress(wrappedMint);
+  const [wrappedMint] = await findWrappedMintPda(
+    {
+      unwrappedMint,
+      wrappedTokenProgram: wrappedTokenProgram,
+    },
+    { programAddress: TOKEN_WRAP_PROGRAM_ADDRESS },
+  );
+  const [backpointer] = await findBackpointerPda(
+    { wrappedMint },
+    { programAddress: TOKEN_WRAP_PROGRAM_ADDRESS },
+  );
 
   const instructions: IInstruction[] = [];
 
   // Fund wrapped mint account if needed
   let fundedWrappedMintLamports = 0n;
   const wrappedMintAccount = await rpc.getAccountInfo(wrappedMint).send();
-  const wrappedMintRent = await rpc.getMinimumBalanceForRentExemption(MINT_SIZE).send();
+  const mintSize = BigInt(getMintSize());
+  const wrappedMintRent = await rpc.getMinimumBalanceForRentExemption(mintSize).send();
   const wrappedMintLamports = wrappedMintAccount.value?.lamports ?? 0n;
   if (wrappedMintLamports < wrappedMintRent) {
     fundedWrappedMintLamports = wrappedMintRent - wrappedMintLamports;
@@ -91,7 +68,8 @@ export const createMint = async ({
   // Fund backpointer account if needed
   let fundedBackpointerLamports = 0n;
   const backpointerAccount = await rpc.getAccountInfo(backpointer).send();
-  const backpointerRent = await rpc.getMinimumBalanceForRentExemption(BACKPOINTER_SIZE).send();
+  const backpointerSize = BigInt(getBackpointerSize());
+  const backpointerRent = await rpc.getMinimumBalanceForRentExemption(backpointerSize).send();
   const backpointerLamports = backpointerAccount.value?.lamports ?? 0n;
   if (backpointerLamports < backpointerRent) {
     fundedBackpointerLamports = backpointerRent - backpointerLamports;
@@ -106,11 +84,11 @@ export const createMint = async ({
 
   // Add create_mint instruction
   instructions.push(
-    getCreateWrappedMintInstruction({
+    getCreateMintInstruction({
       wrappedMint,
       backpointer,
       unwrappedMint,
-      wrappedTokenProgramId,
+      wrappedTokenProgram,
       idempotent,
     }),
   );
