@@ -4,10 +4,12 @@
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "types": ["node"],
-    "noEmit": true,
     "module": "NodeNext",
     "moduleResolution": "nodenext",
-    "incremental": false
+    "incremental": false,
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "emitDeclarationOnly": true
   },
   "extends": ["@tsconfig/strictest/tsconfig.json"],
   "include": ["src"]

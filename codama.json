@@ -4,16 +4,14 @@
   "scripts": {
     "js": {
       "from": "@codama/renderers-js",
-      "args": ["clients/js/src/generated"]
+      "args": [
+        "clients/js/src/generated"
+      ]
     },
     "rust": {
       "from": "@codama/renderers-rust",
       "args": [
-        "clients/rust/src/generated",
-        {
-          "crateFolder": "clients/rust",
-          "formatCode": true
-        }
+        "clients/rust/src/generated"
       ]
     }
   }

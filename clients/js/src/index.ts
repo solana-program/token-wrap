@@ -1,3 +1,3 @@
 export * from './generated';
 
-export { createMint } from './create-mint';
+export { executeCreateMint } from './create-mint';

@@ -99,6 +99,10 @@ export async function fetchAllMaybeBackpointer(
   return maybeAccounts.map((maybeAccount) => decodeBackpointer(maybeAccount));
 }
 
+export function getBackpointerSize(): number {
+  return 32;
+}
+
 export async function fetchBackpointerFromSeeds(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   seeds: BackpointerSeeds,

@@ -4,7 +4,7 @@ import {
   createSignerFromKeyPair,
   createSolanaRpc,
 } from '@solana/kit';
-import { createMint } from './index';
+import { executeCreateMint } from './index';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 
 // Replace these consts with your own
@@ -20,10 +20,10 @@ const main = async () => {
   const keyPair = await createKeyPairFromBytes(PRIVATE_KEY_PAIR);
   const payer = await createSignerFromKeyPair(keyPair);
 
-  const result = await createMint({
+  const result = await executeCreateMint({
     rpc,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    wrappedTokenProgramId: TOKEN_2022_PROGRAM_ADDRESS,
+    wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,
     idempotent: true,
   });
