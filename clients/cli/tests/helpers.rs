@@ -8,16 +8,13 @@ use {
     solana_signer::Signer,
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
-    spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMin},
-    spl_token_client::client::{ProgramClient, ProgramRpcClient, ProgramRpcClientSendTransaction},
+    spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMint},
     spl_token_wrap::{self},
     std::{path::PathBuf, sync::Arc},
     tempfile::NamedTempFile,
 };
 
 pub const TOKEN_WRAP_CLI_BIN: &str = "../../target/debug/spl-token-wrap";
-
-pub type PClient = Arc<dyn ProgramClient<ProgramRpcClientSendTransaction>>;
 
 pub async fn start_validator() -> (TestValidator, Keypair) {
     solana_logger::setup();
@@ -35,7 +32,6 @@ pub async fn start_validator() -> (TestValidator, Keypair) {
 
 pub struct Env {
     pub rpc_client: Arc<RpcClient>,
-    pub program_client: PClient,
     pub payer: Keypair,
     pub config_file_path: String,
     // Persist these to keep them in scope
@@ -50,10 +46,6 @@ pub async fn setup() -> Env {
 
     // Create RPC and program clients
     let rpc_client = Arc::new(validator.get_async_rpc_client());
-    let program_client = Arc::new(ProgramRpcClient::new(
-        rpc_client.clone(),
-        ProgramRpcClientSendTransaction,
-    ));
 
     // Write payer keypair to a temporary file
     let keypair_file = NamedTempFile::new().unwrap();
@@ -73,7 +65,6 @@ pub async fn setup() -> Env {
 
     Env {
         rpc_client,
-        program_client,
         payer,
         config_file_path,
         _validator: validator,
@@ -83,17 +74,17 @@ pub async fn setup() -> Env {
 }
 
 pub async fn create_unwrapped_mint(
-    program_client: PClient,
+    rpc_client: &Arc<RpcClient>,
     payer: &Keypair,
     token_program_addr: &Pubkey,
 ) -> Pubkey {
     let mint_account = Keypair::new();
-    let rent = program_client
-        .get_minimum_balance_for_rent_exemption(SplTokenMin::LEN)
+    let rent = rpc_client
+        .get_minimum_balance_for_rent_exemption(SplTokenMint::LEN)
         .await
         .unwrap();
 
-    let blockhash = program_client.get_latest_blockhash().await.unwrap();
+    let blockhash = rpc_client.get_latest_blockhash().await.unwrap();
 
     let transaction = Transaction::new_signed_with_payer(
         &[
@@ -101,7 +92,7 @@ pub async fn create_unwrapped_mint(
                 &payer.pubkey(),
                 &mint_account.pubkey(),
                 rent,
-                SplTokenMin::LEN as u64,
+                SplTokenMint::LEN as u64,
                 token_program_addr,
             ),
             initialize_mint(
@@ -118,6 +109,6 @@ pub async fn create_unwrapped_mint(
         blockhash,
     );
 
-    program_client.send_transaction(&transaction).await.unwrap();
+    rpc_client.send_transaction(&transaction).await.unwrap();
     mint_account.pubkey()
 }

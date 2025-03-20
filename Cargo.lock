@@ -9388,7 +9388,7 @@ dependencies = [
 
 [[package]]
 name = "spl-token-wrap-cli"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -9415,7 +9415,7 @@ dependencies = [
  "solana-test-validator",
  "solana-transaction",
  "spl-token",
- "spl-token-2022 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 7.0.0 (git+https://github.com/solana-program/token-2022?rev=00e0f4723c2606c0facbb4921e1b2e2e030d1fa6)",
  "spl-token-client",
  "spl-token-wrap",
  "tempfile",

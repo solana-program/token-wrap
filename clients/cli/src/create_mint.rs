@@ -5,7 +5,6 @@ use {
         output::{format_output, println_display},
         CommandResult,
     },
-    anyhow::anyhow,
     clap::Args,
     serde_derive::{Deserialize, Serialize},
     serde_with::{serde_as, DisplayFromStr},
@@ -27,15 +26,15 @@ use {
 #[derive(Clone, Debug, Args)]
 pub struct CreateMintArgs {
     /// The address of the mint to wrap
-    #[clap(long, value_parser = parse_pubkey)]
+    #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
 
     /// The address of the token program that the unwrapped mint belongs to
-    #[clap(long, value_parser = parse_token_program)]
+    #[clap(value_parser = parse_token_program)]
     pub unwrapped_token_program: Pubkey,
 
     /// The address of the token program that the wrapped mint should belong to
-    #[clap(long, value_parser = parse_token_program)]
+    #[clap(value_parser = parse_token_program)]
     pub wrapped_token_program: Pubkey,
 
     /// Do not err if account already created
@@ -73,7 +72,7 @@ impl Display for CreateMintOutput {
         )?;
         writeln_name_value(
             f,
-            "Wrapped backpointer address::",
+            "Wrapped backpointer address:",
             &self.wrapped_backpointer_address.to_string(),
         )?;
         writeln_name_value(
@@ -128,23 +127,19 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         .get_minimum_balance_for_rent_exemption(spl_token_2022::state::Mint::LEN)
         .await?;
 
-    let mut funded_wrapped_mint_lamports = 0;
-    if wrapped_mint_lamports < mint_rent {
-        let lamports_to_transfer = mint_rent
-            .checked_sub(wrapped_mint_lamports)
-            .ok_or(anyhow!("Error subtracting wrapped_mint_lamports from rent"))?;
-        funded_wrapped_mint_lamports = lamports_to_transfer;
+    let funded_wrapped_mint_lamports = mint_rent.saturating_sub(wrapped_mint_lamports);
+    if funded_wrapped_mint_lamports > 0 {
         println_display(
             config,
             format!(
-                "Funding wrapped_mint_account {wrapped_mint_address} with {lamports_to_transfer} \
-                 lamports for rent"
+                "Funding wrapped_mint_account {wrapped_mint_address} with \
+                 {funded_wrapped_mint_lamports} lamports for rent"
             ),
         );
         instructions.push(transfer(
             &payer.pubkey(),
             &wrapped_mint_address,
-            lamports_to_transfer,
+            funded_wrapped_mint_lamports,
         ));
     }
 
@@ -161,23 +156,19 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         >())
         .await?;
 
-    let mut funded_backpointer_lamports = 0;
-    if backpointer_lamports < backpointer_rent {
-        let lamports_to_transfer = backpointer_rent
-            .checked_sub(backpointer_lamports)
-            .ok_or(anyhow!("Error subtracting backpointer_lamports from rent"))?;
-        funded_backpointer_lamports = lamports_to_transfer;
+    let funded_backpointer_lamports = backpointer_rent.saturating_sub(backpointer_lamports);
+    if funded_backpointer_lamports > 0 {
         println_display(
             config,
             format!(
                 "Funding backpointer_account {wrapped_backpointer_address} with \
-                 {lamports_to_transfer} lamports for rent"
+                 {funded_backpointer_lamports} lamports for rent"
             ),
         );
         instructions.push(transfer(
             &payer.pubkey(),
             &wrapped_backpointer_address,
-            lamports_to_transfer,
+            funded_backpointer_lamports,
         ));
     }
 

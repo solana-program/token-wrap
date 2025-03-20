@@ -151,7 +151,6 @@ jobs:
         uses: ./.github/actions/setup
         with:
           cargo-cache-key: cargo-cli
-          solana: true
           cli: true
           purge: true
 
@@ -160,12 +159,6 @@ jobs:
         with:
           path: ./**/*.so
           key: ${{ runner.os }}-builds-${{ github.sha }}
-
-      - name: Build Programs
-        run: pnpm programs:build
-
-      - name: Build Binary
-        run: cargo build
 
       - name: Test
         run: pnpm clients:cli:test

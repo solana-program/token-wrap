@@ -1,14 +1,21 @@
 use {
     crate::{config::Config, output::println_display, Error},
+    clap::ArgMatches,
+    solana_clap_v3_utils::keypair::pubkey_from_path,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
     spl_token_client::spl_token_2022,
-    std::str::FromStr,
 };
 
 pub fn parse_pubkey(value: &str) -> Result<Pubkey, String> {
-    Pubkey::from_str(value).map_err(|e| format!("Invalid Pubkey: {e}"))
+    parse_address(value, "pubkey")
+}
+
+fn parse_address(path: &str, name: &str) -> Result<Pubkey, String> {
+    let mut wallet_manager = None;
+    pubkey_from_path(&ArgMatches::default(), path, name, &mut wallet_manager)
+        .map_err(|_| format!("Failed to load pubkey {} at {}", name, path))
 }
 
 pub fn parse_token_program(value: &str) -> Result<Pubkey, String> {
