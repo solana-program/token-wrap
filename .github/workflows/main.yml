@@ -139,6 +139,25 @@ jobs:
       - name: Test Programs
         run: pnpm programs:test
 
+  format_and_lint_cli:
+    name: Format & Lint CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+        with:
+          clippy: true
+          rustfmt: true
+
+      - name: Format CLI
+        run: pnpm clients:cli:format
+
+      - name: Lint CLI
+        run: pnpm clients:cli:lint
+
   test_client_cli:
     name: Test Client CLI
     runs-on: ubuntu-latest
