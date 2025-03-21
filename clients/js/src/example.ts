@@ -3,6 +3,7 @@ import {
   createKeyPairFromBytes,
   createSignerFromKeyPair,
   createSolanaRpc,
+  createSolanaRpcSubscriptions,
 } from '@solana/kit';
 import { executeCreateMint } from './index';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
@@ -16,12 +17,14 @@ const PRIVATE_KEY_PAIR = new Uint8Array([
 const UNWRAPPED_MINT_ADDRESS = address('5HXwCPsqa8cZSAXDimAW9vJB8b3VdjCMWt1aLrCT2Wpb');
 
 const main = async () => {
-  const rpc = createSolanaRpc('http://127.0.0.1:8899/');
+  const rpc = createSolanaRpc('http://127.0.0.1:8899');
+  const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
   const keyPair = await createKeyPairFromBytes(PRIVATE_KEY_PAIR);
   const payer = await createSignerFromKeyPair(keyPair);
 
   const result = await executeCreateMint({
     rpc,
+    rpcSubscriptions,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,

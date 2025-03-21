@@ -1,5 +1,5 @@
 {
-  "name": "@solana/spl-token-wrap",
+  "name": "@solana-program/token-wrap",
   "version": "1.0.0",
   "description": "Javascript helpers for interacting with the Solana Token Wrap program",
   "author": "Anza Maintainers <maintainers@anza.xyz>",
@@ -40,10 +40,11 @@
   "bugs": {
     "url": "https://github.com/solana-program/token-wrap/issues"
   },
-  "dependencies": {
-    "@solana-program/token-2022": "^0.4.0",
-    "@solana/instructions": "^2.1.0",
+  "peerDependencies": {
     "@solana/kit": "^2.1.0"
+  },
+  "dependencies": {
+    "@solana-program/token-2022": "^0.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

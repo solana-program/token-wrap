@@ -1,59 +1,63 @@
 import {
   Address,
-  appendTransactionMessageInstruction,
-  compileTransaction,
-  createSolanaRpc,
+  appendTransactionMessageInstructions,
   createTransactionMessage,
-  getBase64EncodedWireTransaction,
+  fetchEncodedAccount,
+  getSignatureFromTransaction,
+  IInstruction,
   KeyPairSigner,
   pipe,
-  setTransactionMessageFeePayer,
+  Rpc,
+  RpcSubscriptions,
+  sendAndConfirmTransactionFactory,
+  setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  signTransactionMessageWithSigners,
+  SolanaRpcApi,
+  SolanaRpcSubscriptionsApi,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
-import { IInstruction } from '@solana/instructions';
 import { getTransferSolInstruction } from '@solana-program/system';
 import {
   findBackpointerPda,
   findWrappedMintPda,
   getBackpointerSize,
   getCreateMintInstruction,
-  TOKEN_WRAP_PROGRAM_ADDRESS,
 } from './generated';
 
 export const executeCreateMint = async ({
   rpc,
+  rpcSubscriptions,
   unwrappedMint,
   wrappedTokenProgram,
   payer,
   idempotent = false,
 }: {
-  rpc: ReturnType<typeof createSolanaRpc>;
+  rpc: Rpc<SolanaRpcApi>;
+  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;
   idempotent: boolean;
 }) => {
-  const [wrappedMint] = await findWrappedMintPda(
-    {
-      unwrappedMint,
-      wrappedTokenProgram: wrappedTokenProgram,
-    },
-    { programAddress: TOKEN_WRAP_PROGRAM_ADDRESS },
-  );
-  const [backpointer] = await findBackpointerPda(
-    { wrappedMint },
-    { programAddress: TOKEN_WRAP_PROGRAM_ADDRESS },
-  );
+  const [wrappedMint] = await findWrappedMintPda({
+    unwrappedMint,
+    wrappedTokenProgram: wrappedTokenProgram,
+  });
+  const [backpointer] = await findBackpointerPda({ wrappedMint });
 
   const instructions: IInstruction[] = [];
 
   // Fund wrapped mint account if needed
   let fundedWrappedMintLamports = 0n;
-  const wrappedMintAccount = await rpc.getAccountInfo(wrappedMint).send();
+
   const mintSize = BigInt(getMintSize());
-  const wrappedMintRent = await rpc.getMinimumBalanceForRentExemption(mintSize).send();
-  const wrappedMintLamports = wrappedMintAccount.value?.lamports ?? 0n;
+  const [wrappedMintAccount, wrappedMintRent] = await Promise.all([
+    fetchEncodedAccount(rpc, wrappedMint),
+    rpc.getMinimumBalanceForRentExemption(mintSize).send(),
+  ]);
+
+  const wrappedMintLamports = wrappedMintAccount.exists ? wrappedMintAccount.lamports : 0n;
   if (wrappedMintLamports < wrappedMintRent) {
     fundedWrappedMintLamports = wrappedMintRent - wrappedMintLamports;
     instructions.push(
@@ -67,10 +71,14 @@ export const executeCreateMint = async ({
 
   // Fund backpointer account if needed
   let fundedBackpointerLamports = 0n;
-  const backpointerAccount = await rpc.getAccountInfo(backpointer).send();
+
   const backpointerSize = BigInt(getBackpointerSize());
-  const backpointerRent = await rpc.getMinimumBalanceForRentExemption(backpointerSize).send();
-  const backpointerLamports = backpointerAccount.value?.lamports ?? 0n;
+  const [backpointerAccount, backpointerRent] = await Promise.all([
+    fetchEncodedAccount(rpc, backpointer),
+    rpc.getMinimumBalanceForRentExemption(backpointerSize).send(),
+  ]);
+
+  const backpointerLamports = backpointerAccount.exists ? backpointerAccount.lamports : 0n;
   if (backpointerLamports < backpointerRent) {
     fundedBackpointerLamports = backpointerRent - backpointerLamports;
     instructions.push(
@@ -96,35 +104,22 @@ export const executeCreateMint = async ({
   const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
 
   // Build transaction
-  let tx = pipe(
+  const tx = pipe(
     createTransactionMessage({ version: 0 }),
-    tx => setTransactionMessageFeePayer(payer.address, tx),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
+    tx => appendTransactionMessageInstructions(instructions, tx),
   );
 
-  for (const instruction of instructions) {
-    tx = appendTransactionMessageInstruction(instruction, tx);
-  }
-
-  const compiledTransaction = compileTransaction(tx);
-
-  // Sign and send
-  const [signatures] = await payer.signTransactions([compiledTransaction]);
-  if (!signatures) {
-    throw new Error('Expected a signature for compiled transaction');
-  }
-
-  const wireFormatTransaction = getBase64EncodedWireTransaction({
-    ...compiledTransaction,
-    signatures,
-  });
-
-  const signature = await rpc.sendTransaction(wireFormatTransaction, { encoding: 'base64' }).send();
+  // Send tx
+  const signedTransaction = await signTransactionMessageWithSigners(tx);
+  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
+  await sendAndConfirm(signedTransaction, { commitment: 'confirmed' });
 
   return {
     wrappedMint,
     backpointer,
-    signature,
+    signature: getSignatureFromTransaction(signedTransaction),
     fundedWrappedMintLamports,
     fundedBackpointerLamports,
   };
