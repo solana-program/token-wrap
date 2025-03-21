@@ -149,6 +149,9 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup
         with:
+          cargo-cache-key: cargo-cli
+          cli: true
+          purge: true
           clippy: true
           rustfmt: true
 
