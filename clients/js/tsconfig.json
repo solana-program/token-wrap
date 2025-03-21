@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": false,
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "incremental": false,
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "emitDeclarationOnly": true
+  },
+  "extends": ["@tsconfig/strictest/tsconfig.json"],
+  "include": ["src"]
+}
