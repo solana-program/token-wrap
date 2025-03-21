@@ -5,7 +5,6 @@ use {
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
-    spl_token_client::spl_token_2022,
 };
 
 pub fn parse_pubkey(value: &str) -> Result<Pubkey, String> {

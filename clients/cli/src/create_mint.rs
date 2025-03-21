@@ -15,7 +15,6 @@ use {
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
-    spl_token_client::spl_token_2022,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
         instruction::create_mint,

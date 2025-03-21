@@ -9016,27 +9016,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl-record"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1288810a85bbe7e62ee3c6f7b8119e8c1016e90351411d12e4132e98c7ca7344"
-dependencies = [
- "bytemuck",
- "num-derive",
- "num-traits",
- "solana-account-info",
- "solana-decode-error",
- "solana-instruction",
- "solana-msg",
- "solana-program-entrypoint",
- "solana-program-error",
- "solana-program-pack",
- "solana-pubkey",
- "solana-rent",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "spl-tlv-account-resolution"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9191,37 +9170,6 @@ dependencies = [
  "spl-token-metadata-interface",
  "spl-transfer-hook-interface",
  "spl-type-length-value 0.7.0",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "spl-token-client"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94bf4fb4f625f07c07d28ec885c848c2a08900c1e0ad937516b8e55c8ed49434"
-dependencies = [
- "async-trait",
- "bincode",
- "bytemuck",
- "futures 0.3.31",
- "futures-util",
- "solana-banks-interface",
- "solana-cli-output",
- "solana-program-test",
- "solana-rpc-client",
- "solana-rpc-client-api",
- "solana-sdk",
- "spl-associated-token-account-client",
- "spl-elgamal-registry 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "spl-memo",
- "spl-record",
- "spl-token",
- "spl-token-2022 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spl-token-confidential-transfer-proof-extraction 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "spl-token-confidential-transfer-proof-generation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "spl-token-group-interface",
- "spl-token-metadata-interface",
- "spl-transfer-hook-interface",
  "thiserror 2.0.12",
 ]
 
@@ -9397,6 +9345,7 @@ dependencies = [
  "serde_derive",
  "serde_with",
  "serial_test",
+ "solana-account",
  "solana-clap-v3-utils",
  "solana-cli-config",
  "solana-cli-output",
@@ -9416,7 +9365,6 @@ dependencies = [
  "solana-transaction",
  "spl-token",
  "spl-token-2022 7.0.0 (git+https://github.com/solana-program/token-2022?rev=00e0f4723c2606c0facbb4921e1b2e2e030d1fa6)",
- "spl-token-client",
  "spl-token-wrap",
  "tempfile",
  "tokio",

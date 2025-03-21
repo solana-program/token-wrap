@@ -13,6 +13,7 @@ clap = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_with = { workspace = true }
+solana-account = { workspace = true }
 solana-clap-v3-utils = { workspace = true }
 solana-cli-config = { workspace = true }
 solana-cli-output = { workspace = true }
@@ -28,8 +29,8 @@ solana-signer = { workspace = true }
 solana-system-interface = { workspace = true }
 solana-transaction = { workspace = true }
 spl-token = { workspace = true }
-spl-token-client = { workspace = true }
 spl-token-wrap = { workspace = true }
+spl-token-2022 = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
@@ -37,9 +38,7 @@ bytemuck = { workspace = true }
 serial_test = { workspace = true }
 solana-keypair = { workspace = true }
 solana-sdk-ids = { workspace = true }
-solana-system-interface = { workspace = true }
 solana-test-validator = { workspace = true }
-spl-token-2022 = { workspace = true }
 tempfile = { workspace = true }
 
 [[bin]]
