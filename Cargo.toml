@@ -73,7 +73,7 @@ spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
 spl-token-client = "0.14.0"
 spl-token-wrap = { path = "program", features = ["no-entrypoint"] }
 spl-transfer-hook-interface = "0.9.0"
-tempfile = "3.19.0"
+tempfile = "3.19.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
 thiserror = "2.0.12"
 tokio = { version = "1.44.1", features = ["full"] }
