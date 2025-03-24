@@ -16,8 +16,8 @@ use {
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
-        instruction::create_mint,
+        get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
+        id, instruction::create_mint,
     },
     std::fmt::{Display, Formatter},
 };
@@ -50,6 +50,8 @@ pub struct CreateMintOutput {
     #[serde_as(as = "DisplayFromStr")]
     pub wrapped_mint_address: Pubkey,
     #[serde_as(as = "DisplayFromStr")]
+    pub wrapped_mint_authority: Pubkey,
+    #[serde_as(as = "DisplayFromStr")]
     pub wrapped_backpointer_address: Pubkey,
     pub funded_wrapped_mint_lamports: u64,
     pub funded_backpointer_lamports: u64,
@@ -68,6 +70,11 @@ impl Display for CreateMintOutput {
             f,
             "Wrapped mint address:",
             &self.wrapped_mint_address.to_string(),
+        )?;
+        writeln_name_value(
+            f,
+            "Wrapped mint authority:",
+            &self.wrapped_mint_authority.to_string(),
         )?;
         writeln_name_value(
             f,
@@ -196,6 +203,7 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         CreateMintOutput {
             unwrapped_mint_address: args.unwrapped_mint,
             wrapped_mint_address,
+            wrapped_mint_authority: get_wrapped_mint_authority(&wrapped_mint_address),
             wrapped_backpointer_address,
             funded_wrapped_mint_lamports,
             funded_backpointer_lamports,

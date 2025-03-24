@@ -4,6 +4,7 @@ mod config;
 mod create_mint;
 mod find_pdas;
 mod output;
+mod wrap;
 
 use {
     crate::{cli::Cli, config::Config},
