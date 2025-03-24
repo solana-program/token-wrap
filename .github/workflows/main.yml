@@ -26,6 +26,25 @@ jobs:
       - name: Lint Programs
         run: pnpm programs:lint
 
+  format_and_lint_client_js:
+    name: Format & Lint Client JS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Build Client JS
+        run: pnpm clients:js:build
+
+      - name: Format Client JS
+        run: pnpm clients:js:format:check
+
+      - name: Lint Client JS
+        run: pnpm clients:js:lint
+
   audit_rust:
     name: Audit Rust
     runs-on: ubuntu-latest

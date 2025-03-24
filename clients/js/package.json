@@ -1,0 +1,65 @@
+{
+  "name": "@solana-program/token-wrap",
+  "version": "1.0.0",
+  "description": "Javascript helpers for interacting with the Solana Token Wrap program",
+  "author": "Anza Maintainers <maintainers@anza.xyz>",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "module": "./dist/src/index.mjs",
+  "main": "./dist/src/index.js",
+  "types": "./dist/types/index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/src/index.mjs",
+      "require": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "./dist/src",
+    "./dist/types"
+  ],
+  "scripts": {
+    "build": "tsc && tsup",
+    "build:docs": "typedoc src/index.ts",
+    "lint": "eslint --ext js,ts,tsx src",
+    "lint:fix": "eslint --fix --ext js,ts,tsx src",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "example:create-mint": "tsx src/example.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/solana-program/token-wrap.git"
+  },
+  "bugs": {
+    "url": "https://github.com/solana-program/token-wrap/issues"
+  },
+  "peerDependencies": {
+    "@solana/kit": "^2.1.0"
+  },
+  "dependencies": {
+    "@solana-program/system": "^0.7.0",
+    "@solana-program/token-2022": "^0.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@solana/kit": "^2.1.0",
+    "@tsconfig/strictest": "^2.0.5",
+    "@types/node": "^22.13.10",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "prettier": "^3.5.3",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.3",
+    "typedoc": "^0.28.1",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.27.0"
+  },
+  "packageManager": "pnpm@9.1.0"
+}

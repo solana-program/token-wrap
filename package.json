@@ -5,6 +5,11 @@
     "programs:test": "zx ./scripts/rust/test-sbf.mjs program",
     "programs:format": "zx ./scripts/rust/format.mjs program",
     "programs:lint": "zx ./scripts/rust/lint.mjs program",
+    "clients:js:build": "zx ./scripts/js/build.mjs clients/js",
+    "clients:js:format": "zx ./scripts/js/format.mjs clients/js",
+    "clients:js:format:check": "zx ./scripts/js/format.mjs clients/js --check",
+    "clients:js:lint": "zx ./scripts/js/lint.mjs clients/js",
+    "generate": "tsx program/idl.ts && codama run js",
     "solana:check": "zx ./scripts/check-solana-version.mjs",
     "solana:link": "zx ./scripts/link-solana-version.mjs",
     "template:upgrade": "zx ./scripts/upgrade-template.mjs",
@@ -17,7 +22,10 @@
   },
   "devDependencies": {
     "@iarna/toml": "^2.2.5",
+    "@solana-program/system": "^0.7.0",
+    "@types/node": "^22.13.10",
     "codama": "^1.2.10",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "zx": "^8.4.1"
   },
