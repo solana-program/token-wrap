@@ -1,7 +1,6 @@
 import {
   address,
-  createKeyPairFromBytes,
-  createSignerFromKeyPair,
+  createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
 } from '@solana/kit';
@@ -19,8 +18,7 @@ const UNWRAPPED_MINT_ADDRESS = address('5HXwCPsqa8cZSAXDimAW9vJB8b3VdjCMWt1aLrCT
 const main = async () => {
   const rpc = createSolanaRpc('http://127.0.0.1:8899');
   const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
-  const keyPair = await createKeyPairFromBytes(PRIVATE_KEY_PAIR);
-  const payer = await createSignerFromKeyPair(keyPair);
+  const payer = await createKeyPairSignerFromBytes(PRIVATE_KEY_PAIR);
 
   const result = await executeCreateMint({
     rpc,
