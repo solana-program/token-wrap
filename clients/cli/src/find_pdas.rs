@@ -17,7 +17,7 @@ use {
 };
 
 #[derive(Clone, Debug, Args)]
-pub struct PdasArgs {
+pub struct FindPdasArgs {
     /// The address of the mint to wrap
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
@@ -68,7 +68,7 @@ impl QuietDisplay for PdasOutput {
 }
 impl VerboseDisplay for PdasOutput {}
 
-pub async fn command_get_pdas(config: &Config, args: PdasArgs) -> CommandResult {
+pub async fn command_get_pdas(config: &Config, args: FindPdasArgs) -> CommandResult {
     let wrapped_mint_address =
         get_wrapped_mint_address(&args.unwrapped_mint, &args.wrapped_token_program);
     let wrapped_backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);

@@ -2,8 +2,8 @@ mod cli;
 mod common;
 mod config;
 mod create_mint;
+mod find_pdas;
 mod output;
-mod pdas;
 
 use {
     crate::{cli::Cli, config::Config},

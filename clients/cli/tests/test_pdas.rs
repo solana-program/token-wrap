@@ -18,7 +18,7 @@ fn test_pdas() {
     let mut command = Command::new(TOKEN_WRAP_CLI_BIN);
     let output = command
         .args([
-            "pdas",
+            "find-pdas",
             &unwrapped_mint.to_string(),
             &spl_token_2022::id().to_string(),
             "--output",
