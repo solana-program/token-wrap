@@ -2,6 +2,7 @@ use {
     crate::{
         config::Config,
         create_mint::{command_create_mint, CreateMintArgs},
+        find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
         CommandResult,
     },
@@ -84,6 +85,7 @@ pub struct Cli {
 pub enum Command {
     /// Create a wrapped mint for a given SPL Token
     CreateMint(CreateMintArgs),
+    FindPdas(FindPdasArgs),
     // TODO: Wrap, Unwrap
 }
 
@@ -96,6 +98,7 @@ impl Command {
     ) -> CommandResult {
         match self {
             Command::CreateMint(args) => command_create_mint(config, args).await,
+            Command::FindPdas(args) => command_get_pdas(config, args).await,
         }
     }
 }

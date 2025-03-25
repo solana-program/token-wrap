@@ -2,6 +2,7 @@ mod cli;
 mod common;
 mod config;
 mod create_mint;
+mod find_pdas;
 mod output;
 
 use {

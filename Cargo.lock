@@ -9343,6 +9343,7 @@ dependencies = [
  "clap 3.2.25",
  "serde",
  "serde_derive",
+ "serde_json",
  "serde_with",
  "serial_test",
  "solana-account",
