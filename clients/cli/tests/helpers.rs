@@ -10,8 +10,8 @@ use {
     solana_signer::Signer,
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
+    spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMint},
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority},
     std::{path::PathBuf, process::Command, sync::Arc},
     tempfile::NamedTempFile,
 };
@@ -72,23 +72,20 @@ pub async fn setup_test_env() -> TestEnv {
     }
 }
 
-pub async fn create_unwrapped_mint(
-    rpc_client: &Arc<RpcClient>,
-    payer: &Keypair,
-    token_program_addr: &Pubkey,
-) -> Pubkey {
+pub async fn create_unwrapped_mint(env: &TestEnv, token_program_addr: &Pubkey) -> Pubkey {
     let mint_account = Keypair::new();
-    let rent = rpc_client
+    let rent = env
+        .rpc_client
         .get_minimum_balance_for_rent_exemption(SplTokenMint::LEN)
         .await
         .unwrap();
 
-    let blockhash = rpc_client.get_latest_blockhash().await.unwrap();
+    let blockhash = env.rpc_client.get_latest_blockhash().await.unwrap();
 
     let transaction = Transaction::new_signed_with_payer(
         &[
             solana_system_interface::instruction::create_account(
-                &payer.pubkey(),
+                &env.payer.pubkey(),
                 &mint_account.pubkey(),
                 rent,
                 SplTokenMint::LEN as u64,
@@ -97,36 +94,30 @@ pub async fn create_unwrapped_mint(
             initialize_mint(
                 token_program_addr,
                 &mint_account.pubkey(),
-                &payer.pubkey(),
+                &env.payer.pubkey(),
                 None,
                 9,
             )
             .unwrap(),
         ],
-        Some(&payer.pubkey()),
-        &[payer, &mint_account],
+        Some(&env.payer.pubkey()),
+        &[env.payer.insecure_clone(), mint_account.insecure_clone()],
         blockhash,
     );
 
-    rpc_client
+    env.rpc_client
         .send_and_confirm_transaction(&transaction)
         .await
         .unwrap();
     mint_account.pubkey()
 }
 
-pub struct CreateMintResult {
-    pub unwrapped_token_program: Pubkey,
-    pub wrapped_token_program: Pubkey,
-    pub unwrapped_mint: Pubkey,
-}
-
-pub async fn execute_create_mint(env: &TestEnv) -> CreateMintResult {
-    let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint =
-        create_unwrapped_mint(&env.rpc_client, &env.payer, &unwrapped_token_program).await;
-
+pub async fn execute_create_mint(
+    env: &TestEnv,
+    unwrapped_mint: &Pubkey,
+    unwrapped_token_program: &Pubkey,
+    wrapped_token_program: &Pubkey,
+) {
     let status = Command::new(TOKEN_WRAP_CLI_BIN)
         .args([
             "create-mint",
@@ -140,159 +131,158 @@ pub async fn execute_create_mint(env: &TestEnv) -> CreateMintResult {
         .status()
         .unwrap();
     assert!(status.success());
+}
 
-    CreateMintResult {
-        unwrapped_token_program,
-        wrapped_token_program,
-        unwrapped_mint,
+#[allow(clippy::too_many_arguments)]
+pub async fn execute_wrap(
+    env: &TestEnv,
+    unwrapped_token_program: &Pubkey,
+    unwrapped_token_account: &Pubkey,
+    escrow_account: &Pubkey,
+    wrapped_token_program: &Pubkey,
+    amount: u64,
+    mint_address: Option<&Pubkey>,
+    recipient_account: Option<&Pubkey>,
+) {
+    let mut args = vec![
+        "wrap".to_string(),
+        "-C".to_string(),
+        env.config_file_path.clone(),
+        unwrapped_token_program.to_string(),
+        unwrapped_token_account.to_string(),
+        escrow_account.to_string(),
+        wrapped_token_program.to_string(),
+        amount.to_string(),
+    ];
+
+    if let Some(mint) = mint_address {
+        args.push("--unwrapped-mint".to_string());
+        args.push(mint.to_string());
     }
-}
 
-pub struct WrapResult {
-    pub unwrapped_token_account: Keypair,
-    pub recipient_token_account: Keypair,
-    pub escrow_account: Keypair,
-}
-
-pub async fn execute_wrap(env: &TestEnv, create_mint_result: CreateMintResult) -> WrapResult {
-    let CreateMintResult {
-        unwrapped_token_program,
-        wrapped_token_program,
-        unwrapped_mint,
-    } = create_mint_result;
-
-    // Create unwrapped_token_account with 100 tokens
-    let unwrapped_token_account = Keypair::new();
-    let mint_authority = env.payer.pubkey();
-    let recipient = Keypair::new();
-
-    // Create token account for unwrapped tokens
-    let unwrapped_account_size = spl_token::state::Account::LEN;
-    let tx = Transaction::new_signed_with_payer(
-        &[
-            solana_system_interface::instruction::create_account(
-                &env.payer.pubkey(),
-                &unwrapped_token_account.pubkey(),
-                env.rpc_client
-                    .get_minimum_balance_for_rent_exemption(unwrapped_account_size)
-                    .await
-                    .unwrap(),
-                unwrapped_account_size as u64,
-                &unwrapped_token_program,
-            ),
-            spl_token::instruction::initialize_account(
-                &unwrapped_token_program,
-                &unwrapped_token_account.pubkey(),
-                &unwrapped_mint,
-                &env.payer.pubkey(),
-            )
-            .unwrap(),
-            spl_token::instruction::mint_to(
-                &unwrapped_token_program,
-                &unwrapped_mint,
-                &unwrapped_token_account.pubkey(),
-                &mint_authority,
-                &[&env.payer.pubkey()],
-                100,
-            )
-            .unwrap(),
-        ],
-        Some(&env.payer.pubkey()),
-        &[&env.payer, &unwrapped_token_account],
-        env.rpc_client.get_latest_blockhash().await.unwrap(),
-    );
-    env.rpc_client
-        .send_and_confirm_transaction(&tx)
-        .await
-        .unwrap();
-
-    // Create recipient token account (with nothing in it)
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
-    let recipient_token_account = Keypair::new();
-    let wrapped_account_size = spl_token_2022::state::Account::LEN;
-
-    let tx = Transaction::new_signed_with_payer(
-        &[
-            solana_system_interface::instruction::create_account(
-                &env.payer.pubkey(),
-                &recipient_token_account.pubkey(),
-                env.rpc_client
-                    .get_minimum_balance_for_rent_exemption(wrapped_account_size)
-                    .await
-                    .unwrap(),
-                wrapped_account_size as u64,
-                &wrapped_token_program,
-            ),
-            spl_token_2022::instruction::initialize_account(
-                &wrapped_token_program,
-                &recipient_token_account.pubkey(),
-                &wrapped_mint_address,
-                &recipient.pubkey(),
-            )
-            .unwrap(),
-        ],
-        Some(&env.payer.pubkey()),
-        &[&env.payer, &recipient_token_account],
-        env.rpc_client.get_latest_blockhash().await.unwrap(),
-    );
-    env.rpc_client
-        .send_and_confirm_transaction(&tx)
-        .await
-        .unwrap();
-
-    // Create escrow token account with wrapped_mint_authority as owner
-    let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
-    let escrow_account = Keypair::new();
-
-    let tx = Transaction::new_signed_with_payer(
-        &[
-            solana_system_interface::instruction::create_account(
-                &env.payer.pubkey(),
-                &escrow_account.pubkey(),
-                env.rpc_client
-                    .get_minimum_balance_for_rent_exemption(unwrapped_account_size)
-                    .await
-                    .unwrap(),
-                unwrapped_account_size as u64,
-                &unwrapped_token_program,
-            ),
-            spl_token::instruction::initialize_account(
-                &unwrapped_token_program,
-                &escrow_account.pubkey(),
-                &unwrapped_mint,
-                &wrapped_mint_authority,
-            )
-            .unwrap(),
-        ],
-        Some(&env.payer.pubkey()),
-        &[&env.payer, &escrow_account],
-        env.rpc_client.get_latest_blockhash().await.unwrap(),
-    );
-    env.rpc_client
-        .send_and_confirm_transaction(&tx)
-        .await
-        .unwrap();
+    if let Some(recipient) = recipient_account {
+        args.push("--recipient-token-account".to_string());
+        args.push(recipient.to_string());
+    }
 
     let status = Command::new(TOKEN_WRAP_CLI_BIN)
-        .args([
-            "wrap",
-            "-C",
-            &env.config_file_path,
-            &unwrapped_token_program.to_string(),
-            &unwrapped_mint.to_string(),
-            &unwrapped_token_account.pubkey().to_string(),
-            &escrow_account.pubkey().to_string(),
-            &wrapped_token_program.to_string(),
-            &recipient_token_account.pubkey().to_string(),
-            "100", // Amount to wrap
-        ])
+        .args(args)
         .status()
         .unwrap();
     assert!(status.success());
+}
 
-    WrapResult {
-        unwrapped_token_account,
-        recipient_token_account,
-        escrow_account,
+pub async fn create_associated_token_account(
+    env: &TestEnv,
+    token_program: &Pubkey,
+    mint: &Pubkey,
+) -> Pubkey {
+    let ata =
+        get_associated_token_address_with_program_id(&env.payer.pubkey(), mint, token_program);
+
+    let ata_account = env.rpc_client.get_account(&ata).await;
+    if ata_account.is_ok() {
+        return ata; // Return early if it exists
     }
+
+    let instruction = spl_associated_token_account::instruction::create_associated_token_account(
+        &env.payer.pubkey(),
+        &env.payer.pubkey(),
+        mint,
+        token_program,
+    );
+
+    let tx = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&env.payer.pubkey()),
+        &[&env.payer],
+        env.rpc_client.get_latest_blockhash().await.unwrap(),
+    );
+
+    env.rpc_client
+        .send_and_confirm_transaction(&tx)
+        .await
+        .unwrap();
+
+    ata
+}
+
+pub async fn create_token_account(
+    env: &TestEnv,
+    token_program: &Pubkey,
+    mint: &Pubkey,
+    owner: &Pubkey,
+) -> Pubkey {
+    let token_account = Keypair::new();
+    let account_size = spl_token::state::Account::LEN;
+
+    let initialize_instruction = if *token_program == spl_token::id() {
+        spl_token::instruction::initialize_account(
+            token_program,
+            &token_account.pubkey(),
+            mint,
+            owner,
+        )
+        .unwrap()
+    } else {
+        spl_token_2022::instruction::initialize_account(
+            token_program,
+            &token_account.pubkey(),
+            mint,
+            owner,
+        )
+        .unwrap()
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        &[
+            solana_system_interface::instruction::create_account(
+                &env.payer.pubkey(),
+                &token_account.pubkey(),
+                env.rpc_client
+                    .get_minimum_balance_for_rent_exemption(account_size)
+                    .await
+                    .unwrap(),
+                account_size as u64,
+                token_program,
+            ),
+            initialize_instruction,
+        ],
+        Some(&env.payer.pubkey()),
+        &[&env.payer, &token_account],
+        env.rpc_client.get_latest_blockhash().await.unwrap(),
+    );
+    env.rpc_client
+        .send_and_confirm_transaction(&tx)
+        .await
+        .unwrap();
+
+    token_account.pubkey()
+}
+
+pub async fn mint_to(
+    env: &TestEnv,
+    token_program: &Pubkey,
+    mint: &Pubkey,
+    token_account: &Pubkey,
+    amount: u64,
+) {
+    let tx = Transaction::new_signed_with_payer(
+        &[spl_token::instruction::mint_to(
+            token_program,
+            mint,
+            token_account,
+            &env.payer.pubkey(),
+            &[&env.payer.pubkey()],
+            amount,
+        )
+        .unwrap()],
+        Some(&env.payer.pubkey()),
+        &[&env.payer],
+        env.rpc_client.get_latest_blockhash().await.unwrap(),
+    );
+    env.rpc_client
+        .send_and_confirm_transaction(&tx)
+        .await
+        .unwrap();
 }

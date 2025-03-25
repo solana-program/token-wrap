@@ -1,5 +1,5 @@
 use {
-    crate::helpers::{execute_create_mint, setup_test_env, CreateMintResult},
+    crate::helpers::{create_unwrapped_mint, execute_create_mint, setup_test_env},
     serial_test::serial,
     solana_program_pack::Pack,
     spl_token::{self, state::Mint as SplTokenMint},
@@ -15,11 +15,17 @@ mod helpers;
 #[serial]
 async fn test_create_mint() {
     let env = setup_test_env().await;
-    let CreateMintResult {
-        wrapped_token_program,
-        unwrapped_mint,
-        ..
-    } = execute_create_mint(&env).await;
+
+    let unwrapped_token_program = spl_token::id();
+    let wrapped_token_program = spl_token_2022::id();
+    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    execute_create_mint(
+        &env,
+        &unwrapped_mint,
+        &unwrapped_token_program,
+        &wrapped_token_program,
+    )
+    .await;
 
     // Derive expected account addresses
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);

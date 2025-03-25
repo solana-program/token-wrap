@@ -68,6 +68,7 @@ solana-system-interface = { version = "1.0.0", features = ["bincode"] }
 solana-sysvar = "2.2.1"
 solana-test-validator = "2.2.1"
 solana-transaction = "2.2.1"
+spl-associated-token-account = "6.0.0"
 spl-pod = "0.5.1"
 spl-tlv-account-resolution = "0.10.0"
 spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
