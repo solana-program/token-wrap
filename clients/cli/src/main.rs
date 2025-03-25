@@ -3,6 +3,7 @@ mod common;
 mod config;
 mod create_mint;
 mod output;
+mod pdas;
 
 use {
     crate::{cli::Cli, config::Config},

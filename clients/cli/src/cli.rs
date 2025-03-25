@@ -3,6 +3,7 @@ use {
         config::Config,
         create_mint::{command_create_mint, CreateMintArgs},
         output::parse_output_format,
+        pdas::{command_get_pdas, PdasArgs},
         CommandResult,
     },
     clap::{
@@ -84,6 +85,7 @@ pub struct Cli {
 pub enum Command {
     /// Create a wrapped mint for a given SPL Token
     CreateMint(CreateMintArgs),
+    Pdas(PdasArgs),
     // TODO: Wrap, Unwrap
 }
 
@@ -96,6 +98,7 @@ impl Command {
     ) -> CommandResult {
         match self {
             Command::CreateMint(args) => command_create_mint(config, args).await,
+            Command::Pdas(args) => command_get_pdas(config, args).await,
         }
     }
 }
