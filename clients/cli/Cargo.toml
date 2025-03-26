@@ -27,7 +27,7 @@ solana-signature = { workspace = true }
 solana-signer = { workspace = true }
 solana-system-interface = { workspace = true }
 solana-transaction = { workspace = true }
-spl-associated-token-account = { workspace = true }
+spl-associated-token-account-client = { workspace = true }
 spl-token = { workspace = true }
 spl-token-wrap = { workspace = true }
 spl-token-2022 = { workspace = true }

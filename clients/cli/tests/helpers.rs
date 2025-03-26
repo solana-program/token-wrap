@@ -10,7 +10,7 @@ use {
     solana_signer::Signer,
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
-    spl_associated_token_account::get_associated_token_address_with_program_id,
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMint},
     std::{path::PathBuf, process::Command, sync::Arc},
     tempfile::NamedTempFile,
@@ -136,11 +136,11 @@ pub async fn execute_create_mint(
 #[allow(clippy::too_many_arguments)]
 pub async fn execute_wrap(
     env: &TestEnv,
-    unwrapped_token_program: &Pubkey,
     unwrapped_token_account: &Pubkey,
     escrow_account: &Pubkey,
     wrapped_token_program: &Pubkey,
     amount: u64,
+    unwrapped_token_program: Option<&Pubkey>,
     mint_address: Option<&Pubkey>,
     recipient_account: Option<&Pubkey>,
 ) {
@@ -148,12 +148,16 @@ pub async fn execute_wrap(
         "wrap".to_string(),
         "-C".to_string(),
         env.config_file_path.clone(),
-        unwrapped_token_program.to_string(),
         unwrapped_token_account.to_string(),
         escrow_account.to_string(),
         wrapped_token_program.to_string(),
         amount.to_string(),
     ];
+
+    if let Some(program) = unwrapped_token_program {
+        args.push("--unwrapped-token-program".to_string());
+        args.push(program.to_string());
+    }
 
     if let Some(mint) = mint_address {
         args.push("--unwrapped-mint".to_string());
@@ -185,12 +189,13 @@ pub async fn create_associated_token_account(
         return ata; // Return early if it exists
     }
 
-    let instruction = spl_associated_token_account::instruction::create_associated_token_account(
-        &env.payer.pubkey(),
-        &env.payer.pubkey(),
-        mint,
-        token_program,
-    );
+    let instruction =
+        spl_associated_token_account_client::instruction::create_associated_token_account(
+            &env.payer.pubkey(),
+            &env.payer.pubkey(),
+            mint,
+            token_program,
+        );
 
     let tx = Transaction::new_signed_with_payer(
         &[instruction],
@@ -216,24 +221,6 @@ pub async fn create_token_account(
     let token_account = Keypair::new();
     let account_size = spl_token::state::Account::LEN;
 
-    let initialize_instruction = if *token_program == spl_token::id() {
-        spl_token::instruction::initialize_account(
-            token_program,
-            &token_account.pubkey(),
-            mint,
-            owner,
-        )
-        .unwrap()
-    } else {
-        spl_token_2022::instruction::initialize_account(
-            token_program,
-            &token_account.pubkey(),
-            mint,
-            owner,
-        )
-        .unwrap()
-    };
-
     let tx = Transaction::new_signed_with_payer(
         &[
             solana_system_interface::instruction::create_account(
@@ -246,7 +233,13 @@ pub async fn create_token_account(
                 account_size as u64,
                 token_program,
             ),
-            initialize_instruction,
+            spl_token_2022::instruction::initialize_account(
+                token_program,
+                &token_account.pubkey(),
+                mint,
+                owner,
+            )
+            .unwrap(),
         ],
         Some(&env.payer.pubkey()),
         &[&env.payer, &token_account],

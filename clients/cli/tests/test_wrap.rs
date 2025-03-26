@@ -15,7 +15,7 @@ mod helpers;
 
 #[tokio::test]
 #[serial]
-async fn test_wrap_single_signer_with_no_extra_flags() {
+async fn test_wrap_single_signer_with_defaults() {
     let env = setup_test_env().await;
 
     // Create Mint
@@ -67,11 +67,11 @@ async fn test_wrap_single_signer_with_no_extra_flags() {
     let unwrap_amount = 50;
     execute_wrap(
         &env,
-        &unwrapped_token_program,
         &unwrapped_token_account,
         &escrow_account,
         &wrapped_token_program,
         unwrap_amount,
+        None,
         None,
         None,
     )
@@ -90,7 +90,7 @@ async fn test_wrap_single_signer_with_no_extra_flags() {
 
 #[tokio::test]
 #[serial]
-async fn test_wrap_single_signer_with_recipient_and_mint_flags() {
+async fn test_wrap_single_signer_with_optional_flags() {
     let env = setup_test_env().await;
 
     // Create Mint
@@ -148,11 +148,11 @@ async fn test_wrap_single_signer_with_recipient_and_mint_flags() {
     let unwrap_amount = 50;
     execute_wrap(
         &env,
-        &unwrapped_token_program,
         &unwrapped_token_account,
         &escrow_account,
         &wrapped_token_program,
         unwrap_amount,
+        Some(&unwrapped_token_program),
         Some(&unwrapped_mint),
         Some(&recipient_account),
     )

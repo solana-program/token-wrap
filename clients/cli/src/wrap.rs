@@ -15,7 +15,7 @@ use {
     solana_signature::Signature,
     solana_signer::Signer,
     solana_transaction::Transaction,
-    spl_associated_token_account::get_associated_token_address_with_program_id,
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
     std::{
@@ -27,10 +27,6 @@ use {
 
 #[derive(Clone, Debug, Args)]
 pub struct WrapArgs {
-    /// The address of the token program that the unwrapped mint belongs to
-    #[clap(value_parser = parse_token_program)]
-    pub unwrapped_token_program: Pubkey,
-
     /// The address of the unwrapped token account to wrap from
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_token_account: Pubkey,
@@ -49,17 +45,22 @@ pub struct WrapArgs {
 
     /// Path to the signer for the transfer authority if different from
     /// fee payer
-    #[clap(long = "transfer-authority", value_name = "PATH")]
+    #[clap(long, value_name = "PATH")]
     pub transfer_authority: Option<String>,
 
     /// The address of the mint to wrap, queried if not provided
-    #[clap(long = "unwrapped-mint", value_parser = parse_pubkey)]
+    #[clap(long, value_parser = parse_pubkey)]
     pub unwrapped_mint: Option<Pubkey>,
 
     /// The address of the token account to receive wrapped tokens.
     /// If not provided, defaults to fee payer associated token account
-    #[clap(long = "recipient-token-account", value_parser = parse_pubkey)]
+    #[clap(long, value_parser = parse_pubkey)]
     pub recipient_token_account: Option<Pubkey>,
+
+    /// The address of the token program that the unwrapped mint belongs to.
+    /// Queries account for `unwrapped_token_account` if not provided.
+    #[clap(long, value_parser = parse_token_program)]
+    pub unwrapped_token_program: Option<Pubkey>,
 }
 
 #[serde_as]
@@ -120,7 +121,7 @@ impl QuietDisplay for WrapOutput {
 impl VerboseDisplay for WrapOutput {}
 
 async fn get_unwrapped_mint(
-    rpc_client: &Arc<RpcClient>,
+    rpc_client: &RpcClient,
     unwrapped_token_account: &Pubkey,
 ) -> Result<Pubkey, Error> {
     let token_account_info = rpc_client.get_account(unwrapped_token_account).await?;
@@ -179,12 +180,22 @@ pub async fn command_wrap(
         payer.clone()
     };
 
+    let unwrapped_token_program = if let Some(pubkey) = args.unwrapped_token_program {
+        pubkey
+    } else {
+        config
+            .rpc_client
+            .get_account(&args.unwrapped_token_account)
+            .await?
+            .owner
+    };
+
     let instruction = wrap(
         &spl_token_wrap::id(),
         &recipient_token_account,
         &wrapped_mint_address,
         &wrapped_mint_authority,
-        &args.unwrapped_token_program,
+        &unwrapped_token_program,
         &args.wrapped_token_program,
         &args.unwrapped_token_account,
         &unwrapped_mint,
