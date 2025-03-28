@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use {
+    serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_keypair::{write_keypair_file, Keypair},
@@ -8,11 +9,12 @@ use {
     solana_pubkey::Pubkey,
     solana_sdk_ids::bpf_loader_upgradeable,
     solana_signer::Signer,
+    solana_system_interface::instruction::create_account,
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMint},
-    std::{path::PathBuf, process::Command, sync::Arc},
+    std::{error::Error, path::PathBuf, process::Command, sync::Arc},
     tempfile::NamedTempFile,
 };
 
@@ -133,49 +135,6 @@ pub async fn execute_create_mint(
     assert!(status.success());
 }
 
-#[allow(clippy::too_many_arguments)]
-pub async fn execute_wrap(
-    env: &TestEnv,
-    unwrapped_token_account: &Pubkey,
-    escrow_account: &Pubkey,
-    wrapped_token_program: &Pubkey,
-    amount: u64,
-    unwrapped_token_program: Option<&Pubkey>,
-    mint_address: Option<&Pubkey>,
-    recipient_account: Option<&Pubkey>,
-) {
-    let mut args = vec![
-        "wrap".to_string(),
-        "-C".to_string(),
-        env.config_file_path.clone(),
-        unwrapped_token_account.to_string(),
-        escrow_account.to_string(),
-        wrapped_token_program.to_string(),
-        amount.to_string(),
-    ];
-
-    if let Some(program) = unwrapped_token_program {
-        args.push("--unwrapped-token-program".to_string());
-        args.push(program.to_string());
-    }
-
-    if let Some(mint) = mint_address {
-        args.push("--unwrapped-mint".to_string());
-        args.push(mint.to_string());
-    }
-
-    if let Some(recipient) = recipient_account {
-        args.push("--recipient-token-account".to_string());
-        args.push(recipient.to_string());
-    }
-
-    let status = Command::new(TOKEN_WRAP_CLI_BIN)
-        .args(args)
-        .status()
-        .unwrap();
-    assert!(status.success());
-}
-
 pub async fn create_associated_token_account(
     env: &TestEnv,
     token_program: &Pubkey,
@@ -278,4 +237,72 @@ pub async fn mint_to(
         .send_and_confirm_transaction(&tx)
         .await
         .unwrap();
+}
+
+// Creates 2 of 3 multisig
+pub async fn create_test_multisig(
+    env: &mut TestEnv,
+) -> Result<(Pubkey, Vec<Keypair>), Box<dyn Error>> {
+    let multisig_keypair = Keypair::new();
+    let multisig_pubkey = multisig_keypair.pubkey();
+    let multisig_member1 = Keypair::new();
+    let multisig_member2 = Keypair::new();
+    let multisig_member3 = Keypair::new();
+    let multisig_member_pubkeys = [
+        &multisig_member1.pubkey(),
+        &multisig_member2.pubkey(),
+        &multisig_member3.pubkey(),
+    ];
+
+    let rent = env
+        .rpc_client
+        .get_minimum_balance_for_rent_exemption(spl_token::state::Multisig::LEN)
+        .await?;
+
+    let create_account_instruction = create_account(
+        &env.payer.pubkey(),
+        &multisig_pubkey,
+        rent,
+        spl_token::state::Multisig::LEN as u64,
+        &spl_token::id(),
+    );
+
+    let initialize_multisig_instruction = spl_token::instruction::initialize_multisig(
+        &spl_token::id(),
+        &multisig_pubkey,
+        &multisig_member_pubkeys,
+        2,
+    )?;
+
+    let mut transaction = Transaction::new_with_payer(
+        &[create_account_instruction, initialize_multisig_instruction],
+        Some(&env.payer.pubkey()),
+    );
+    let recent_blockhash = env.rpc_client.get_latest_blockhash().await?;
+    transaction.sign(&[&env.payer, &multisig_keypair], recent_blockhash);
+
+    env.rpc_client
+        .send_and_confirm_transaction(&transaction)
+        .await?;
+
+    Ok((
+        multisig_pubkey,
+        vec![multisig_member1, multisig_member2, multisig_member3],
+    ))
+}
+
+// Used to get signers vec from CLI output
+pub fn extract_signers(std_out: &[u8]) -> Vec<String> {
+    let json_output1 = String::from_utf8(std_out.to_vec()).unwrap();
+    let parsed_value: Value = serde_json::from_str(&json_output1).unwrap();
+    parsed_value
+        .get("signOnlyData")
+        .unwrap()
+        .get("signers")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap().to_string())
+        .collect()
 }
