@@ -1,15 +1,25 @@
 use {
     crate::{
-        common::{parse_pubkey, parse_token_program, process_transaction},
+        common::{parse_presigner, parse_pubkey, parse_token_program, process_transaction},
         config::Config,
         output::{format_output, println_display},
         CommandResult, Error,
     },
-    clap::Args,
+    clap::{value_parser, Args},
     serde_derive::{Deserialize, Serialize},
     serde_with::{serde_as, DisplayFromStr},
-    solana_cli_output::{display::writeln_name_value, QuietDisplay, VerboseDisplay},
+    solana_clap_v3_utils::{
+        input_parsers::signer::{SignerSource, SignerSourceParserBuilder},
+        keypair::{signer_from_source_with_config, SignerFromPathConfig},
+        offline::SIGN_ONLY_ARG,
+    },
+    solana_cli_output::{
+        display::writeln_name_value, return_signers_data, CliSignOnlyData, QuietDisplay,
+        ReturnSignersConfig, VerboseDisplay,
+    },
     solana_client::nonblocking::rpc_client::RpcClient,
+    solana_hash::Hash,
+    solana_presigner::Presigner,
     solana_pubkey::Pubkey,
     solana_remote_wallet::remote_wallet::RemoteWalletManager,
     solana_signature::Signature,
@@ -43,10 +53,12 @@ pub struct WrapArgs {
     #[clap(value_parser)]
     pub amount: u64,
 
-    /// Path to the signer for the transfer authority if different from
-    /// fee payer
-    #[clap(long, value_name = "PATH")]
-    pub transfer_authority: Option<String>,
+    /// Signer source of transfer authority if different from fee payer
+    #[clap(
+        long,
+        value_parser = SignerSourceParserBuilder::default().allow_all().build()
+    )]
+    pub transfer_authority: Option<SignerSource>,
 
     /// The address of the mint to wrap, queried if not provided
     #[clap(long, value_parser = parse_pubkey)]
@@ -61,6 +73,28 @@ pub struct WrapArgs {
     /// Queries account for `unwrapped_token_account` if not provided.
     #[clap(long, value_parser = parse_token_program)]
     pub unwrapped_token_program: Option<Pubkey>,
+
+    /// Member signer of a multisig account.
+    /// Use this argument multiple times for each signer.
+    #[clap(
+        long,
+        multiple = true,
+        value_parser = SignerSourceParserBuilder::default().allow_all().build(),
+        requires = "blockhash"
+    )]
+    pub multisig_signer: Option<Vec<SignerSource>>,
+
+    #[clap(long, value_parser = value_parser!(Hash))]
+    pub blockhash: Option<Hash>,
+
+    /// Signatures to add to transaction.
+    /// Often the `PUBKEY=SIGNATURE` output from a multisig --sign-only signer.
+    #[clap(
+        long,
+        multiple = true,
+        value_parser = parse_presigner
+    )]
+    pub signer: Option<Vec<Presigner>>,
 }
 
 #[serde_as]
@@ -69,17 +103,24 @@ pub struct WrapArgs {
 pub struct WrapOutput {
     #[serde_as(as = "DisplayFromStr")]
     pub unwrapped_mint_address: Pubkey,
+
     #[serde_as(as = "DisplayFromStr")]
     pub wrapped_mint_address: Pubkey,
+
     #[serde_as(as = "DisplayFromStr")]
     pub unwrapped_token_account: Pubkey,
+
     #[serde_as(as = "DisplayFromStr")]
     pub recipient_token_account: Pubkey,
+
     #[serde_as(as = "DisplayFromStr")]
     pub escrow_account: Pubkey,
+
     pub amount: u64,
-    #[serde_as(as = "Option<DisplayFromStr>")]
-    pub signature: Option<Signature>,
+
+    pub signatures: Vec<Signature>,
+
+    pub sign_only_data: Option<CliSignOnlyData>,
 }
 
 impl Display for WrapOutput {
@@ -106,9 +147,16 @@ impl Display for WrapOutput {
         )?;
         writeln_name_value(f, "Escrow account:", &self.escrow_account.to_string())?;
         writeln_name_value(f, "Amount:", &self.amount.to_string())?;
-        if let Some(signature) = self.signature {
-            writeln_name_value(f, "Signature:", &signature.to_string())?;
+
+        if let Some(data) = &self.sign_only_data {
+            writeln!(f, "{}", data)?;
+        } else {
+            writeln!(f, "Signers:")?;
+            for signature in &self.signatures {
+                writeln!(f, "  {signature}")?;
+            }
         }
+
         Ok(())
     }
 }
@@ -143,13 +191,15 @@ pub async fn command_wrap(
         get_unwrapped_mint(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
-    println_display(
-        config,
-        format!(
-            "Wrapping {} tokens from mint {}",
-            args.amount, unwrapped_mint
-        ),
-    );
+    if !config.sign_only {
+        println_display(
+            config,
+            format!(
+                "Wrapping {} tokens from mint {}",
+                args.amount, unwrapped_mint
+            ),
+        );
+    }
 
     // Derive wrapped mint address and mint authority
     let wrapped_mint_address =
@@ -165,20 +215,46 @@ pub async fn command_wrap(
         )
     });
 
+    // NullSigner used for multisig scenarios
+    let parse_config = SignerFromPathConfig {
+        allow_null_signer: true,
+    };
+
     // If transfer_authority is provided, use it as a signer,
     // else default to fee payer
     let transfer_authority_signer = if let Some(authority_keypair_path) = &args.transfer_authority {
-        let signer = solana_clap_v3_utils::keypair::signer_from_path(
+        let signer = signer_from_source_with_config(
             matches,
             authority_keypair_path,
-            "transfer-authority",
+            "transfer_authority",
             wallet_manager,
+            &parse_config,
         )
         .map_err(|e| e.to_string())?;
         Arc::from(signer)
     } else {
         payer.clone()
     };
+
+    let mut multisig_signers: Vec<Arc<dyn Signer>> = vec![];
+    if let Some(sources) = &args.multisig_signer {
+        for source in sources {
+            let signer = signer_from_source_with_config(
+                matches,
+                source,
+                "multisig_signer",
+                wallet_manager,
+                &parse_config,
+            )
+            .map_err(|e| e.to_string())?;
+            multisig_signers.push(Arc::from(signer));
+        }
+    }
+
+    let multisig_pubkeys = multisig_signers
+        .iter()
+        .map(|s| s.pubkey())
+        .collect::<Vec<Pubkey>>();
 
     let unwrapped_token_program = if let Some(pubkey) = args.unwrapped_token_program {
         pubkey
@@ -201,25 +277,56 @@ pub async fn command_wrap(
         &unwrapped_mint,
         &args.escrow_account,
         &transfer_authority_signer.pubkey(),
-        &[], // TODO: Add multisig support
+        &multisig_pubkeys.iter().collect::<Vec<&Pubkey>>(),
         args.amount,
     );
 
-    let latest_blockhash = config.rpc_client.get_latest_blockhash().await?;
+    let blockhash = if let Some(hash) = args.blockhash {
+        hash
+    } else {
+        config.rpc_client.get_latest_blockhash().await?
+    };
+
+    // Payer will always be a signer
     let mut signers = vec![payer.as_ref()];
 
-    if payer.pubkey() != transfer_authority_signer.pubkey() {
+    // In the case that a transfer_authority is passed (otherwise defaults to
+    // payer), it needs to be added to signers if it isn't a multisig.
+    if payer.pubkey() != transfer_authority_signer.pubkey() && multisig_signers.is_empty() {
         signers.push(transfer_authority_signer.as_ref());
     }
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&payer.pubkey()),
-        &signers,
-        latest_blockhash,
-    );
+    for signer in &multisig_signers {
+        signers.push(signer.as_ref());
+    }
 
-    let signature = process_transaction(config, transaction).await?;
+    // Pre-signed transactions can be passed as --signer `PUBKEY=SIGNATURE`
+    let mut pre_signers = vec![];
+    if let Some(signers) = &args.signer {
+        for signer in signers {
+            pre_signers.push(Arc::from(signer));
+        }
+    }
+    for signer in &pre_signers {
+        signers.push(signer);
+    }
+
+    let mut transaction = Transaction::new_with_payer(&[instruction], Some(&payer.pubkey()));
+    transaction.partial_sign(&signers, blockhash);
+
+    process_transaction(config, transaction.clone()).await?;
+
+    let sign_only_data = matches
+        .try_contains_id(SIGN_ONLY_ARG.long)
+        .unwrap_or(false)
+        .then(|| {
+            return_signers_data(
+                &transaction,
+                &ReturnSignersConfig {
+                    dump_transaction_message: true,
+                },
+            )
+        });
 
     let output = WrapOutput {
         unwrapped_mint_address: unwrapped_mint,
@@ -228,7 +335,8 @@ pub async fn command_wrap(
         recipient_token_account,
         escrow_account: args.escrow_account,
         amount: args.amount,
-        signature,
+        signatures: transaction.signatures,
+        sign_only_data,
     };
 
     Ok(format_output(config, output))
