@@ -3036,9 +3036,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.26"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "lru"
@@ -5391,7 +5391,7 @@ dependencies = [
  "solana-clock",
  "solana-compute-budget",
  "solana-cpi",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
  "solana-feature-set",
  "solana-hash",
  "solana-instruction",
@@ -5505,7 +5505,7 @@ dependencies = [
  "solana-native-token",
  "solana-presigner",
  "solana-pubkey",
- "solana-remote-wallet",
+ "solana-remote-wallet 2.2.1",
  "solana-seed-phrase",
  "solana-signature",
  "solana-signer",
@@ -5517,9 +5517,8 @@ dependencies = [
 
 [[package]]
 name = "solana-clap-v3-utils"
-version = "2.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "727e0d663063c8949b0f71b96b5116acd46322072c8be5d1f0e385e72a3941fb"
+version = "2.3.0"
+source = "git+https://github.com/anza-xyz/agave?rev=dba44f3987df87fc1fb095912613c6d2e9caf6f1#dba44f3987df87fc1fb095912613c6d2e9caf6f1"
 dependencies = [
  "chrono",
  "clap 3.2.25",
@@ -5534,12 +5533,12 @@ dependencies = [
  "solana-native-token",
  "solana-presigner",
  "solana-pubkey",
- "solana-remote-wallet",
+ "solana-remote-wallet 2.3.0",
  "solana-seed-derivable",
  "solana-seed-phrase",
  "solana-signature",
  "solana-signer",
- "solana-zk-token-sdk",
+ "solana-zk-token-sdk 2.3.0",
  "thiserror 2.0.12",
  "tiny-bip39",
  "uriparse",
@@ -5951,6 +5950,19 @@ name = "solana-curve25519"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f213e3a853a23814dee39d730cd3a5583b7b1e6b37b2cd4d940bbe62df7acc16"
+dependencies = [
+ "bytemuck",
+ "bytemuck_derive",
+ "curve25519-dalek 4.1.3",
+ "solana-define-syscall",
+ "subtle",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "solana-curve25519"
+version = "2.3.0"
+source = "git+https://github.com/anza-xyz/agave?rev=dba44f3987df87fc1fb095912613c6d2e9caf6f1#dba44f3987df87fc1fb095912613c6d2e9caf6f1"
 dependencies = [
  "bytemuck",
  "bytemuck_derive",
@@ -7209,6 +7221,29 @@ name = "solana-remote-wallet"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa3c1e6ec719021564b034c550f808778507db54b6a5de99f00799d9ec86168d"
+dependencies = [
+ "console",
+ "dialoguer",
+ "hidapi",
+ "log",
+ "num-derive",
+ "num-traits",
+ "parking_lot 0.12.3",
+ "qstring",
+ "semver",
+ "solana-derivation-path",
+ "solana-offchain-message",
+ "solana-pubkey",
+ "solana-signature",
+ "solana-signer",
+ "thiserror 2.0.12",
+ "uriparse",
+]
+
+[[package]]
+name = "solana-remote-wallet"
+version = "2.3.0"
+source = "git+https://github.com/anza-xyz/agave?rev=dba44f3987df87fc1fb095912613c6d2e9caf6f1#dba44f3987df87fc1fb095912613c6d2e9caf6f1"
 dependencies = [
  "console",
  "dialoguer",
@@ -8778,7 +8813,7 @@ dependencies = [
  "solana-log-collector",
  "solana-program-runtime",
  "solana-sdk-ids",
- "solana-zk-token-sdk",
+ "solana-zk-token-sdk 2.2.1",
 ]
 
 [[package]]
@@ -8803,7 +8838,42 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sha3",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
+ "solana-derivation-path",
+ "solana-instruction",
+ "solana-pubkey",
+ "solana-sdk-ids",
+ "solana-seed-derivable",
+ "solana-seed-phrase",
+ "solana-signature",
+ "solana-signer",
+ "subtle",
+ "thiserror 2.0.12",
+ "zeroize",
+]
+
+[[package]]
+name = "solana-zk-token-sdk"
+version = "2.3.0"
+source = "git+https://github.com/anza-xyz/agave?rev=dba44f3987df87fc1fb095912613c6d2e9caf6f1#dba44f3987df87fc1fb095912613c6d2e9caf6f1"
+dependencies = [
+ "aes-gcm-siv",
+ "base64 0.22.1",
+ "bincode",
+ "bytemuck",
+ "bytemuck_derive",
+ "curve25519-dalek 4.1.3",
+ "itertools 0.12.1",
+ "lazy_static",
+ "merlin",
+ "num-derive",
+ "num-traits",
+ "rand 0.8.5",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha3",
+ "solana-curve25519 2.3.0",
  "solana-derivation-path",
  "solana-instruction",
  "solana-pubkey",
@@ -9181,7 +9251,7 @@ checksum = "170378693c5516090f6d37ae9bad2b9b6125069be68d9acd4865bbe9fc8499fd"
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
  "solana-zk-sdk",
 ]
 
@@ -9192,7 +9262,7 @@ source = "git+https://github.com/solana-program/token-2022?rev=00e0f4723c2606c0f
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
  "solana-zk-sdk",
 ]
 
@@ -9203,7 +9273,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eff2d6a445a147c9d6dd77b8301b1e116c8299601794b558eafa409b342faf96"
 dependencies = [
  "bytemuck",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
  "solana-program",
  "solana-zk-sdk",
  "spl-pod",
@@ -9217,7 +9287,7 @@ source = "git+https://github.com/solana-program/token-2022?rev=00e0f4723c2606c0f
 dependencies = [
  "bytemuck",
  "solana-account-info",
- "solana-curve25519",
+ "solana-curve25519 2.2.1",
  "solana-instruction",
  "solana-instructions-sysvar",
  "solana-msg",
@@ -9351,12 +9421,14 @@ dependencies = [
  "solana-cli-output",
  "solana-client",
  "solana-commitment-config",
+ "solana-hash",
  "solana-instruction",
  "solana-keypair",
  "solana-logger",
+ "solana-presigner",
  "solana-program-pack",
  "solana-pubkey",
- "solana-remote-wallet",
+ "solana-remote-wallet 2.3.0",
  "solana-sdk-ids",
  "solana-signature",
  "solana-signer",

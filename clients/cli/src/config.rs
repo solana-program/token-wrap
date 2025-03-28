@@ -2,7 +2,9 @@ use {
     crate::{cli::Cli, Error},
     anyhow::anyhow,
     clap::ArgMatches,
-    solana_clap_v3_utils::keypair::{signer_from_path, signer_from_source},
+    solana_clap_v3_utils::keypair::{
+        signer_from_path, signer_from_source_with_config, SignerFromPathConfig,
+    },
     solana_cli_output::OutputFormat,
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_commitment_config::CommitmentConfig,
@@ -16,6 +18,7 @@ pub struct Config {
     pub fee_payer: Option<Arc<dyn Signer>>,
     pub output_format: OutputFormat,
     pub dry_run: bool,
+    pub sign_only: bool,
 }
 
 impl Config {
@@ -39,13 +42,19 @@ impl Config {
         ));
 
         let fee_payer = match &cli.fee_payer {
-            Some(fee_payer_source) => {
-                signer_from_source(&matches, fee_payer_source, "fee_payer", wallet_manager)
-            }
+            Some(fee_payer_source) => signer_from_source_with_config(
+                &matches,
+                fee_payer_source,
+                "fee_payer",
+                wallet_manager,
+                &SignerFromPathConfig {
+                    allow_null_signer: true,
+                },
+            ),
             None => signer_from_path(
                 &matches,
                 &cli_config.keypair_path,
-                "default",
+                "fee_payer",
                 wallet_manager,
             ),
         }
@@ -63,6 +72,7 @@ impl Config {
             fee_payer,
             output_format,
             dry_run: cli.dry_run,
+            sign_only: cli.sign_only,
         })
     }
 
