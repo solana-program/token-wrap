@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@solana-program/system": "^0.7.0",
+    "@solana-program/token": "^0.5.1",
     "@solana-program/token-2022": "^0.4.0"
   },
   "devDependencies": {
