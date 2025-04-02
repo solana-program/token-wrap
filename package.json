@@ -23,7 +23,7 @@
   "devDependencies": {
     "@iarna/toml": "^2.2.5",
     "@solana-program/system": "^0.7.0",
-    "@types/node": "^22.13.16",
+    "@types/node": "^22.13.17",
     "codama": "^1.2.11",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
