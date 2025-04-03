@@ -11,7 +11,6 @@ use {
     solana_clap_v3_utils::{
         input_parsers::signer::{SignerSource, SignerSourceParserBuilder},
         keypair::{signer_from_source_with_config, SignerFromPathConfig},
-        offline::SIGN_ONLY_ARG,
     },
     solana_cli_output::{
         display::writeln_name_value, return_signers_data, CliSignOnlyData, QuietDisplay,
@@ -92,9 +91,14 @@ pub struct WrapArgs {
     #[clap(
         long,
         multiple = true,
-        value_parser = parse_presigner
+        value_parser = parse_presigner,
+        requires = "blockhash"
     )]
     pub signer: Option<Vec<Presigner>>,
+
+    /// Do not broadcast signed transaction, just sign
+    #[clap(long)]
+    pub sign_only: bool,
 }
 
 #[serde_as]
@@ -191,7 +195,7 @@ pub async fn command_wrap(
         get_unwrapped_mint(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
-    if !config.sign_only {
+    if !args.sign_only {
         println_display(
             config,
             format!(
@@ -288,45 +292,40 @@ pub async fn command_wrap(
     };
 
     // Payer will always be a signer
-    let mut signers = vec![payer.as_ref()];
+    let mut signers = vec![payer.clone()];
 
     // In the case that a transfer_authority is passed (otherwise defaults to
     // payer), it needs to be added to signers if it isn't a multisig.
     if payer.pubkey() != transfer_authority_signer.pubkey() && multisig_signers.is_empty() {
-        signers.push(transfer_authority_signer.as_ref());
+        signers.push(transfer_authority_signer);
     }
 
     for signer in &multisig_signers {
-        signers.push(signer.as_ref());
+        signers.push(signer.clone());
     }
 
     // Pre-signed transactions can be passed as --signer `PUBKEY=SIGNATURE`
-    let mut pre_signers = vec![];
-    if let Some(signers) = &args.signer {
-        for signer in signers {
-            pre_signers.push(Arc::from(signer));
+    if let Some(pre_signers) = &args.signer {
+        for signer in pre_signers {
+            signers.push(Arc::from(signer));
         }
-    }
-    for signer in &pre_signers {
-        signers.push(signer);
     }
 
     let mut transaction = Transaction::new_with_payer(&[instruction], Some(&payer.pubkey()));
     transaction.partial_sign(&signers, blockhash);
 
-    process_transaction(config, transaction.clone()).await?;
+    if !args.sign_only {
+        process_transaction(config, transaction.clone()).await?;
+    }
 
-    let sign_only_data = matches
-        .try_contains_id(SIGN_ONLY_ARG.long)
-        .unwrap_or(false)
-        .then(|| {
-            return_signers_data(
-                &transaction,
-                &ReturnSignersConfig {
-                    dump_transaction_message: true,
-                },
-            )
-        });
+    let sign_only_data = args.sign_only.then(|| {
+        return_signers_data(
+            &transaction,
+            &ReturnSignersConfig {
+                dump_transaction_message: true,
+            },
+        )
+    });
 
     let output = WrapOutput {
         unwrapped_mint_address: unwrapped_mint,

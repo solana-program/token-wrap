@@ -43,10 +43,6 @@ pub async fn process_transaction(
     config: &Config,
     transaction: Transaction,
 ) -> Result<Option<Signature>, Error> {
-    if config.sign_only {
-        return Ok(None);
-    }
-
     if config.dry_run {
         let simulation_data = config.rpc_client.simulate_transaction(&transaction).await?;
 

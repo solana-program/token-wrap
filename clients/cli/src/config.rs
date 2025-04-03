@@ -18,7 +18,6 @@ pub struct Config {
     pub fee_payer: Option<Arc<dyn Signer>>,
     pub output_format: OutputFormat,
     pub dry_run: bool,
-    pub sign_only: bool,
 }
 
 impl Config {
@@ -72,7 +71,6 @@ impl Config {
             fee_payer,
             output_format,
             dry_run: cli.dry_run,
-            sign_only: cli.sign_only,
         })
     }
 

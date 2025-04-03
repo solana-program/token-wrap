@@ -38,10 +38,6 @@ pub struct Cli {
     #[clap(global(true), long, alias = "dryrun")]
     pub dry_run: bool,
 
-    /// Do not broadcast signed transaction, just sign
-    #[clap(global(true), long)]
-    pub sign_only: bool,
-
     /// URL for Solana JSON `RPC` or moniker (or their first letter):
     /// [`mainnet-beta`, `testnet`, `devnet`, `localhost`].
     /// Default from the configuration file.
