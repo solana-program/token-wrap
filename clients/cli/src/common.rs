@@ -2,10 +2,12 @@ use {
     crate::{config::Config, output::println_display, Error},
     clap::ArgMatches,
     solana_clap_v3_utils::keypair::pubkey_from_path,
+    solana_client::nonblocking::rpc_client::RpcClient,
     solana_presigner::Presigner,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
+    spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
     std::str::FromStr,
 };
 
@@ -70,4 +72,18 @@ pub async fn process_transaction(
                 .await?,
         ))
     }
+}
+
+pub async fn get_mint(
+    rpc_client: &RpcClient,
+    token_account_address: &Pubkey,
+) -> Result<Pubkey, Error> {
+    let token_account_info = rpc_client.get_account(token_account_address).await?;
+    let unpacked_account = PodStateWithExtensions::<PodAccount>::unpack(&token_account_info.data)?;
+    Ok(unpacked_account.base.mint)
+}
+
+pub async fn get_account_owner(rpc_client: &RpcClient, account: &Pubkey) -> Result<Pubkey, Error> {
+    let owner = rpc_client.get_account(account).await?.owner;
+    Ok(owner)
 }

@@ -4,6 +4,7 @@ use {
         create_mint::{command_create_mint, CreateMintArgs},
         find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
+        unwrap::{command_unwrap, UnwrapArgs},
         wrap::{command_wrap, WrapArgs},
         CommandResult,
     },
@@ -87,9 +88,12 @@ pub struct Cli {
 pub enum Command {
     /// Create a wrapped mint for a given SPL Token
     CreateMint(CreateMintArgs),
+    /// Escrow SPL tokens and mint their wrapped version
     Wrap(WrapArgs),
+    /// Find the PDA addresses associated with unwrapped mints
     FindPdas(FindPdasArgs),
-    // TODO: Unwrap
+    /// Convert wrapped tokens back into their original unwrapped version
+    Unwrap(UnwrapArgs),
 }
 
 impl Command {
@@ -103,6 +107,7 @@ impl Command {
             Command::CreateMint(args) => command_create_mint(config, args).await,
             Command::Wrap(args) => command_wrap(config, args, matches, wallet_manager).await,
             Command::FindPdas(args) => command_get_pdas(config, args).await,
+            Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
         }
     }
 }
