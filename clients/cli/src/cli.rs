@@ -82,6 +82,7 @@ pub struct Cli {
     pub output_format: Option<OutputFormat>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Create a wrapped mint for a given SPL Token

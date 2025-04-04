@@ -43,7 +43,6 @@ serde_with = "3.12.0"
 serial_test = "3.2.0"
 solana-account = "2.2.1"
 solana-account-info = "2.2.1"
-solana-clap-v3-utils = "2.2.1"
 solana-cli-config = "2.2.1"
 solana-cli-output = "2.2.1"
 solana-client = "2.2.1"
@@ -51,15 +50,16 @@ solana-commitment-config = "2.2.1"
 solana-cpi = "2.2.1"
 solana-decode-error = "2.2.1"
 solana-logger = "2.2.1"
+solana-hash = "2.2.1"
 solana-instruction = "2.2.1"
 solana-keypair = "2.2.1"
 solana-msg = "2.2.1"
+solana-presigner = "2.2.1"
 solana-program-entrypoint = "2.2.1"
 solana-program-error = "2.2.1"
 solana-program-option = "2.2.1"
 solana-program-pack = "2.2.1"
 solana-pubkey = "2.2.1"
-solana-remote-wallet = "2.2.1"
 solana-rent = "2.2.1"
 solana-sdk-ids = "2.2.1"
 solana-signature = "2.2.1"
@@ -82,3 +82,8 @@ tokio = { version = "1.44.1", features = ["full"] }
 
 # Should depend on the next crate version after 7.0.0 when https://github.com/solana-program/token-2022/pull/253 is deployed
 spl-token-2022 = { git = "https://github.com/solana-program/token-2022", rev = "00e0f4723c2606c0facbb4921e1b2e2e030d1fa6", features = ["no-entrypoint"] }
+
+# Should depend on next version of these packages after https://github.com/anza-xyz/agave/pull/5534 is deployed
+solana-clap-v3-utils = { git = "https://github.com/anza-xyz/agave", package = "solana-clap-v3-utils", rev = "8cf1f8dbf36b2d7b083d5e9883f51282b2cb7c86" }
+# Need to specify same commit as above for type compatiblity
+solana-remote-wallet = { git = "https://github.com/anza-xyz/agave", package = "solana-remote-wallet", rev = "8cf1f8dbf36b2d7b083d5e9883f51282b2cb7c86" }

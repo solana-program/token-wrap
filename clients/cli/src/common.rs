@@ -2,9 +2,11 @@ use {
     crate::{config::Config, output::println_display, Error},
     clap::ArgMatches,
     solana_clap_v3_utils::keypair::pubkey_from_path,
+    solana_presigner::Presigner,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
+    std::str::FromStr,
 };
 
 pub fn parse_pubkey(value: &str) -> Result<Pubkey, String> {
@@ -24,6 +26,17 @@ pub fn parse_token_program(value: &str) -> Result<Pubkey, String> {
     } else {
         Err("Invalid token program. Must be spl-token or spl-token-2022".to_string())
     }
+}
+
+pub fn parse_presigner(value: &str) -> Result<Presigner, String> {
+    let (pubkey_string, sig_string) = value
+        .split_once('=')
+        .ok_or("failed to split `pubkey=signature` pair")?;
+    let pubkey = Pubkey::from_str(pubkey_string)
+        .map_err(|_| "Failed to parse pubkey from string".to_string())?;
+    let sig = Signature::from_str(sig_string)
+        .map_err(|_| "Failed to parse signature from string".to_string())?;
+    Ok(Presigner::new(&pubkey, &sig))
 }
 
 pub async fn process_transaction(
