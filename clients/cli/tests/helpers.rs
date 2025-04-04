@@ -13,7 +13,8 @@ use {
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
-    spl_token::{self, instruction::initialize_mint, state::Mint as SplTokenMint},
+    spl_token::{self, state::Mint as SplTokenMint},
+    spl_token_2022::instruction::initialize_mint,
     std::{error::Error, path::PathBuf, process::Command, sync::Arc},
     tempfile::NamedTempFile,
 };

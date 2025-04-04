@@ -1,6 +1,7 @@
 use {
     crate::{
         config::Config,
+        create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs},
         create_mint::{command_create_mint, CreateMintArgs},
         find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
@@ -89,7 +90,7 @@ pub enum Command {
     CreateMint(CreateMintArgs),
     Wrap(WrapArgs),
     FindPdas(FindPdasArgs),
-    // TODO: Unwrap
+    CreateEscrowAccount(CreateEscrowAccountArgs),
 }
 
 impl Command {
@@ -103,6 +104,7 @@ impl Command {
             Command::CreateMint(args) => command_create_mint(config, args).await,
             Command::Wrap(args) => command_wrap(config, args, matches, wallet_manager).await,
             Command::FindPdas(args) => command_get_pdas(config, args).await,
+            Command::CreateEscrowAccount(args) => command_create_escrow_account(config, args).await,
         }
     }
 }

@@ -1,6 +1,9 @@
 use {
     crate::{
-        common::{parse_presigner, parse_pubkey, parse_token_program, process_transaction},
+        common::{
+            get_account_owner, parse_presigner, parse_pubkey, parse_token_program,
+            process_transaction,
+        },
         config::Config,
         output::{format_output, println_display},
         CommandResult, Error,
@@ -263,11 +266,7 @@ pub async fn command_wrap(
     let unwrapped_token_program = if let Some(pubkey) = args.unwrapped_token_program {
         pubkey
     } else {
-        config
-            .rpc_client
-            .get_account(&args.unwrapped_token_account)
-            .await?
-            .owner
+        get_account_owner(&args.unwrapped_token_account, config.rpc_client.clone()).await?
     };
 
     let instruction = wrap(

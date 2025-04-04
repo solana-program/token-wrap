@@ -2,11 +2,12 @@ use {
     crate::{config::Config, output::println_display, Error},
     clap::ArgMatches,
     solana_clap_v3_utils::keypair::pubkey_from_path,
+    solana_client::nonblocking::rpc_client::RpcClient,
     solana_presigner::Presigner,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
-    std::str::FromStr,
+    std::{str::FromStr, sync::Arc},
 };
 
 pub fn parse_pubkey(value: &str) -> Result<Pubkey, String> {
@@ -70,4 +71,12 @@ pub async fn process_transaction(
                 .await?,
         ))
     }
+}
+
+pub async fn get_account_owner(
+    account: &Pubkey,
+    rpc_client: Arc<RpcClient>,
+) -> Result<Pubkey, Error> {
+    let owner = rpc_client.get_account(account).await?.owner;
+    Ok(owner)
 }
