@@ -1,9 +1,12 @@
 use {
     crate::{
-        common::{parse_presigner, parse_pubkey, parse_token_program, process_transaction},
+        common::{
+            get_account_owner, get_mint, parse_presigner, parse_pubkey, parse_token_program,
+            process_transaction,
+        },
         config::Config,
         output::{format_output, println_display},
-        CommandResult, Error,
+        CommandResult,
     },
     clap::{value_parser, Args},
     serde_derive::{Deserialize, Serialize},
@@ -16,7 +19,6 @@ use {
         display::writeln_name_value, return_signers_data, CliSignOnlyData, QuietDisplay,
         ReturnSignersConfig, VerboseDisplay,
     },
-    solana_client::nonblocking::rpc_client::RpcClient,
     solana_hash::Hash,
     solana_presigner::Presigner,
     solana_pubkey::Pubkey,
@@ -25,7 +27,6 @@ use {
     solana_signer::Signer,
     solana_transaction::Transaction,
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
-    spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
     std::{
         fmt::{Display, Formatter},
@@ -172,15 +173,6 @@ impl QuietDisplay for WrapOutput {
 }
 impl VerboseDisplay for WrapOutput {}
 
-async fn get_unwrapped_mint(
-    rpc_client: &RpcClient,
-    unwrapped_token_account: &Pubkey,
-) -> Result<Pubkey, Error> {
-    let token_account_info = rpc_client.get_account(unwrapped_token_account).await?;
-    let unpacked_account = PodStateWithExtensions::<PodAccount>::unpack(&token_account_info.data)?;
-    Ok(unpacked_account.base.mint)
-}
-
 pub async fn command_wrap(
     config: &Config,
     args: WrapArgs,
@@ -192,7 +184,7 @@ pub async fn command_wrap(
     let unwrapped_mint = if let Some(mint) = args.unwrapped_mint {
         mint
     } else {
-        get_unwrapped_mint(&config.rpc_client, &args.unwrapped_token_account).await?
+        get_mint(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
     if !args.sign_only {
@@ -263,11 +255,7 @@ pub async fn command_wrap(
     let unwrapped_token_program = if let Some(pubkey) = args.unwrapped_token_program {
         pubkey
     } else {
-        config
-            .rpc_client
-            .get_account(&args.unwrapped_token_account)
-            .await?
-            .owner
+        get_account_owner(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
     let instruction = wrap(
