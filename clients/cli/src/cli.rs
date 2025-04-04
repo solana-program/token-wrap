@@ -20,6 +20,7 @@ use {
     solana_remote_wallet::remote_wallet::RemoteWalletManager,
     std::rc::Rc,
 };
+use crate::create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(
@@ -94,6 +95,8 @@ pub enum Command {
     FindPdas(FindPdasArgs),
     /// Convert wrapped tokens back into their original unwrapped version
     Unwrap(UnwrapArgs),
+    /// Create an account used to escrow unwrapped tokens
+    CreateEscrowAccount(CreateEscrowAccountArgs),
 }
 
 impl Command {
@@ -108,6 +111,7 @@ impl Command {
             Command::Wrap(args) => command_wrap(config, args, matches, wallet_manager).await,
             Command::FindPdas(args) => command_get_pdas(config, args).await,
             Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
+            Command::CreateEscrowAccount(args) => command_create_escrow_account(config, args).await,
         }
     }
 }
