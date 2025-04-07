@@ -78,7 +78,7 @@ spl-transfer-hook-interface = "0.10.0"
 tempfile = "3.19.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.1", features = ["full"] }
+tokio = { version = "1.44.2", features = ["full"] }
 
 # Should depend on next version of these packages after https://github.com/anza-xyz/agave/pull/5534 is deployed
 solana-clap-v3-utils = { git = "https://github.com/anza-xyz/agave", package = "solana-clap-v3-utils", rev = "8cf1f8dbf36b2d7b083d5e9883f51282b2cb7c86" }
