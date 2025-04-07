@@ -7,9 +7,9 @@ import {
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { findWrappedMintPda } from '../generated';
 import { executeSingleSignerWrap } from '../wrap';
-
 import { createEscrowAccount, createTokenAccount } from '../utilities';
 import { executeCreateMint } from '../create-mint';
+import { executeSingleSignerUnwrap } from '../unwrap';
 //
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
@@ -55,6 +55,7 @@ const main = async () => {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
+
   const recipientWrappedTokenAccount = await createTokenAccount({
     rpc,
     rpcSubscriptions,
@@ -72,7 +73,6 @@ const main = async () => {
     escrowAccount,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
-    unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     recipientWrappedTokenAccount,
   });
 
@@ -81,6 +81,21 @@ const main = async () => {
   console.log('Recipient account:', wrapResult.recipientWrappedTokenAccount);
   console.log('Escrow Account:', wrapResult.escrowAccount);
   console.log('Signature:', wrapResult.signature);
+
+  const unwrapResult = await executeSingleSignerUnwrap({
+    rpc,
+    rpcSubscriptions,
+    payer,
+    wrappedTokenAccount: recipientWrappedTokenAccount,
+    unwrappedEscrow: escrowAccount,
+    amount: AMOUNT_TO_WRAP,
+    recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
+  });
+
+  console.log('======== Unwrap Successful ========');
+  console.log('Unwrapped amount:', unwrapResult.amount);
+  console.log('Recipient account:', unwrapResult.recipientUnwrappedToken);
+  console.log('Signature:', unwrapResult.signature);
 };
 
 void main();
