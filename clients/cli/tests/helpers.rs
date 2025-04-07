@@ -243,6 +243,7 @@ pub async fn mint_to(
 // Creates 2 of 3 multisig
 pub async fn create_test_multisig(
     env: &mut TestEnv,
+    token_program: &Pubkey,
 ) -> Result<(Pubkey, Vec<Keypair>), Box<dyn Error>> {
     let multisig_keypair = Keypair::new();
     let multisig_pubkey = multisig_keypair.pubkey();
@@ -265,16 +266,27 @@ pub async fn create_test_multisig(
         &multisig_pubkey,
         rent,
         spl_token::state::Multisig::LEN as u64,
-        &spl_token::id(),
+        token_program,
     );
 
-    let initialize_multisig_instruction = spl_token::instruction::initialize_multisig(
-        &spl_token::id(),
-        &multisig_pubkey,
-        &multisig_member_pubkeys,
-        2,
-    )?;
-
+    // Use the correct initialize_multisig instruction based on token_program
+    let initialize_multisig_instruction = if *token_program == spl_token::id() {
+        spl_token::instruction::initialize_multisig(
+            token_program,
+            &multisig_pubkey,
+            &multisig_member_pubkeys,
+            2,
+        )?
+    } else if *token_program == spl_token_2022::id() {
+        spl_token_2022::instruction::initialize_multisig(
+            token_program,
+            &multisig_pubkey,
+            &multisig_member_pubkeys,
+            2,
+        )?
+    } else {
+        return Err(format!("Unsupported token program for multisig: {}", token_program).into());
+    };
     let mut transaction = Transaction::new_with_payer(
         &[create_account_instruction, initialize_multisig_instruction],
         Some(&env.payer.pubkey()),
