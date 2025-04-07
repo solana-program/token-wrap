@@ -241,7 +241,9 @@ async fn assert_result(
 async fn test_wrap_with_multisig() {
     let mut env = setup_test_env().await;
 
-    let (multisig_pubkey, multisig_members) = create_test_multisig(&mut env).await.unwrap();
+    let (multisig_pubkey, multisig_members) = create_test_multisig(&mut env, &spl_token::id())
+        .await
+        .unwrap();
 
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
