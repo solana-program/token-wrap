@@ -4,6 +4,7 @@ use {
     solana_clap_v3_utils::keypair::pubkey_from_path,
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_presigner::Presigner,
+    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
@@ -86,4 +87,28 @@ pub async fn get_mint_for_token_account(
 pub async fn get_account_owner(rpc_client: &RpcClient, account: &Pubkey) -> Result<Pubkey, Error> {
     let owner = rpc_client.get_account(account).await?.owner;
     Ok(owner)
+}
+
+pub async fn assert_mint_account(
+    rpc_client: &RpcClient,
+    account_key: &Pubkey,
+) -> Result<(), String> {
+    let account_info = rpc_client
+        .get_account(account_key)
+        .await
+        .map_err(|e| format!("Failed to fetch account {}: {}", account_key, e))?;
+
+    let owner = account_info.owner;
+    if owner != spl_token::id() && owner != spl_token_2022::id() {
+        return Err(format!(
+            "Account {} is not owned by a token program. Owner: {}",
+            account_key, owner
+        ));
+    }
+
+    // Attempt to deserialize the data as a mint account
+    let _ = Mint::unpack(&account_info.data)
+        .map_err(|e| format!("Failed to unpack as spl token mint: {:?}", e))?;
+
+    Ok(())
 }
