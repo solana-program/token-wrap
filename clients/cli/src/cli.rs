@@ -1,6 +1,7 @@
 use {
     crate::{
         config::Config,
+        create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs},
         create_mint::{command_create_mint, CreateMintArgs},
         find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
@@ -20,7 +21,6 @@ use {
     solana_remote_wallet::remote_wallet::RemoteWalletManager,
     std::rc::Rc,
 };
-use crate::create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs};
 
 #[derive(Parser, Debug, Clone)]
 #[clap(

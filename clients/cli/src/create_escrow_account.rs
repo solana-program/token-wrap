@@ -25,9 +25,7 @@ use {
     solana_transaction::Transaction,
     spl_associated_token_account_client::{
         address::get_associated_token_address_with_program_id,
-        instruction::{
-            create_associated_token_account, create_associated_token_account_idempotent,
-        },
+        instruction::create_associated_token_account,
     },
     spl_token_2022::instruction::initialize_account,
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority},
@@ -120,7 +118,7 @@ pub async fn command_create_escrow_account(
     assert_mint_account(&rpc_client, &args.unwrapped_mint).await?;
 
     // --- Determine Unwrapped Token Program ---
-    let unwrapped_token_program_id = get_account_owner(&args.unwrapped_mint, &rpc_client).await?;
+    let unwrapped_token_program_id = get_account_owner(&rpc_client, &args.unwrapped_mint).await?;
 
     // --- Derive PDAs ---
     let wrapped_mint_address =
@@ -209,18 +207,33 @@ pub async fn command_create_escrow_account(
             format!("Using ATA {} for escrow account", escrow_account_address),
         );
 
-        let create_ata_instruction = if args.idempotent {
-            create_associated_token_account_idempotent
-        } else {
-            create_associated_token_account
-        };
-
-        instructions.push(create_ata_instruction(
-            &payer.pubkey(),
-            &wrapped_mint_authority,
-            &args.unwrapped_mint,
-            &unwrapped_token_program_id,
-        ));
+        match rpc_client.get_account(&escrow_account_address).await {
+            Ok(_) => {
+                if args.idempotent {
+                    println_display(
+                        config,
+                        format!(
+                            "Escrow account {} already exists, skipping creation",
+                            escrow_account_address
+                        ),
+                    );
+                } else {
+                    return Err(format!(
+                        "Escrow account {} already exists",
+                        escrow_account_address
+                    )
+                    .into());
+                }
+            }
+            Err(_) => {
+                instructions.push(create_associated_token_account(
+                    &payer.pubkey(),
+                    &wrapped_mint_authority,
+                    &args.unwrapped_mint,
+                    &unwrapped_token_program_id,
+                ));
+            }
+        }
     }
 
     // --- Build and Send Transaction if Needed ---

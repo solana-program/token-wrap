@@ -286,7 +286,7 @@ async fn test_create_escrow_account_ata_idempotent() {
         .unwrap();
     assert!(!output_c.status.success());
     let stderr_c = String::from_utf8(output_c.stderr).unwrap();
-    assert!(stderr_c.contains("Provided owner is not allowed"));
+    assert!(stderr_c.contains("already exists"));
 }
 
 #[tokio::test]

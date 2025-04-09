@@ -4,11 +4,14 @@ use {
     solana_clap_v3_utils::keypair::pubkey_from_path,
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_presigner::Presigner,
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
-    spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
+    spl_token_2022::{
+        extension::{PodStateWithExtensions, StateWithExtensions},
+        pod::PodAccount,
+        state::Mint,
+    },
     std::str::FromStr,
 };
 
@@ -107,7 +110,7 @@ pub async fn assert_mint_account(
     }
 
     // Attempt to deserialize the data as a mint account
-    let _ = Mint::unpack(&account_info.data)
+    let _ = StateWithExtensions::<Mint>::unpack(&account_info.data)
         .map_err(|e| format!("Failed to unpack as spl token mint: {:?}", e))?;
 
     Ok(())
