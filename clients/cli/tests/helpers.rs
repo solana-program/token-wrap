@@ -139,9 +139,9 @@ pub async fn create_associated_token_account(
     env: &TestEnv,
     token_program: &Pubkey,
     mint: &Pubkey,
+    wallet_addr: &Pubkey,
 ) -> Pubkey {
-    let ata =
-        get_associated_token_address_with_program_id(&env.payer.pubkey(), mint, token_program);
+    let ata = get_associated_token_address_with_program_id(wallet_addr, mint, token_program);
 
     let ata_account = env.rpc_client.get_account(&ata).await;
     if ata_account.is_ok() {
@@ -151,7 +151,7 @@ pub async fn create_associated_token_account(
     let instruction =
         spl_associated_token_account_client::instruction::create_associated_token_account(
             &env.payer.pubkey(),
-            &env.payer.pubkey(),
+            wallet_addr,
             mint,
             token_program,
         );

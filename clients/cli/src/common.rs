@@ -74,7 +74,7 @@ pub async fn process_transaction(
     }
 }
 
-pub async fn get_mint(
+pub async fn get_mint_for_token_account(
     rpc_client: &RpcClient,
     token_account_address: &Pubkey,
 ) -> Result<Pubkey, Error> {

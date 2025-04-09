@@ -1,8 +1,8 @@
 use {
     crate::{
         common::{
-            get_account_owner, get_mint, parse_presigner, parse_pubkey, parse_token_program,
-            process_transaction,
+            get_account_owner, get_mint_for_token_account, parse_presigner, parse_pubkey,
+            parse_token_program, process_transaction,
         },
         config::Config,
         output::{format_output, println_display},
@@ -184,7 +184,7 @@ pub async fn command_wrap(
     let unwrapped_mint = if let Some(mint) = args.unwrapped_mint {
         mint
     } else {
-        get_mint(&config.rpc_client, &args.unwrapped_token_account).await?
+        get_mint_for_token_account(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
     if !args.sign_only {

@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
-        create_token_account, create_unwrapped_mint, execute_create_mint, mint_to, setup_test_env,
-        TestEnv, TOKEN_WRAP_CLI_BIN,
+        create_associated_token_account, create_token_account, create_unwrapped_mint,
+        execute_create_mint, mint_to, setup_test_env, TestEnv, TOKEN_WRAP_CLI_BIN,
     },
     serial_test::serial,
     solana_keypair::{write_keypair_file, Keypair},
@@ -37,6 +37,7 @@ async fn setup_for_unwrap(
     initial_unwrapped_balance: u64,
     wrap_amount: u64,
     maybe_wrapped_owner: Option<Pubkey>,
+    use_ata_for_escrow: bool,
 ) -> UnwrapSetup {
     // --- Create Mints ---
     let unwrapped_token_program = spl_token::id();
@@ -71,13 +72,23 @@ async fn setup_for_unwrap(
     // 2) Escrow account (owned by PDA)
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
-    let escrow_account = create_token_account(
-        env,
-        &unwrapped_token_program,
-        &unwrapped_mint,
-        &wrapped_mint_authority,
-    )
-    .await;
+    let escrow_account = if use_ata_for_escrow {
+        create_associated_token_account(
+            env,
+            &unwrapped_token_program,
+            &unwrapped_mint,
+            &wrapped_mint_authority,
+        )
+        .await
+    } else {
+        create_token_account(
+            env,
+            &unwrapped_token_program,
+            &unwrapped_mint,
+            &wrapped_mint_authority,
+        )
+        .await
+    };
 
     // 3) Target account for wrapped tokens
     let wrapped_owner = maybe_wrapped_owner.unwrap_or(env.payer.pubkey());
@@ -178,20 +189,28 @@ async fn test_unwrap_single_signer_with_defaults() {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
+    let setup = setup_for_unwrap(
+        &env,
+        initial_unwrapped_balance,
+        setup_wrap_amount,
+        None,
+        true,
+    )
+    .await;
 
-    Command::new(TOKEN_WRAP_CLI_BIN)
+    let status = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
             "unwrap".to_string(),
             "-C".to_string(),
             env.config_file_path.clone(),
             setup.wrapped_token_account.to_string(),
-            setup.escrow_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
         ])
         .status()
         .unwrap();
+
+    assert!(status.success());
 
     assert_unwrap_result(
         &env,
@@ -225,21 +244,23 @@ async fn test_unwrap_single_signer_with_optional_flags() {
         initial_unwrapped_balance,
         setup_wrap_amount,
         Some(transfer_authority.pubkey()),
+        false,
     )
     .await;
 
     let blockhash = env.rpc_client.get_latest_blockhash().await.unwrap();
 
     // Adding all optional flags to pass
-    Command::new(TOKEN_WRAP_CLI_BIN)
+    let status = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
             "unwrap".to_string(),
             "-C".to_string(),
             env.config_file_path.clone(),
             setup.wrapped_token_account.to_string(),
-            setup.escrow_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
+            "--escrow-account".to_string(),
+            setup.escrow_account.to_string(),
             "--unwrapped-mint".to_string(),
             setup.unwrapped_mint.to_string(),
             "--wrapped-token-program".to_string(),
@@ -254,6 +275,8 @@ async fn test_unwrap_single_signer_with_optional_flags() {
         .status()
         .unwrap();
 
+    assert!(status.success());
+
     // Confirm the final balances after unwrap
     assert_unwrap_result(
         &env,
@@ -266,4 +289,137 @@ async fn test_unwrap_single_signer_with_optional_flags() {
         unwrap_amount,
     )
     .await;
+}
+
+#[tokio::test]
+#[serial]
+async fn test_unwrap_fail_invalid_wrapped_token_program() {
+    let env = setup_test_env().await;
+
+    let initial_unwrapped_balance = 200;
+    let setup_wrap_amount = 100;
+    let unwrap_amount = 50;
+    let setup = setup_for_unwrap(
+        &env,
+        initial_unwrapped_balance,
+        setup_wrap_amount,
+        None,
+        true,
+    )
+    .await;
+
+    // Pass the wrong token program ID for the wrapped mint
+    let wrong_wrapped_token_program = spl_token::id();
+
+    let output = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(),
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--wrapped-token-program".to_string(),
+            wrong_wrapped_token_program.to_string(), // Incorrect program ID
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains(&format!(
+        "Provided wrapped token program ID {} does not match actual owner {} of account {}",
+        wrong_wrapped_token_program,
+        setup.wrapped_token_program, // The actual owner
+        setup.wrapped_token_account
+    )));
+}
+
+#[tokio::test]
+#[serial]
+async fn test_unwrap_fail_mismatched_unwrapped_mint() {
+    let env = setup_test_env().await;
+
+    let initial_unwrapped_balance = 200;
+    let setup_wrap_amount = 100;
+    let unwrap_amount = 50;
+    let setup = setup_for_unwrap(
+        &env,
+        initial_unwrapped_balance,
+        setup_wrap_amount,
+        None,
+        true,
+    )
+    .await;
+
+    // Create a *different* unwrapped mint
+    let wrong_unwrapped_mint = create_unwrapped_mint(&env, &setup.unwrapped_token_program).await;
+
+    let output = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(),
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--unwrapped-mint".to_string(),
+            wrong_unwrapped_mint.to_string(), // Incorrect mint for the recipient
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains(&format!(
+        "Provided unwrapped mint {} does not match actual mint {} of recipient account {}",
+        wrong_unwrapped_mint,
+        setup.unwrapped_mint, // The actual mint of the recipient
+        setup.unwrapped_token_recipient
+    )));
+}
+
+#[tokio::test]
+#[serial]
+async fn test_unwrap_fail_invalid_unwrapped_token_program() {
+    let env = setup_test_env().await;
+
+    let initial_unwrapped_balance = 200;
+    let setup_wrap_amount = 100;
+    let unwrap_amount = 50;
+    let setup = setup_for_unwrap(
+        &env,
+        initial_unwrapped_balance,
+        setup_wrap_amount,
+        None,
+        true,
+    )
+    .await;
+
+    // Pass the wrong token program ID for the unwrapped mint
+    let wrong_unwrapped_token_program = spl_token_2022::id();
+
+    let output = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(),
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--unwrapped-token-program".to_string(),
+            wrong_unwrapped_token_program.to_string(), // Incorrect program ID
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains(&format!(
+        "Provided unwrapped token program ID {} does not match actual owner {} of unwrapped mint \
+         {}",
+        wrong_unwrapped_token_program,
+        setup.unwrapped_token_program, // The actual owner
+        setup.unwrapped_mint
+    )));
 }
