@@ -164,7 +164,7 @@ pub async fn command_unwrap(
         unwrapped_token_program,
         escrow_account,
         transfer_authority_signer,
-    } = resolve_addresses(&config, &args, matches, wallet_manager).await?;
+    } = resolve_addresses(config, &args, matches, wallet_manager).await?;
 
     let instruction = unwrap(
         &spl_token_wrap::id(),
@@ -190,11 +190,11 @@ pub async fn command_unwrap(
     let payer = config.fee_payer()?;
 
     // Payer will always be a signer
-    let mut signers: Vec<Arc<dyn Signer>> = vec![payer.clone()];
+    let mut signers: Vec<&dyn Signer> = vec![payer.as_ref()];
 
     // Add transfer_authority if it's not the payer
     if payer.pubkey() != transfer_authority_signer.pubkey() {
-        signers.push(transfer_authority_signer);
+        signers.push(transfer_authority_signer.as_ref());
     }
 
     let mut transaction = Transaction::new_with_payer(&[instruction], Some(&payer.pubkey()));
@@ -228,7 +228,7 @@ struct ResolvedAddrs {
 
 // Validates optional fields passed, or if not passed queries for them
 async fn resolve_addresses(
-    config: &&Config,
+    config: &Config,
     args: &UnwrapArgs,
     matches: &ArgMatches,
     wallet_manager: &mut Option<Rc<RemoteWalletManager>>,
@@ -236,29 +236,29 @@ async fn resolve_addresses(
     let payer = config.fee_payer()?;
 
     // Validate `wrapped_token_program` governs `wrapped_token_account`
+    let queried_wrapped_token_program =
+        get_account_owner(&config.rpc_client, &args.wrapped_token_account).await?;
     let wrapped_token_program = if let Some(program_id) = args.wrapped_token_program {
-        let actual_owner =
-            get_account_owner(&config.rpc_client, &args.wrapped_token_account).await?;
-        if program_id != actual_owner {
+        if program_id != queried_wrapped_token_program {
             return Err(format!(
                 "Provided wrapped token program ID {program_id} does not match actual owner \
-                 {actual_owner} of account {}",
+                 {queried_wrapped_token_program} of account {}",
                 args.wrapped_token_account
             )
             .into());
         }
         program_id
     } else {
-        get_account_owner(&config.rpc_client, &args.wrapped_token_account).await?
+        queried_wrapped_token_program
     };
 
     // Validate `unwrapped_token_recipient` account matches the `unwrapped_mint`
+    let queried_mint =
+        get_mint_for_token_account(&config.rpc_client, &args.unwrapped_token_recipient).await?;
     let unwrapped_mint_address = if let Some(mint) = args.unwrapped_mint {
-        let actual_mint =
-            get_mint_for_token_account(&config.rpc_client, &args.unwrapped_token_recipient).await?;
-        if mint != actual_mint {
+        if mint != queried_mint {
             return Err(format!(
-                "Provided unwrapped mint {mint} does not match actual mint {actual_mint} of \
+                "Provided unwrapped mint {mint} does not match actual mint {queried_mint} of \
                  recipient account {}",
                 args.unwrapped_token_recipient
             )
@@ -266,22 +266,23 @@ async fn resolve_addresses(
         }
         mint
     } else {
-        get_mint_for_token_account(&config.rpc_client, &args.unwrapped_token_recipient).await?
+        queried_mint
     };
 
     // Validate `unwrapped_mint_address` matches the `unwrapped_token_program`
+    let queried_unwrapped_token_program =
+        get_account_owner(&config.rpc_client, &unwrapped_mint_address).await?;
     let unwrapped_token_program = if let Some(program_id) = args.unwrapped_token_program {
-        let actual_owner = get_account_owner(&config.rpc_client, &unwrapped_mint_address).await?;
-        if program_id != actual_owner {
+        if program_id != queried_unwrapped_token_program {
             return Err(format!(
                 "Provided unwrapped token program ID {program_id} does not match actual owner \
-                 {actual_owner} of unwrapped mint {unwrapped_mint_address}",
+                 {queried_unwrapped_token_program} of unwrapped mint {unwrapped_mint_address}",
             )
             .into());
         }
         program_id
     } else {
-        get_account_owner(&config.rpc_client, &unwrapped_mint_address).await?
+        queried_unwrapped_token_program
     };
 
     let wrapped_mint_address =
