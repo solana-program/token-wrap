@@ -54,8 +54,13 @@ async fn test_wrap_single_signer_with_defaults() {
 
     // Setup recipient account with zero balance
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
-    let recipient_account =
-        create_associated_token_account(&env, &wrapped_token_program, &wrapped_mint).await;
+    let recipient_account = create_associated_token_account(
+        &env,
+        &wrapped_token_program,
+        &wrapped_mint,
+        &env.payer.pubkey(),
+    )
+    .await;
 
     // Setup escrow with mint_authority as owner
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
@@ -270,8 +275,13 @@ async fn test_wrap_with_multisig() {
     .await;
 
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
-    let recipient_account =
-        create_associated_token_account(&env, &wrapped_token_program, &wrapped_mint).await;
+    let recipient_account = create_associated_token_account(
+        &env,
+        &wrapped_token_program,
+        &wrapped_mint,
+        &env.payer.pubkey(),
+    )
+    .await;
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     let escrow_account = create_token_account(
