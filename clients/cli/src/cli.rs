@@ -1,6 +1,7 @@
 use {
     crate::{
         config::Config,
+        create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs},
         create_mint::{command_create_mint, CreateMintArgs},
         find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
@@ -94,6 +95,8 @@ pub enum Command {
     FindPdas(FindPdasArgs),
     /// Convert wrapped tokens back into their original unwrapped version
     Unwrap(UnwrapArgs),
+    /// Create an account used to escrow unwrapped tokens
+    CreateEscrowAccount(CreateEscrowAccountArgs),
 }
 
 impl Command {
@@ -108,6 +111,9 @@ impl Command {
             Command::Wrap(args) => command_wrap(config, args, matches, wallet_manager).await,
             Command::FindPdas(args) => command_get_pdas(config, args).await,
             Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
+            Command::CreateEscrowAccount(args) => {
+                command_create_escrow_account(config, args, matches, wallet_manager).await
+            }
         }
     }
 }
