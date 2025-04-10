@@ -1,7 +1,8 @@
 use {
     crate::helpers::{
-        create_associated_token_account, create_token_account, create_unwrapped_mint,
-        execute_create_mint, mint_to, setup_test_env, TestEnv, TOKEN_WRAP_CLI_BIN,
+        create_associated_token_account, create_test_multisig, create_token_account,
+        create_unwrapped_mint, execute_create_mint, extract_signers, mint_to, setup_test_env,
+        TestEnv, TOKEN_WRAP_CLI_BIN,
     },
     serial_test::serial,
     solana_keypair::{write_keypair_file, Keypair},
@@ -422,4 +423,159 @@ async fn test_unwrap_fail_invalid_unwrapped_token_program() {
         setup.unwrapped_token_program, // The actual owner
         setup.unwrapped_mint
     )));
+}
+
+#[tokio::test]
+#[serial]
+async fn test_unwrap_with_multisig() {
+    let mut env = setup_test_env().await;
+
+    let (multisig_pubkey, multisig_members) = create_test_multisig(&mut env, &spl_token_2022::id())
+        .await
+        .unwrap();
+
+    let initial_unwrapped_balance = 200;
+    let setup_wrap_amount = 100;
+    let unwrap_amount = 50;
+    let setup = setup_for_unwrap(
+        &env,
+        initial_unwrapped_balance,
+        setup_wrap_amount,
+        Some(multisig_pubkey),
+        true,
+    )
+    .await;
+
+    let multisig_member_1 = multisig_members.first().unwrap();
+    let member_1_keypair_file = NamedTempFile::new().unwrap();
+    write_keypair_file(multisig_member_1, &member_1_keypair_file).unwrap();
+
+    let multisig_member_2 = multisig_members.get(1).unwrap();
+    let member_2_keypair_file = NamedTempFile::new().unwrap();
+    write_keypair_file(multisig_member_2, &member_2_keypair_file).unwrap();
+
+    let blockhash = env.rpc_client.get_latest_blockhash().await.unwrap();
+
+    // --- Signer 1 tx ---
+    let output1 = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(),
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--escrow-account".to_string(),
+            setup.escrow_account.to_string(),
+            "--fee-payer".to_string(),
+            env.payer.pubkey().to_string(),
+            "--transfer-authority".to_string(),
+            multisig_pubkey.to_string(),
+            "--multisig-signer".to_string(), // Member 1 signs with their keypair
+            member_1_keypair_file.path().to_str().unwrap().to_string(),
+            "--multisig-signer".to_string(),
+            multisig_member_2.pubkey().to_string(),
+            "--blockhash".to_string(),
+            blockhash.to_string(),
+            "--sign-only".to_string(),
+            "--output".to_string(),
+            "json".to_string(),
+        ])
+        .output()
+        .unwrap();
+
+    if !output1.status.success() {
+        panic!(
+            "Signer 1 command failed: {} -- {}",
+            String::from_utf8_lossy(&output1.stdout),
+            String::from_utf8_lossy(&output1.stderr)
+        );
+    }
+
+    let signers1 = extract_signers(&output1.stdout);
+    assert_eq!(signers1.len(), 1);
+    let member_1_signature = signers1.first().cloned().unwrap();
+
+    // --- Signer 2 tx ---
+    let output2 = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(),
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--escrow-account".to_string(),
+            setup.escrow_account.to_string(),
+            "--fee-payer".to_string(),
+            env.payer.pubkey().to_string(),
+            "--transfer-authority".to_string(),
+            multisig_pubkey.to_string(),
+            "--multisig-signer".to_string(),
+            multisig_member_1.pubkey().to_string(),
+            "--multisig-signer".to_string(), // Member 2 signs with their keypair
+            member_2_keypair_file.path().to_str().unwrap().to_string(),
+            "--blockhash".to_string(),
+            blockhash.to_string(),
+            "--sign-only".to_string(),
+            "--output".to_string(),
+            "json".to_string(),
+        ])
+        .output()
+        .unwrap();
+
+    if !output2.status.success() {
+        panic!(
+            "Signer 2 command failed: {} -- {}",
+            String::from_utf8_lossy(&output2.stdout),
+            String::from_utf8_lossy(&output2.stderr)
+        );
+    }
+
+    let signers2 = extract_signers(&output2.stdout);
+    assert_eq!(signers2.len(), 1);
+    let member_2_signature = signers2.first().cloned().unwrap();
+
+    // --- Final Broadcast Simulation ---
+    // Passes the keypair for feepayer (default behavior)
+    // and the signatures for member #1 & #2
+    let status = Command::new(TOKEN_WRAP_CLI_BIN)
+        .args(vec![
+            "unwrap".to_string(),
+            "-C".to_string(),
+            env.config_file_path.clone(), // Fee payer signs implicitly from config
+            setup.wrapped_token_account.to_string(),
+            setup.unwrapped_token_recipient.to_string(),
+            unwrap_amount.to_string(),
+            "--escrow-account".to_string(),
+            setup.escrow_account.to_string(),
+            "--transfer-authority".to_string(),
+            multisig_pubkey.to_string(),
+            "--multisig-signer".to_string(),
+            multisig_member_1.pubkey().to_string(),
+            "--multisig-signer".to_string(),
+            multisig_member_2.pubkey().to_string(),
+            "--blockhash".to_string(),
+            blockhash.to_string(),
+            "--signer".to_string(), // Provide signature from signer 1
+            member_1_signature,
+            "--signer".to_string(), // Provide signature from signer 2
+            member_2_signature,
+        ])
+        .status()
+        .unwrap();
+
+    assert!(status.success(), "Final broadcast command failed");
+
+    assert_unwrap_result(
+        &env,
+        &setup.wrapped_token_account,
+        setup_wrap_amount,
+        &setup.unwrapped_token_recipient,
+        0,
+        &setup.escrow_account,
+        setup_wrap_amount,
+        unwrap_amount,
+    )
+    .await;
 }
