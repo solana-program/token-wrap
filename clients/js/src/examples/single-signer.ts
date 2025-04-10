@@ -5,11 +5,11 @@ import {
   createSolanaRpcSubscriptions,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
-import { findWrappedMintPda } from './generated';
-import { executeWrap } from './wrap';
+import { findWrappedMintPda } from '../generated';
+import { executeSingleSignerWrap } from '../wrap';
 
-import { createEscrowAccount, createTokenAccount } from './utilities';
-import { executeCreateMint } from './create-mint';
+import { createEscrowAccount, createTokenAccount } from '../utilities';
+import { executeCreateMint } from '../create-mint';
 //
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
@@ -55,7 +55,7 @@ const main = async () => {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const recipientTokenAccount = await createTokenAccount({
+  const recipientWrappedTokenAccount = await createTokenAccount({
     rpc,
     rpcSubscriptions,
     payer,
@@ -64,7 +64,7 @@ const main = async () => {
     owner: payer.address,
   });
 
-  const wrapResult = await executeWrap({
+  const wrapResult = await executeSingleSignerWrap({
     rpc,
     rpcSubscriptions,
     payer,
@@ -73,7 +73,7 @@ const main = async () => {
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientTokenAccount,
+    recipientWrappedTokenAccount,
   });
 
   console.log('======== Wrap Successful ========');
