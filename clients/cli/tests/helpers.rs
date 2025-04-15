@@ -269,24 +269,12 @@ pub async fn create_test_multisig(
         token_program,
     );
 
-    // Use the correct initialize_multisig instruction based on token_program
-    let initialize_multisig_instruction = if *token_program == spl_token::id() {
-        spl_token::instruction::initialize_multisig(
-            token_program,
-            &multisig_pubkey,
-            &multisig_member_pubkeys,
-            2,
-        )?
-    } else if *token_program == spl_token_2022::id() {
-        spl_token_2022::instruction::initialize_multisig(
-            token_program,
-            &multisig_pubkey,
-            &multisig_member_pubkeys,
-            2,
-        )?
-    } else {
-        return Err(format!("Unsupported token program for multisig: {}", token_program).into());
-    };
+    let initialize_multisig_instruction = spl_token_2022::instruction::initialize_multisig(
+        token_program,
+        &multisig_pubkey,
+        &multisig_member_pubkeys,
+        2,
+    )?;
     let mut transaction = Transaction::new_with_payer(
         &[create_account_instruction, initialize_multisig_instruction],
         Some(&env.payer.pubkey()),
