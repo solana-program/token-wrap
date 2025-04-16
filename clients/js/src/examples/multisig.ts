@@ -25,20 +25,20 @@ const PAYER_KEYPAIR_BYTES = new Uint8Array([
 ]);
 
 // Create using CLI: spl-token create-multisig 2 $SIGNER_1_PUBKEY $SIGNER_2_PUBKEY
-const MULTISIG_PUBKEY = address('A9MUtNSeGvAzpcntPYQg5vzt1Q5Xc1zDLcCW7tAySkAN');
+const MULTISIG_PUBKEY = address('5VzZUs4UzeCS1AqUSc6Eq6HDQzx4UNAA6YUhXphNwxpi');
 const SIGNER_A_KEYPAIR_BYTES = new Uint8Array([
-  114, 129, 55, 122, 217, 194, 64, 230, 140, 159, 22, 38, 99, 12, 92, 182, 65, 7, 54, 134, 88, 157,
-  91, 63, 152, 228, 94, 67, 87, 46, 94, 15, 76, 174, 18, 113, 84, 204, 184, 69, 235, 46, 42, 32,
-  215, 223, 193, 2, 69, 166, 120, 188, 225, 232, 124, 110, 7, 246, 244, 11, 58, 198, 200, 10,
+  37, 105, 121, 65, 52, 25, 194, 10, 250, 52, 209, 193, 144, 236, 52, 118, 114, 72, 86, 211, 29, 55,
+  84, 48, 183, 127, 187, 146, 4, 224, 124, 20, 72, 247, 148, 73, 5, 240, 41, 35, 215, 49, 198, 9,
+  81, 97, 179, 35, 234, 149, 145, 8, 116, 71, 248, 156, 20, 121, 96, 76, 248, 232, 211, 29,
 ]);
 const SIGNER_B_KEYPAIR_BYTES = new Uint8Array([
-  38, 135, 51, 17, 62, 14, 47, 243, 191, 43, 224, 7, 121, 116, 129, 220, 153, 157, 25, 89, 138, 31,
-  244, 202, 53, 149, 110, 16, 74, 160, 227, 109, 145, 179, 77, 135, 239, 34, 214, 103, 92, 56, 145,
-  4, 178, 162, 166, 37, 40, 75, 178, 111, 89, 79, 251, 230, 180, 210, 158, 176, 97, 102, 4, 197,
+  84, 253, 143, 134, 166, 119, 48, 101, 46, 57, 185, 171, 52, 59, 195, 86, 43, 210, 34, 78, 73, 183,
+  70, 133, 116, 138, 4, 155, 190, 120, 73, 159, 176, 189, 2, 65, 57, 8, 139, 59, 33, 31, 37, 190,
+  22, 229, 62, 48, 57, 54, 35, 76, 231, 166, 128, 7, 49, 203, 195, 3, 20, 62, 116, 197,
 ]);
 
-const UNWRAPPED_MINT_ADDRESS = address('9aDExopzFYZMkm1GqrevQMaAWi6gX9du1xEmQAATkE8j');
-const UNWRAPPED_TOKEN_ACCOUNT = address('3JK5rrQ6nR6EkrgeLKiPnjsx16muPoPt3AQGBc77jgqE'); // Must be owned by multisig account
+const UNWRAPPED_MINT_ADDRESS = address('3nnwRbmrRU1zjvFFCW63rEERyV47ztmBiKSLUowLZnb5');
+const UNWRAPPED_TOKEN_ACCOUNT = address('BDXNFqkVohLkNmHQWHeskKAbCWULPXaBT9cw2UdN9Wyp'); // Must be owned by multisig account
 const AMOUNT_TO_WRAP = 100n;
 
 const main = async () => {
