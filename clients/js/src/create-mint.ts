@@ -3,18 +3,13 @@ import {
   appendTransactionMessageInstructions,
   createTransactionMessage,
   fetchEncodedAccount,
-  getSignatureFromTransaction,
   IInstruction,
   KeyPairSigner,
   pipe,
   Rpc,
-  RpcSubscriptions,
-  sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
   SolanaRpcApi,
-  SolanaRpcSubscriptionsApi,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
@@ -25,16 +20,14 @@ import {
   getCreateMintInstruction,
 } from './generated';
 
-export const executeCreateMint = async ({
+export const createMintTx = async ({
   rpc,
-  rpcSubscriptions,
   unwrappedMint,
   wrappedTokenProgram,
   payer,
   idempotent = false,
 }: {
-  rpc: Rpc<SolanaRpcApi>;
-  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+  rpc: Rpc<SolanaRpcApi>; // TODO: make this smaller
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;
@@ -103,7 +96,6 @@ export const executeCreateMint = async ({
 
   const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
 
-  // Build transaction
   const tx = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
@@ -111,15 +103,10 @@ export const executeCreateMint = async ({
     tx => appendTransactionMessageInstructions(instructions, tx),
   );
 
-  // Send tx
-  const signedTransaction = await signTransactionMessageWithSigners(tx);
-  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
-  await sendAndConfirm(signedTransaction, { commitment: 'confirmed' });
-
   return {
     wrappedMint,
     backpointer,
-    signature: getSignatureFromTransaction(signedTransaction),
+    tx,
     fundedWrappedMintLamports,
     fundedBackpointerLamports,
   };

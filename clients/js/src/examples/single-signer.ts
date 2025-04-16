@@ -3,13 +3,16 @@ import {
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
+  getSignatureFromTransaction,
+  sendAndConfirmTransactionFactory,
+  signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { findWrappedMintPda } from '../generated';
-import { executeSingleSignerWrap } from '../wrap';
+import { singleSignerWrapTx } from '../wrap';
 
-import { createEscrowAccount, createTokenAccount } from '../utilities';
-import { executeCreateMint } from '../create-mint';
+import { createEscrowAccountTx, createTokenAccountTx } from '../utilities';
+import { createMintTx } from '../create-mint';
 //
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
@@ -24,63 +27,79 @@ const AMOUNT_TO_WRAP = 100n;
 const main = async () => {
   const rpc = createSolanaRpc('http://127.0.0.1:8899');
   const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
+  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
+
   const payer = await createKeyPairSignerFromBytes(PRIVATE_KEY_PAIR);
 
   // Initialize the wrapped mint
-  const createMintResult = await executeCreateMint({
+  const createMintMessage = await createMintTx({
     rpc,
-    rpcSubscriptions,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,
     idempotent: true,
   });
-  console.log('======== Create Mint Successful ========');
-  console.log('Wrapped Mint:', createMintResult.wrappedMint);
-  console.log('Backpointer:', createMintResult.backpointer);
-  console.log('Funded wrapped mint lamports:', createMintResult.fundedWrappedMintLamports);
-  console.log('Funded backpointer lamports:', createMintResult.fundedBackpointerLamports);
-  console.log('Signature:', createMintResult.signature);
+  const signedCreateMintTx = await signTransactionMessageWithSigners(createMintMessage.tx);
+  await sendAndConfirm(signedCreateMintTx, { commitment: 'confirmed' });
+  const createMintSignature = getSignatureFromTransaction(signedCreateMintTx);
 
-  // Setup accounts needed for wrap
-  const escrowAccount = await createEscrowAccount({
+  console.log('======== Create Mint Successful ========');
+  console.log('Wrapped Mint:', createMintMessage.wrappedMint);
+  console.log('Backpointer:', createMintMessage.backpointer);
+  console.log('Funded wrapped mint lamports:', createMintMessage.fundedWrappedMintLamports);
+  console.log('Funded backpointer lamports:', createMintMessage.fundedBackpointerLamports);
+  console.log('Signature:', createMintSignature);
+
+  // === Setup accounts needed for wrap ===
+
+  // Create escrow account that with hold unwrapped tokens
+  const createEscrowMessage = await createEscrowAccountTx({
     rpc,
-    rpcSubscriptions,
     payer,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
+  const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
+  await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
 
+  // Create recipient account where wrapped tokens will be minted to
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const recipientWrappedTokenAccount = await createTokenAccount({
+  const recipientTokenAccountMessage = await createTokenAccountTx({
     rpc,
-    rpcSubscriptions,
     payer,
     mint: wrappedMint,
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     owner: payer.address,
   });
+  const signedRecipientAccountTx = await signTransactionMessageWithSigners(
+    recipientTokenAccountMessage.tx,
+  );
+  await sendAndConfirm(signedRecipientAccountTx, { commitment: 'confirmed' });
 
-  const wrapResult = await executeSingleSignerWrap({
+  // Execute wrap
+  const wrapMessage = await singleSignerWrapTx({
     rpc,
-    rpcSubscriptions,
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount,
+    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount,
+    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
   });
 
+  const signedWrapTx = await signTransactionMessageWithSigners(wrapMessage.tx);
+  await sendAndConfirm(signedWrapTx, { commitment: 'confirmed' });
+  const signature = getSignatureFromTransaction(wrapMessage.tx);
+
   console.log('======== Wrap Successful ========');
-  console.log('Wrap amount:', wrapResult.amount);
-  console.log('Recipient account:', wrapResult.recipientWrappedTokenAccount);
-  console.log('Escrow Account:', wrapResult.escrowAccount);
-  console.log('Signature:', wrapResult.signature);
+  console.log('Wrap amount:', wrapMessage.amount);
+  console.log('Recipient account:', wrapMessage.recipientWrappedTokenAccount);
+  console.log('Escrow Account:', wrapMessage.escrowAccount);
+  console.log('Signature:', signature);
 };
 
 void main();

@@ -1,6 +1,6 @@
 export * from './generated';
 
-export { executeCreateMint } from './create-mint';
+export { createMintTx } from './create-mint';
 
-export { executeSingleSignerWrap, multisigOfflineSignWrap, multisigBroadcastWrap } from './wrap';
-export { createEscrowAccount } from './utilities';
+export { singleSignerWrapTx, multisigOfflineSignWrap, multisigBroadcastWrap } from './wrap';
+export { createEscrowAccountTx } from './utilities';

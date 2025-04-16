@@ -5,12 +5,15 @@ import {
   createSolanaRpc,
   createSolanaRpcSubscriptions,
   getBase58Decoder,
+  getSignatureFromTransaction,
+  sendAndConfirmTransactionFactory,
+  signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from '../generated';
-import { getOwnerFromAccount, multisigBroadcastWrap, multisigOfflineSignWrap } from '../wrap';
-import { createEscrowAccount, createTokenAccount } from '../utilities';
-import { executeCreateMint } from '../create-mint';
+import { multisigBroadcastWrap, multisigOfflineSignWrap } from '../wrap';
+import { createEscrowAccountTx, createTokenAccountTx, getOwnerFromAccount } from '../utilities';
+import { createMintTx } from '../create-mint';
 
 // Replace these consts with your own
 const PAYER_KEYPAIR_BYTES = new Uint8Array([
@@ -40,45 +43,57 @@ const AMOUNT_TO_WRAP = 100n;
 const main = async () => {
   const rpc = createSolanaRpc('http://127.0.0.1:8899');
   const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
+  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
+
   const payer = await createKeyPairSignerFromBytes(PAYER_KEYPAIR_BYTES);
 
   // Initialize the wrapped mint
-  const createMintResult = await executeCreateMint({
+  const createMintMessage = await createMintTx({
     rpc,
-    rpcSubscriptions,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,
     idempotent: true,
   });
-  console.log('======== Create Mint Successful ========');
-  console.log('Wrapped Mint:', createMintResult.wrappedMint);
-  console.log('Backpointer:', createMintResult.backpointer);
-  console.log('Funded wrapped mint lamports:', createMintResult.fundedWrappedMintLamports);
-  console.log('Funded backpointer lamports:', createMintResult.fundedBackpointerLamports);
-  console.log('Signature:', createMintResult.signature);
+  const signedCreateMintTx = await signTransactionMessageWithSigners(createMintMessage.tx);
+  await sendAndConfirm(signedCreateMintTx, { commitment: 'confirmed' });
+  const createMintSignature = getSignatureFromTransaction(signedCreateMintTx);
 
-  // Setup accounts needed for wrap
-  const escrowAccount = await createEscrowAccount({
+  console.log('======== Create Mint Successful ========');
+  console.log('Wrapped Mint:', createMintMessage.wrappedMint);
+  console.log('Backpointer:', createMintMessage.backpointer);
+  console.log('Funded wrapped mint lamports:', createMintMessage.fundedWrappedMintLamports);
+  console.log('Funded backpointer lamports:', createMintMessage.fundedBackpointerLamports);
+  console.log('Signature:', createMintSignature);
+
+  // === Setup accounts needed for wrap ===
+
+  // Create escrow account that with hold unwrapped tokens
+  const createEscrowMessage = await createEscrowAccountTx({
     rpc,
-    rpcSubscriptions,
     payer,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
+  const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
+  await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
 
+  // Create recipient account where wrapped tokens will be minted to
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const recipientWrappedTokenAccount = await createTokenAccount({
+  const recipientTokenAccountMessage = await createTokenAccountTx({
     rpc,
-    rpcSubscriptions,
     payer,
     mint: wrappedMint,
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     owner: payer.address,
   });
+  const signedRecipientAccountTx = await signTransactionMessageWithSigners(
+    recipientTokenAccountMessage.tx,
+  );
+  await sendAndConfirm(signedRecipientAccountTx, { commitment: 'confirmed' });
 
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, UNWRAPPED_TOKEN_ACCOUNT);
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
@@ -91,13 +106,13 @@ const main = async () => {
   // Two signers and the payer sign the transaction independently
 
   const signatureMapA = await multisigOfflineSignWrap({
-    payer: payer.address,
+    payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount,
+    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount,
+    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
     transferAuthority: MULTISIG_PUBKEY,
     wrappedMint,
     wrappedMintAuthority,
@@ -107,13 +122,13 @@ const main = async () => {
   });
 
   const signatureMapB = await multisigOfflineSignWrap({
-    payer: payer.address,
+    payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount,
+    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount,
+    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
     transferAuthority: MULTISIG_PUBKEY,
     wrappedMint,
     wrappedMintAuthority,
@@ -123,13 +138,13 @@ const main = async () => {
   });
 
   const signatureMapC = await multisigOfflineSignWrap({
-    payer: payer,
+    payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount,
+    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount,
+    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
     transferAuthority: MULTISIG_PUBKEY,
     wrappedMint,
     wrappedMintAuthority,

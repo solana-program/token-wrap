@@ -7,13 +7,9 @@ import {
   KeyPairSigner,
   pipe,
   Rpc,
-  RpcSubscriptions,
-  sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
   SolanaRpcApi,
-  SolanaRpcSubscriptionsApi,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
 import {
@@ -31,21 +27,19 @@ const getInitializeTokenFn = (tokenProgram: Address) => {
   throw new Error(`${tokenProgram} is not a valid token program.`);
 };
 
-export const createTokenAccount = async ({
+export const createTokenAccountTx = async ({
   rpc,
-  rpcSubscriptions,
   payer,
   mint,
   owner,
   tokenProgram,
 }: {
   rpc: Rpc<SolanaRpcApi>;
-  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
   payer: KeyPairSigner;
   mint: Address;
   owner: Address;
   tokenProgram: Address;
-}): Promise<Address> => {
+}) => {
   const [keyPair, lamports, { value: latestBlockhash }] = await Promise.all([
     generateKeyPairSigner(),
     rpc.getMinimumBalanceForRentExemption(165n).send(),
@@ -74,34 +68,43 @@ export const createTokenAccount = async ({
     tx => appendTransactionMessageInstructions([createAccountIx, initializeAccountIx], tx),
   );
 
-  const signedTx = await signTransactionMessageWithSigners(tx);
-  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
-  await sendAndConfirm(signedTx, { commitment: 'confirmed' });
-
-  return keyPair.address;
+  return {
+    tx,
+    keyPair,
+  };
 };
 
-export const createEscrowAccount = async ({
+export const createEscrowAccountTx = async ({
   rpc,
-  rpcSubscriptions,
   payer,
   unwrappedMint,
   wrappedTokenProgram,
 }: {
   rpc: Rpc<SolanaRpcApi>;
-  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
   payer: KeyPairSigner;
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
 }) => {
   const [wrappedMint] = await findWrappedMintPda({ unwrappedMint, wrappedTokenProgram });
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
-  return createTokenAccount({
+  const unwrappedTokenProgram = await getOwnerFromAccount(rpc, unwrappedMint);
+
+  return createTokenAccountTx({
     rpc,
-    rpcSubscriptions,
     payer,
     mint: unwrappedMint,
     owner: wrappedMintAuthority,
-    tokenProgram: TOKEN_PROGRAM_ADDRESS,
+    tokenProgram: unwrappedTokenProgram,
   });
+};
+
+export const getOwnerFromAccount = async (
+  rpc: Rpc<SolanaRpcApi>,
+  accountAddress: Address,
+): Promise<Address> => {
+  const accountInfo = await rpc.getAccountInfo(accountAddress, { encoding: 'base64' }).send();
+  if (!accountInfo.value) {
+    throw new Error(`Account ${accountAddress} not found.`);
+  }
+  return accountInfo.value.owner;
 };
