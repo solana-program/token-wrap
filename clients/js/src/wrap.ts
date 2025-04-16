@@ -60,7 +60,7 @@ interface TxBuilderArgsWithMultiSigners extends TxBuilderArgs {
 }
 
 // Used to collect signatures
-export const multisigOfflineSignWrapTx = async (args: TxBuilderArgsWithMultiSigners) => {
+export const multisigOfflineSignWrapTx = (args: TxBuilderArgsWithMultiSigners) => {
   return buildWrapTransaction(args);
 };
 
@@ -137,7 +137,7 @@ interface MultiSigBroadcastArgs {
 }
 
 // Combines, validates, and broadcasts outputs of multisigOfflineSignWrap()
-export const combinedMultisigWrapTx = async ({ signedTxs, blockhash }: MultiSigBroadcastArgs) => {
+export const combinedMultisigWrapTx = ({ signedTxs, blockhash }: MultiSigBroadcastArgs) => {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -201,7 +201,7 @@ export const singleSignerWrapTx = async ({
     inputRecipientTokenAccount,
   });
 
-  const tx = await buildWrapTransaction({
+  const tx = buildWrapTransaction({
     blockhash,
     payer,
     unwrappedTokenAccount,
@@ -272,7 +272,7 @@ const resolveAddrs = async ({
   };
 };
 
-const buildWrapTransaction = async ({
+const buildWrapTransaction = ({
   payer,
   unwrappedTokenAccount,
   escrowAccount,
