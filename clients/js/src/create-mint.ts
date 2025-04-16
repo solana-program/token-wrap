@@ -3,13 +3,15 @@ import {
   appendTransactionMessageInstructions,
   createTransactionMessage,
   fetchEncodedAccount,
+  GetMinimumBalanceForRentExemptionApi,
   IInstruction,
   KeyPairSigner,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  SolanaRpcApi,
+  GetAccountInfoApi,
+  GetLatestBlockhashApi,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
@@ -27,7 +29,7 @@ export const createMintTx = async ({
   payer,
   idempotent = false,
 }: {
-  rpc: Rpc<SolanaRpcApi>; // TODO: make this smaller
+  rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi & GetLatestBlockhashApi>;
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;

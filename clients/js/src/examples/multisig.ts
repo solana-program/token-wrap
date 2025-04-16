@@ -6,12 +6,13 @@ import {
   createSolanaRpcSubscriptions,
   getBase58Decoder,
   getSignatureFromTransaction,
+  partiallySignTransactionMessageWithSigners,
   sendAndConfirmTransactionFactory,
   signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from '../generated';
-import { multisigBroadcastWrap, multisigOfflineSignWrap } from '../wrap';
+import { combinedMultisigWrapTx, multisigOfflineSignWrapTx } from '../wrap';
 import { createEscrowAccountTx, createTokenAccountTx, getOwnerFromAccount } from '../utilities';
 import { createMintTx } from '../create-mint';
 
@@ -105,7 +106,7 @@ const main = async () => {
 
   // Two signers and the payer sign the transaction independently
 
-  const signatureMapA = await multisigOfflineSignWrap({
+  const wrapTxA = await multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -120,8 +121,9 @@ const main = async () => {
     multiSigners: [signerA, createNoopSigner(signerB.address)],
     blockhash,
   });
+  const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
 
-  const signatureMapB = await multisigOfflineSignWrap({
+  const wrapTxB = await multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -136,8 +138,9 @@ const main = async () => {
     multiSigners: [createNoopSigner(signerA.address), signerB],
     blockhash,
   });
+  const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
 
-  const signatureMapC = await multisigOfflineSignWrap({
+  const wrapTxC = await multisigOfflineSignWrapTx({
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -152,18 +155,18 @@ const main = async () => {
     multiSigners: [createNoopSigner(signerA.address), createNoopSigner(signerB.address)],
     blockhash,
   });
+  const signedWrapTxC = await partiallySignTransactionMessageWithSigners(wrapTxC);
 
   // Lastly, all signatures are combined together and broadcast
 
-  const transaction = await multisigBroadcastWrap({
-    rpc,
-    rpcSubscriptions,
-    signedTxs: [signatureMapA, signatureMapB, signatureMapC],
+  const combinedTx = await combinedMultisigWrapTx({
+    signedTxs: [signedWrapTxA, signedWrapTxB, signedWrapTxC],
     blockhash,
   });
+  await sendAndConfirm(combinedTx, { commitment: 'confirmed' });
 
   console.log('======== Confirmed Multisig Tx ✅ ========');
-  for (const [pubkey, signature] of Object.entries(transaction.signatures)) {
+  for (const [pubkey, signature] of Object.entries(combinedTx.signatures)) {
     if (signature) {
       const base58Sig = getBase58Decoder().decode(signature);
       console.log(`pubkey: ${pubkey}`);

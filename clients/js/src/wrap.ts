@@ -5,17 +5,16 @@ import {
   containsBytes,
   createTransactionMessage,
   fetchEncodedAccount,
-  partiallySignTransactionMessageWithSigners,
+  GetAccountInfoApi,
+  GetLatestBlockhashApi,
   pipe,
   Rpc,
-  RpcSubscriptions,
-  sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   SignatureBytes,
-  SolanaRpcApi,
-  SolanaRpcSubscriptionsApi,
+  Transaction,
   TransactionSigner,
+  TransactionWithBlockhashLifetime,
 } from '@solana/kit';
 import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
 import {
@@ -28,7 +27,7 @@ import { Blockhash } from '@solana/rpc-types';
 import { getOwnerFromAccount } from './utilities';
 
 const getMintFromTokenAccount = async (
-  rpc: Rpc<SolanaRpcApi>,
+  rpc: Rpc<GetAccountInfoApi>,
   tokenAccountAddress: Address,
 ): Promise<Address> => {
   const account = await fetchEncodedAccount(rpc, tokenAccountAddress);
@@ -62,12 +61,12 @@ interface TxBuilderArgsWithMultiSigners extends TxBuilderArgs {
 }
 
 // Used to collect signatures
-export const multisigOfflineSignWrap = async (args: TxBuilderArgsWithMultiSigners) => {
+export const multisigOfflineSignWrapTx = async (args: TxBuilderArgsWithMultiSigners) => {
   return buildWrapTransaction(args);
 };
 
 const messageBytesEqual = (
-  results: Awaited<ReturnType<typeof multisigOfflineSignWrap>>[],
+  results: (Transaction & TransactionWithBlockhashLifetime)[],
 ): boolean => {
   // If array has only one element, return true
   if (results.length === 1) {
@@ -91,7 +90,7 @@ const messageBytesEqual = (
   return true;
 };
 
-const combineSignatures = (signedTxs: Awaited<ReturnType<typeof multisigOfflineSignWrap>>[]) => {
+const combineSignatures = (signedTxs: (Transaction & TransactionWithBlockhashLifetime)[]) => {
   // Step 1: Determine the canonical signer order from the first signed transaction.
   //         Insertion order is the way to re-create this. Without it, verification will fail.
   const firstSignedTx = signedTxs[0];
@@ -131,9 +130,7 @@ const combineSignatures = (signedTxs: Awaited<ReturnType<typeof multisigOfflineS
 };
 
 interface MultiSigBroadcastArgs {
-  rpc: Rpc<SolanaRpcApi>;
-  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
-  signedTxs: Awaited<ReturnType<typeof multisigOfflineSignWrap>>[];
+  signedTxs: (Transaction & TransactionWithBlockhashLifetime)[];
   blockhash: {
     blockhash: Blockhash;
     lastValidBlockHeight: bigint;
@@ -141,12 +138,7 @@ interface MultiSigBroadcastArgs {
 }
 
 // Combines, validates, and broadcasts outputs of multisigOfflineSignWrap()
-export const multisigBroadcastWrap = async ({
-  rpc,
-  rpcSubscriptions,
-  signedTxs,
-  blockhash,
-}: MultiSigBroadcastArgs) => {
+export const combinedMultisigWrapTx = async ({ signedTxs, blockhash }: MultiSigBroadcastArgs) => {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -159,14 +151,11 @@ export const multisigBroadcastWrap = async ({
 
   assertTransactionIsFullySigned(tx);
 
-  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
-  await sendAndConfirm(tx, { commitment: 'confirmed' });
-
   return tx;
 };
 
 interface SingleSignerWrapArgs {
-  rpc: Rpc<SolanaRpcApi>;
+  rpc: Rpc<GetAccountInfoApi & GetLatestBlockhashApi>;
   payer: TransactionSigner; // Fee payer and default transfer authority
   unwrappedTokenAccount: Address;
   escrowAccount: Address;
@@ -225,8 +214,6 @@ export const singleSignerWrapTx = async ({
     unwrappedTokenProgram,
   });
 
-  assertTransactionIsFullySigned(tx);
-
   return {
     tx,
     recipientWrappedTokenAccount,
@@ -246,7 +233,7 @@ const resolveAddrs = async ({
   inputRecipientTokenAccount,
   inputUnwrappedTokenProgram,
 }: {
-  rpc: Rpc<SolanaRpcApi>;
+  rpc: Rpc<GetAccountInfoApi>;
   payer: TransactionSigner;
   unwrappedTokenAccount: Address;
   wrappedTokenProgram: Address;
@@ -319,6 +306,5 @@ const buildWrapTransaction = async ({
     tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions([wrapInstruction], tx),
-    tx => partiallySignTransactionMessageWithSigners(tx),
   );
 };

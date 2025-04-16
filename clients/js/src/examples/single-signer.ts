@@ -13,15 +13,16 @@ import { singleSignerWrapTx } from '../wrap';
 
 import { createEscrowAccountTx, createTokenAccountTx } from '../utilities';
 import { createMintTx } from '../create-mint';
-//
+
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
-  58, 188, 194, 176, 230, 94, 253, 2, 24, 163, 198, 177, 92, 79, 213, 87, 122, 150, 216, 175, 176,
-  159, 113, 144, 148, 82, 149, 249, 242, 255, 7, 1, 73, 203, 66, 98, 4, 2, 141, 236, 49, 10, 47,
-  188, 93, 170, 111, 125, 44, 155, 4, 124, 48, 18, 188, 30, 158, 78, 158, 34, 44, 100, 61, 21,
+  242, 30, 38, 177, 152, 71, 235, 193, 93, 30, 119, 131, 42, 186, 202, 7, 45, 250, 126, 135, 107,
+  137, 38, 91, 202, 212, 12, 8, 154, 213, 163, 200, 23, 237, 17, 163, 3, 135, 34, 126, 235, 146,
+  251, 18, 199, 101, 153, 249, 134, 88, 219, 68, 167, 136, 234, 195, 12, 34, 184, 85, 234, 25, 125,
+  94,
 ]);
-const UNWRAPPED_MINT_ADDRESS = address('5StBUZ2w8ShDN9iF7NkGpDNNH2wv9jK7zhArmVRpwrCt');
-const UNWRAPPED_TOKEN_ACCOUNT = address('CbuRmvG3frMoPFnsKfC2t8jTUHFjtnrKZBt2aqdqH4PG');
+const UNWRAPPED_MINT_ADDRESS = address('FAbYm8kdDsyc6csvTXPMBwCJDjTVkZcvrnyVVTSF74hU');
+const UNWRAPPED_TOKEN_ACCOUNT = address('4dSPDdFuTbKTuJDDtTd8SUdbH6QY42hpTPRi6RRzzsPF');
 const AMOUNT_TO_WRAP = 100n;
 
 const main = async () => {
@@ -93,7 +94,7 @@ const main = async () => {
 
   const signedWrapTx = await signTransactionMessageWithSigners(wrapMessage.tx);
   await sendAndConfirm(signedWrapTx, { commitment: 'confirmed' });
-  const signature = getSignatureFromTransaction(wrapMessage.tx);
+  const signature = getSignatureFromTransaction(signedWrapTx);
 
   console.log('======== Wrap Successful ========');
   console.log('Wrap amount:', wrapMessage.amount);

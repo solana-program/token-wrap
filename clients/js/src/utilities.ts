@@ -4,12 +4,14 @@ import {
   appendTransactionMessageInstructions,
   createTransactionMessage,
   generateKeyPairSigner,
+  GetAccountInfoApi,
+  GetLatestBlockhashApi,
+  GetMinimumBalanceForRentExemptionApi,
   KeyPairSigner,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  SolanaRpcApi,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
 import {
@@ -34,7 +36,7 @@ export const createTokenAccountTx = async ({
   owner,
   tokenProgram,
 }: {
-  rpc: Rpc<SolanaRpcApi>;
+  rpc: Rpc<GetLatestBlockhashApi & GetMinimumBalanceForRentExemptionApi>;
   payer: KeyPairSigner;
   mint: Address;
   owner: Address;
@@ -80,7 +82,7 @@ export const createEscrowAccountTx = async ({
   unwrappedMint,
   wrappedTokenProgram,
 }: {
-  rpc: Rpc<SolanaRpcApi>;
+  rpc: Rpc<GetAccountInfoApi & GetLatestBlockhashApi & GetMinimumBalanceForRentExemptionApi>;
   payer: KeyPairSigner;
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
@@ -99,7 +101,7 @@ export const createEscrowAccountTx = async ({
 };
 
 export const getOwnerFromAccount = async (
-  rpc: Rpc<SolanaRpcApi>,
+  rpc: Rpc<GetAccountInfoApi>,
   accountAddress: Address,
 ): Promise<Address> => {
   const accountInfo = await rpc.getAccountInfo(accountAddress, { encoding: 'base64' }).send();
