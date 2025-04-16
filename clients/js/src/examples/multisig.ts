@@ -110,7 +110,7 @@ const main = async () => {
 
   // Two signers and the payer sign the transaction independently
 
-  const wrapTxA = await multisigOfflineSignWrapTx({
+  const wrapTxA = multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -127,7 +127,7 @@ const main = async () => {
   });
   const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
 
-  const wrapTxB = await multisigOfflineSignWrapTx({
+  const wrapTxB = multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -144,7 +144,7 @@ const main = async () => {
   });
   const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
 
-  const wrapTxC = await multisigOfflineSignWrapTx({
+  const wrapTxC = multisigOfflineSignWrapTx({
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     escrowAccount: createEscrowMessage.keyPair.address,
@@ -163,7 +163,7 @@ const main = async () => {
 
   // Lastly, all signatures are combined together and broadcast
 
-  const combinedTx = await combinedMultisigWrapTx({
+  const combinedTx = combinedMultisigWrapTx({
     signedTxs: [signedWrapTxA, signedWrapTxB, signedWrapTxC],
     blockhash,
   });
