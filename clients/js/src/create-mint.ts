@@ -1,8 +1,10 @@
 import {
   Address,
   appendTransactionMessageInstructions,
+  CompilableTransactionMessage,
   createTransactionMessage,
   fetchEncodedAccount,
+  GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
   IInstruction,
   KeyPairSigner,
@@ -10,7 +12,7 @@ import {
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  GetAccountInfoApi,
+  TransactionMessageWithBlockhashLifetime,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
@@ -22,14 +24,7 @@ import {
 } from './generated';
 import { Blockhash } from '@solana/rpc-types';
 
-export const createMintTx = async ({
-  rpc,
-  blockhash,
-  unwrappedMint,
-  wrappedTokenProgram,
-  payer,
-  idempotent = false,
-}: {
+export interface CreateMintTxArgs {
   rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
   blockhash: {
     blockhash: Blockhash;
@@ -39,7 +34,24 @@ export const createMintTx = async ({
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;
   idempotent: boolean;
-}) => {
+}
+
+export interface CreateMintTxResult {
+  wrappedMint: Address;
+  backpointer: Address;
+  fundedWrappedMintLamports: bigint;
+  fundedBackpointerLamports: bigint;
+  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+}
+
+export async function createMintTx({
+  rpc,
+  blockhash,
+  unwrappedMint,
+  wrappedTokenProgram,
+  payer,
+  idempotent = false,
+}: CreateMintTxArgs): Promise<CreateMintTxResult> {
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint,
     wrappedTokenProgram: wrappedTokenProgram,
@@ -115,4 +127,4 @@ export const createMintTx = async ({
     fundedWrappedMintLamports,
     fundedBackpointerLamports,
   };
-};
+}

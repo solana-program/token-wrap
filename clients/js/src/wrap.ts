@@ -12,8 +12,11 @@ import {
   setTransactionMessageLifetimeUsingBlockhash,
   SignatureBytes,
   Transaction,
+  TransactionMessageWithBlockhashLifetime,
   TransactionSigner,
   TransactionWithBlockhashLifetime,
+  CompilableTransactionMessage,
+  FullySignedTransaction,
 } from '@solana/kit';
 import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
 import {
@@ -55,18 +58,18 @@ interface TxBuilderArgs {
   multiSigners?: TransactionSigner[];
 }
 
-interface TxBuilderArgsWithMultiSigners extends TxBuilderArgs {
+export interface TxBuilderArgsWithMultiSigners extends TxBuilderArgs {
   multiSigners: TransactionSigner[];
 }
 
 // Used to collect signatures
-export const multisigOfflineSignWrapTx = (args: TxBuilderArgsWithMultiSigners) => {
+export function multisigOfflineSignWrapTx(
+  args: TxBuilderArgsWithMultiSigners,
+): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
   return buildWrapTransaction(args);
-};
+}
 
-const messageBytesEqual = (
-  results: (Transaction & TransactionWithBlockhashLifetime)[],
-): boolean => {
+function messageBytesEqual(results: (Transaction & TransactionWithBlockhashLifetime)[]): boolean {
   // If array has only one element, return true
   if (results.length === 1) {
     return true;
@@ -87,9 +90,11 @@ const messageBytesEqual = (
   }
 
   return true;
-};
+}
 
-const combineSignatures = (signedTxs: (Transaction & TransactionWithBlockhashLifetime)[]) => {
+function combineSignatures(
+  signedTxs: (Transaction & TransactionWithBlockhashLifetime)[],
+): Record<string, SignatureBytes> {
   // Step 1: Determine the canonical signer order from the first signed transaction.
   //         Insertion order is the way to re-create this. Without it, verification will fail.
   const firstSignedTx = signedTxs[0];
@@ -125,10 +130,10 @@ const combineSignatures = (signedTxs: (Transaction & TransactionWithBlockhashLif
     throw new Error(`Missing signatures for: ${missingSigners.join(', ')}`);
   }
 
-  return allSignatures;
-};
+  return allSignatures as Record<string, SignatureBytes>;
+}
 
-interface MultiSigBroadcastArgs {
+export interface MultiSigBroadcastArgs {
   signedTxs: (Transaction & TransactionWithBlockhashLifetime)[];
   blockhash: {
     blockhash: Blockhash;
@@ -137,7 +142,10 @@ interface MultiSigBroadcastArgs {
 }
 
 // Combines, validates, and broadcasts outputs of multisigOfflineSignWrap()
-export const combinedMultisigWrapTx = ({ signedTxs, blockhash }: MultiSigBroadcastArgs) => {
+export function combinedMultisigWrapTx({
+  signedTxs,
+  blockhash,
+}: MultiSigBroadcastArgs): FullySignedTransaction & TransactionWithBlockhashLifetime {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -151,9 +159,9 @@ export const combinedMultisigWrapTx = ({ signedTxs, blockhash }: MultiSigBroadca
   assertTransactionIsFullySigned(tx);
 
   return tx;
-};
+}
 
-interface SingleSignerWrapArgs {
+export interface SingleSignerWrapArgs {
   rpc: Rpc<GetAccountInfoApi>;
   blockhash: {
     blockhash: Blockhash;
@@ -170,7 +178,14 @@ interface SingleSignerWrapArgs {
   unwrappedTokenProgram?: Address; // Will fetch from unwrappedTokenAccount owner if not provided
 }
 
-export const singleSignerWrapTx = async ({
+export interface SingleSignerWrapResult {
+  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+  recipientWrappedTokenAccount: Address;
+  escrowAccount: Address;
+  amount: bigint;
+}
+
+export async function singleSignerWrapTx({
   rpc,
   blockhash,
   payer,
@@ -182,7 +197,7 @@ export const singleSignerWrapTx = async ({
   unwrappedMint: inputUnwrappedMint,
   recipientWrappedTokenAccount: inputRecipientTokenAccount,
   unwrappedTokenProgram: inputUnwrappedTokenProgram,
-}: SingleSignerWrapArgs) => {
+}: SingleSignerWrapArgs): Promise<SingleSignerWrapResult> {
   const {
     unwrappedMint,
     unwrappedTokenProgram,
@@ -222,10 +237,10 @@ export const singleSignerWrapTx = async ({
     escrowAccount,
     amount: BigInt(amount),
   };
-};
+}
 
 // Meant to handle all of the potential default values
-const resolveAddrs = async ({
+async function resolveAddrs({
   rpc,
   payer,
   unwrappedTokenAccount,
@@ -243,7 +258,7 @@ const resolveAddrs = async ({
   inputUnwrappedMint?: Address;
   inputRecipientTokenAccount?: Address;
   inputUnwrappedTokenProgram?: Address;
-}) => {
+}) {
   const unwrappedMint =
     inputUnwrappedMint ?? (await getMintFromTokenAccount(rpc, unwrappedTokenAccount));
   const unwrappedTokenProgram =
@@ -270,9 +285,9 @@ const resolveAddrs = async ({
     wrappedMintAuthority,
     recipientWrappedTokenAccount,
   };
-};
+}
 
-const buildWrapTransaction = ({
+function buildWrapTransaction({
   payer,
   unwrappedTokenAccount,
   escrowAccount,
@@ -286,7 +301,7 @@ const buildWrapTransaction = ({
   wrappedMintAuthority,
   blockhash,
   multiSigners = [],
-}: TxBuilderArgs) => {
+}: TxBuilderArgs): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
   const wrapInstructionInput: WrapInput = {
     recipientWrappedTokenAccount,
     wrappedMint,
@@ -309,4 +324,4 @@ const buildWrapTransaction = ({
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions([wrapInstruction], tx),
   );
-};
+}
