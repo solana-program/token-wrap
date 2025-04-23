@@ -1,20 +1,18 @@
 import {
   Address,
   appendTransactionMessageInstructions,
+  CompilableTransactionMessage,
   createTransactionMessage,
   fetchEncodedAccount,
-  getSignatureFromTransaction,
+  GetAccountInfoApi,
+  GetMinimumBalanceForRentExemptionApi,
   IInstruction,
   KeyPairSigner,
   pipe,
   Rpc,
-  RpcSubscriptions,
-  sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners,
-  SolanaRpcApi,
-  SolanaRpcSubscriptionsApi,
+  TransactionMessageWithBlockhashLifetime,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
@@ -24,22 +22,36 @@ import {
   getBackpointerSize,
   getCreateMintInstruction,
 } from './generated';
+import { Blockhash } from '@solana/rpc-types';
 
-export const executeCreateMint = async ({
-  rpc,
-  rpcSubscriptions,
-  unwrappedMint,
-  wrappedTokenProgram,
-  payer,
-  idempotent = false,
-}: {
-  rpc: Rpc<SolanaRpcApi>;
-  rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
+export interface CreateMintTxArgs {
+  rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
+  blockhash: {
+    blockhash: Blockhash;
+    lastValidBlockHeight: bigint;
+  };
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;
   idempotent: boolean;
-}) => {
+}
+
+export interface CreateMintTxResult {
+  wrappedMint: Address;
+  backpointer: Address;
+  fundedWrappedMintLamports: bigint;
+  fundedBackpointerLamports: bigint;
+  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+}
+
+export async function createMintTx({
+  rpc,
+  blockhash,
+  unwrappedMint,
+  wrappedTokenProgram,
+  payer,
+  idempotent = false,
+}: CreateMintTxArgs): Promise<CreateMintTxResult> {
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint,
     wrappedTokenProgram: wrappedTokenProgram,
@@ -101,26 +113,18 @@ export const executeCreateMint = async ({
     }),
   );
 
-  const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
-
-  // Build transaction
   const tx = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
-    tx => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions(instructions, tx),
   );
-
-  // Send tx
-  const signedTransaction = await signTransactionMessageWithSigners(tx);
-  const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
-  await sendAndConfirm(signedTransaction, { commitment: 'confirmed' });
 
   return {
     wrappedMint,
     backpointer,
-    signature: getSignatureFromTransaction(signedTransaction),
+    tx,
     fundedWrappedMintLamports,
     fundedBackpointerLamports,
   };
-};
+}

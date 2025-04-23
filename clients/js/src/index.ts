@@ -1,5 +1,17 @@
 export * from './generated';
 
-export { executeCreateMint } from './create-mint';
-export { executeWrap } from './wrap';
-export { createEscrowAccount } from './utilities';
+export { createMintTx, type CreateMintTxArgs, type CreateMintTxResult } from './create-mint';
+export {
+  singleSignerWrapTx,
+  type SingleSignerWrapArgs,
+  type SingleSignerWrapResult,
+  multisigOfflineSignWrapTx,
+  type TxBuilderArgsWithMultiSigners,
+  combinedMultisigWrapTx,
+  type MultiSigBroadcastArgs,
+} from './wrap';
+export {
+  createEscrowAccountTx,
+  type CreateEscrowAccountTxArgs,
+  type CreateEscrowAccountTxResult,
+} from './utilities';
