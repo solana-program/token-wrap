@@ -17,12 +17,6 @@ jobs:
   dismiss_stale_approvals:
     runs-on: ubuntu-latest
     steps:
-      - name: Dump GitHub context
-        run: |
-          echo "Author Association: ${{ github.event.pull_request.author_association }}"
-          echo "Full Event Payload:"
-          echo "${{ toJSON(github.event) }}"
-
       - name: Dismiss Stale PR Reviews
         if: ${{ !contains('OWNER,MEMBER,COLLABORATOR', github.event.pull_request.author_association) }}
         uses: withgraphite/dismiss-stale-approvals@main
