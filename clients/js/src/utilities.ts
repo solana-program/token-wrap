@@ -160,16 +160,11 @@ function messageBytesEqual(results: (Transaction & TransactionWithBlockhashLifet
   if (!reference) throw new Error('No transactions in input');
 
   // Compare each result with the reference
-  for (const current of results) {
-    const sameLength = reference.messageBytes.length === current.messageBytes.length;
-    const sameBytes = containsBytes(reference.messageBytes, current.messageBytes, 0);
-
-    if (!sameLength || !sameBytes) {
-      return false;
-    }
-  }
-
-  return true;
+  return results.every(
+    c =>
+      reference.messageBytes.length === c.messageBytes.length &&
+      containsBytes(reference.messageBytes, c.messageBytes, 0),
+  );
 }
 
 function combineSignatures(
