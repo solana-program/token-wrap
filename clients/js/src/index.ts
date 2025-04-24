@@ -6,12 +6,18 @@ export {
   type SingleSignerWrapArgs,
   type SingleSignerWrapResult,
   multisigOfflineSignWrapTx,
-  type TxBuilderArgsWithMultiSigners,
-  combinedMultisigWrapTx,
-  type MultiSigBroadcastArgs,
+  type MultiSignerWrapTxBuilderArgs,
 } from './wrap';
+export {
+  singleSignerUnwrapTx,
+  type SingleSignerUnwrapArgs,
+  type SingleSignerUnwrapResult,
+  multisigOfflineSignUnwrap,
+} from './unwrap';
 export {
   createEscrowAccountTx,
   type CreateEscrowAccountTxArgs,
   type CreateEscrowAccountTxResult,
+  combinedMultisigTx,
+  type MultiSigCombineArgs,
 } from './utilities';

@@ -12,9 +12,15 @@ import {
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from '../generated';
-import { combinedMultisigWrapTx, multisigOfflineSignWrapTx } from '../wrap';
-import { createEscrowAccountTx, createTokenAccountTx, getOwnerFromAccount } from '../utilities';
+import { multisigOfflineSignWrapTx } from '../wrap';
+import {
+  combinedMultisigTx,
+  createEscrowAccountTx,
+  createTokenAccountTx,
+  getOwnerFromAccount,
+} from '../utilities';
 import { createMintTx } from '../create-mint';
+import { multisigOfflineSignUnwrap } from '../unwrap';
 
 // Replace these consts with your own
 const PAYER_KEYPAIR_BYTES = new Uint8Array([
@@ -25,7 +31,8 @@ const PAYER_KEYPAIR_BYTES = new Uint8Array([
 ]);
 
 // Create using CLI: spl-token create-multisig 2 $SIGNER_1_PUBKEY $SIGNER_2_PUBKEY
-const MULTISIG_PUBKEY = address('2XBevFsu4pnZpB9PewYKAJHNyx9dFQf3MaiGBszF5fm8');
+const MULTISIG_SPL_TOKEN = address('2XBevFsu4pnZpB9PewYKAJHNyx9dFQf3MaiGBszF5fm8');
+const MULTISIG_SPL_TOKEN_2022 = address('BSdexGFqwmDGeXe4pBXVbQnqrEH5trmo9W3wqoXUQY5Y');
 const SIGNER_A_KEYPAIR_BYTES = new Uint8Array([
   210, 190, 232, 169, 113, 107, 195, 87, 14, 9, 125, 106, 41, 174, 131, 9, 29, 144, 95, 134, 68,
   123, 80, 215, 194, 30, 170, 140, 33, 175, 69, 126, 201, 176, 240, 30, 173, 145, 185, 162, 231,
@@ -40,10 +47,10 @@ const SIGNER_B_KEYPAIR_BYTES = new Uint8Array([
 ]);
 
 const UNWRAPPED_MINT_ADDRESS = address('F2qGWupzMUQnGfX8e25XZps8d9AGdVde8hLQT2pxsb4M');
-const UNWRAPPED_TOKEN_ACCOUNT = address('94Y9pxekEm59b67PQQwvjb7wbwz689wDZ3dAwhCtJpPS'); // Must be owned by multisig account
+const UNWRAPPED_TOKEN_ACCOUNT = address('94Y9pxekEm59b67PQQwvjb7wbwz689wDZ3dAwhCtJpPS'); // Must be owned by MULTISIG_SPL_TOKEN
 const AMOUNT_TO_WRAP = 100n;
 
-const main = async () => {
+async function main() {
   const rpc = createSolanaRpc('http://127.0.0.1:8899');
   const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
   const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
@@ -95,7 +102,7 @@ const main = async () => {
     payer,
     mint: wrappedMint,
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-    owner: payer.address,
+    owner: MULTISIG_SPL_TOKEN_2022,
   });
   const signedRecipientAccountTx = await signTransactionMessageWithSigners(
     recipientTokenAccountMessage.tx,
@@ -104,6 +111,8 @@ const main = async () => {
 
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, UNWRAPPED_TOKEN_ACCOUNT);
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
+
+  const { value: wrapBlockhash } = await rpc.getLatestBlockhash().send();
 
   const signerA = await createKeyPairSignerFromBytes(SIGNER_A_KEYPAIR_BYTES);
   const signerB = await createKeyPairSignerFromBytes(SIGNER_B_KEYPAIR_BYTES);
@@ -118,12 +127,12 @@ const main = async () => {
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
-    transferAuthority: MULTISIG_PUBKEY,
+    transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
     unwrappedTokenProgram,
     multiSigners: [signerA, createNoopSigner(signerB.address)],
-    blockhash,
+    blockhash: wrapBlockhash,
   });
   const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
 
@@ -135,12 +144,12 @@ const main = async () => {
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
-    transferAuthority: MULTISIG_PUBKEY,
+    transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
     unwrappedTokenProgram,
     multiSigners: [createNoopSigner(signerA.address), signerB],
-    blockhash,
+    blockhash: wrapBlockhash,
   });
   const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
 
@@ -152,25 +161,25 @@ const main = async () => {
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
-    transferAuthority: MULTISIG_PUBKEY,
+    transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
     unwrappedTokenProgram,
     multiSigners: [createNoopSigner(signerA.address), createNoopSigner(signerB.address)],
-    blockhash,
+    blockhash: wrapBlockhash,
   });
   const signedWrapTxC = await partiallySignTransactionMessageWithSigners(wrapTxC);
 
   // Lastly, all signatures are combined together and broadcast
 
-  const combinedTx = combinedMultisigWrapTx({
+  const combinedWrapTx = combinedMultisigTx({
     signedTxs: [signedWrapTxA, signedWrapTxB, signedWrapTxC],
     blockhash,
   });
-  await sendAndConfirm(combinedTx, { commitment: 'confirmed' });
+  await sendAndConfirm(combinedWrapTx, { commitment: 'confirmed' });
 
-  console.log('======== Confirmed Multisig Tx ✅ ========');
-  for (const [pubkey, signature] of Object.entries(combinedTx.signatures)) {
+  console.log('======== Multisig Wrap Successful ========');
+  for (const [pubkey, signature] of Object.entries(combinedWrapTx.signatures)) {
     if (signature) {
       const base58Sig = getBase58Decoder().decode(signature);
       console.log(`pubkey: ${pubkey}`);
@@ -178,6 +187,77 @@ const main = async () => {
       console.log('-----');
     }
   }
-};
+
+  // Unwraps from the token account owned by MULTISIG_SPL_TOKEN_2022
+
+  const { value: unwrapBlockhash } = await rpc.getLatestBlockhash().send();
+
+  const unwrapTxA = multisigOfflineSignUnwrap({
+    payer: createNoopSigner(payer.address),
+    unwrappedEscrow: createEscrowMessage.keyPair.address,
+    wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
+    amount: AMOUNT_TO_WRAP,
+    unwrappedMint: UNWRAPPED_MINT_ADDRESS,
+    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
+    transferAuthority: MULTISIG_SPL_TOKEN_2022,
+    wrappedMint,
+    wrappedMintAuthority,
+    unwrappedTokenProgram,
+    multiSigners: [signerA, createNoopSigner(signerB.address)],
+    blockhash: unwrapBlockhash,
+  });
+  const signedUnwrapTxA = await partiallySignTransactionMessageWithSigners(unwrapTxA);
+
+  const unwrapTxB = multisigOfflineSignUnwrap({
+    payer: createNoopSigner(payer.address),
+    unwrappedEscrow: createEscrowMessage.keyPair.address,
+    wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
+    amount: AMOUNT_TO_WRAP,
+    unwrappedMint: UNWRAPPED_MINT_ADDRESS,
+    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
+    transferAuthority: MULTISIG_SPL_TOKEN_2022,
+    wrappedMint,
+    wrappedMintAuthority,
+    unwrappedTokenProgram,
+    multiSigners: [createNoopSigner(signerA.address), signerB],
+    blockhash: unwrapBlockhash,
+  });
+  const signedUnwrapTxB = await partiallySignTransactionMessageWithSigners(unwrapTxB);
+
+  const unwrapTxC = multisigOfflineSignUnwrap({
+    payer: payer,
+    unwrappedEscrow: createEscrowMessage.keyPair.address,
+    wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
+    amount: AMOUNT_TO_WRAP,
+    unwrappedMint: UNWRAPPED_MINT_ADDRESS,
+    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
+    transferAuthority: MULTISIG_SPL_TOKEN_2022,
+    wrappedMint,
+    wrappedMintAuthority,
+    unwrappedTokenProgram,
+    multiSigners: [createNoopSigner(signerA.address), createNoopSigner(signerB.address)],
+    blockhash: unwrapBlockhash,
+  });
+  const signedUnwrapTxC = await partiallySignTransactionMessageWithSigners(unwrapTxC);
+
+  const combinedUnwrapTx = combinedMultisigTx({
+    signedTxs: [signedUnwrapTxA, signedUnwrapTxB, signedUnwrapTxC],
+    blockhash,
+  });
+  await sendAndConfirm(combinedUnwrapTx, { commitment: 'confirmed' });
+
+  console.log('======== Multisig Unwrap Successful ========');
+  for (const [pubkey, signature] of Object.entries(combinedUnwrapTx.signatures)) {
+    if (signature) {
+      const base58Sig = getBase58Decoder().decode(signature);
+      console.log(`pubkey: ${pubkey}`);
+      console.log(`signature: ${base58Sig}`);
+      console.log('-----');
+    }
+  }
+}
 
 void main();

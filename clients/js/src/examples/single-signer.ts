@@ -13,6 +13,7 @@ import { singleSignerWrapTx } from '../wrap';
 
 import { createEscrowAccountTx, createTokenAccountTx } from '../utilities';
 import { createMintTx } from '../create-mint';
+import { singleSignerUnwrapTx } from '../unwrap';
 
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
@@ -25,7 +26,7 @@ const UNWRAPPED_MINT_ADDRESS = address('FAbYm8kdDsyc6csvTXPMBwCJDjTVkZcvrnyVVTSF
 const UNWRAPPED_TOKEN_ACCOUNT = address('4dSPDdFuTbKTuJDDtTd8SUdbH6QY42hpTPRi6RRzzsPF');
 const AMOUNT_TO_WRAP = 100n;
 
-const main = async () => {
+async function main() {
   const rpc = createSolanaRpc('http://127.0.0.1:8899');
   const rpcSubscriptions = createSolanaRpcSubscriptions('ws://127.0.0.1:8900');
   const sendAndConfirm = sendAndConfirmTransactionFactory({ rpc, rpcSubscriptions });
@@ -99,13 +100,32 @@ const main = async () => {
 
   const signedWrapTx = await signTransactionMessageWithSigners(wrapMessage.tx);
   await sendAndConfirm(signedWrapTx, { commitment: 'confirmed' });
-  const signature = getSignatureFromTransaction(signedWrapTx);
+  const wrapSignature = getSignatureFromTransaction(signedWrapTx);
 
   console.log('======== Wrap Successful ========');
   console.log('Wrap amount:', wrapMessage.amount);
   console.log('Recipient account:', wrapMessage.recipientWrappedTokenAccount);
   console.log('Escrow Account:', wrapMessage.escrowAccount);
-  console.log('Signature:', signature);
-};
+  console.log('Signature:', wrapSignature);
+
+  const unwrapMessage = await singleSignerUnwrapTx({
+    rpc,
+    blockhash,
+    payer,
+    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    unwrappedEscrow: createEscrowMessage.keyPair.address,
+    amount: AMOUNT_TO_WRAP,
+    recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
+  });
+
+  const signedUnwrapTx = await signTransactionMessageWithSigners(unwrapMessage.tx);
+  await sendAndConfirm(signedUnwrapTx, { commitment: 'confirmed' });
+  const unwrapSignature = getSignatureFromTransaction(signedUnwrapTx);
+
+  console.log('======== Unwrap Successful ========');
+  console.log('Unwrapped amount:', unwrapMessage.amount);
+  console.log('Recipient account:', unwrapMessage.recipientUnwrappedToken);
+  console.log('Signature:', unwrapSignature);
+}
 
 void main();
