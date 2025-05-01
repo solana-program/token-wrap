@@ -19,13 +19,7 @@ async fn test_create_mint() {
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
     let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(
-        &env,
-        &unwrapped_mint,
-        &unwrapped_token_program,
-        &wrapped_token_program,
-    )
-    .await;
+    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
 
     // Derive expected account addresses
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);

@@ -28,10 +28,6 @@ pub struct CreateMintArgs {
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
 
-    /// The address of the token program that the unwrapped mint belongs to
-    #[clap(value_parser = parse_token_program)]
-    pub unwrapped_token_program: Pubkey,
-
     /// The address of the token program that the wrapped mint should belong to
     #[clap(value_parser = parse_token_program)]
     pub wrapped_token_program: Pubkey,

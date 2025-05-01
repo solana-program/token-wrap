@@ -118,7 +118,6 @@ pub async fn create_unwrapped_mint(env: &TestEnv, token_program_addr: &Pubkey) -
 pub async fn execute_create_mint(
     env: &TestEnv,
     unwrapped_mint: &Pubkey,
-    unwrapped_token_program: &Pubkey,
     wrapped_token_program: &Pubkey,
 ) {
     let status = Command::new(TOKEN_WRAP_CLI_BIN)
@@ -127,7 +126,6 @@ pub async fn execute_create_mint(
             "-C",
             &env.config_file_path,
             &unwrapped_mint.to_string(),
-            &unwrapped_token_program.to_string(),
             &wrapped_token_program.to_string(),
             "--idempotent",
         ])

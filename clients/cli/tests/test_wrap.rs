@@ -26,13 +26,7 @@ async fn test_wrap_single_signer_with_defaults() {
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
     let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(
-        &env,
-        &unwrapped_mint,
-        &unwrapped_token_program,
-        &wrapped_token_program,
-    )
-    .await;
+    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
 
     // Fund initial unwrapped token account
     let unwrapped_token_account = create_token_account(
@@ -109,13 +103,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
     let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(
-        &env,
-        &unwrapped_mint,
-        &unwrapped_token_program,
-        &wrapped_token_program,
-    )
-    .await;
+    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
 
     let transfer_authority = Keypair::new();
     let authority_keypair_file = NamedTempFile::new().unwrap();
@@ -250,13 +238,7 @@ async fn test_wrap_with_multisig() {
 
     let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
 
-    execute_create_mint(
-        &env,
-        &unwrapped_mint,
-        &unwrapped_token_program,
-        &wrapped_token_program,
-    )
-    .await;
+    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
 
     let unwrapped_token_account = create_token_account(
         &env,
