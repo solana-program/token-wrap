@@ -8,12 +8,14 @@ import {
   signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
-import { findWrappedMintPda } from '../generated';
-import { singleSignerWrapTx } from '../wrap';
-
-import { createEscrowAccountTx, createTokenAccountTx } from '../utilities';
-import { createMintTx } from '../create-mint';
-import { singleSignerUnwrapTx } from '../unwrap';
+import {
+  createEscrowAccountTx,
+  findWrappedMintPda,
+  createMintTx,
+  singleSignerUnwrapTx,
+  singleSignerWrapTx,
+} from '../index';
+import { createTokenAccountTx } from '../utilities';
 
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([

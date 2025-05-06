@@ -11,16 +11,16 @@ import {
   signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
-import { findWrappedMintAuthorityPda, findWrappedMintPda } from '../generated';
-import { multisigOfflineSignWrapTx } from '../wrap';
 import {
+  findWrappedMintAuthorityPda,
+  findWrappedMintPda,
+  multisigOfflineSignWrapTx,
   combinedMultisigTx,
   createEscrowAccountTx,
-  createTokenAccountTx,
-  getOwnerFromAccount,
-} from '../utilities';
-import { createMintTx } from '../create-mint';
-import { multisigOfflineSignUnwrap } from '../unwrap';
+  createMintTx,
+  multisigOfflineSignUnwrap,
+} from '../index';
+import { createTokenAccountTx, getOwnerFromAccount } from '../utilities';
 
 // Replace these consts with your own
 const PAYER_KEYPAIR_BYTES = new Uint8Array([
