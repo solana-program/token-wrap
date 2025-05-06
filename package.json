@@ -24,7 +24,7 @@
     "@changesets/cli": "^2.29.2",
     "@iarna/toml": "^2.2.5",
     "@solana-program/system": "^0.7.0",
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.15.12",
     "codama": "^1.2.13",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
