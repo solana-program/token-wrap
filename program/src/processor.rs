@@ -132,8 +132,8 @@ pub fn process_create_mint(
     // Initialize backpointer PDA
 
     let backpointer_space = std::mem::size_of::<Backpointer>();
-    let backpointer_rent_required = rent.minimum_balance(space);
-    if wrapped_backpointer_account.lamports() < rent.minimum_balance(backpointer_space) {
+    let backpointer_rent_required = rent.minimum_balance(backpointer_space);
+    if wrapped_backpointer_account.lamports() < backpointer_rent_required {
         msg!(
             "Error: wrapped_backpointer_account requires pre-funding of {} lamports",
             backpointer_rent_required
