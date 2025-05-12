@@ -57,6 +57,13 @@ pub fn process_create_mint(
         Err(TokenWrapError::BackpointerMismatch)?
     }
 
+    // The *unwrapped mint* must itself be a real SPL‑Token mint
+    if unwrapped_mint_account.owner != &spl_token::id()
+        && unwrapped_mint_account.owner != &spl_token_2022::id()
+    {
+        Err(ProgramError::InvalidAccountOwner)?
+    }
+
     // Idempotency checks
 
     if wrapped_mint_account.data_len() > 0 || wrapped_backpointer_account.data_len() > 0 {
