@@ -128,6 +128,11 @@ impl<'a> CreateMintBuilder<'a> {
         self
     }
 
+    pub fn unwrapped_mint_account(mut self, account: Account) -> Self {
+        self.unwrapped_mint_account = Some(account);
+        self
+    }
+
     pub fn check(mut self, check: Check<'a>) -> Self {
         self.checks.push(check);
         self

@@ -167,6 +167,22 @@ fn test_improperly_derived_addresses_fail() {
 }
 
 #[test]
+fn test_invalid_unwrapped_mint_owner() {
+    // Create fake unwrapped‑mint account owned by an arbitrary program.
+    let bogus_mint = Account {
+        lamports: 100_000_000,
+        owner: Pubkey::new_unique(), // ← not spl‑token or spl‑token‑2022
+        data: vec![0; spl_token::state::Mint::LEN],
+        ..Account::default()
+    };
+
+    CreateMintBuilder::default()
+        .unwrapped_mint_account(bogus_mint)
+        .check(Check::err(ProgramError::InvalidAccountOwner))
+        .execute();
+}
+
+#[test]
 fn test_successful_spl_token_to_spl_token_2022() {
     let result = CreateMintBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
