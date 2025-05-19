@@ -51,7 +51,7 @@
     "@solana/rpc-types": "^2.1.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
+    "@eslint/js": "^9.27.0",
     "@solana/kit": "^2.1.1",
     "@tsconfig/strictest": "^2.0.5",
     "@types/node": "^22.15.19",
