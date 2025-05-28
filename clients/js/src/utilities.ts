@@ -27,6 +27,8 @@ import {
   TOKEN_PROGRAM_ADDRESS,
 } from '@solana-program/token';
 import {
+  findAssociatedTokenPda,
+  getCreateAssociatedTokenInstruction,
   getInitializeAccountInstruction as initializeToken2022,
   getTokenDecoder,
   TOKEN_2022_PROGRAM_ADDRESS,
@@ -102,8 +104,9 @@ export interface CreateEscrowAccountTxArgs {
 }
 
 export interface CreateEscrowAccountTxResult {
+  address: Address;
   tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
-  keyPair: KeyPairSigner;
+  exists: boolean;
 }
 
 export async function createEscrowAccountTx({
@@ -117,14 +120,30 @@ export async function createEscrowAccountTx({
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, unwrappedMint);
 
-  return createTokenAccountTx({
-    rpc,
-    blockhash,
-    payer,
-    mint: unwrappedMint,
+  const [escrowAta] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
+    mint: unwrappedMint,
     tokenProgram: unwrappedTokenProgram,
   });
+
+  const createIx = getCreateAssociatedTokenInstruction({
+    payer,
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    ata: escrowAta,
+    tokenProgram: unwrappedTokenProgram,
+  });
+
+  const tx = pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions([createIx], tx),
+  );
+
+  const { exists } = await fetchEncodedAccount(rpc, escrowAta);
+
+  return { address: escrowAta, tx, exists };
 }
 
 export async function getOwnerFromAccount(

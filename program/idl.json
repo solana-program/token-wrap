@@ -1,7 +1,7 @@
 {
   "kind": "rootNode",
   "standard": "codama",
-  "version": "1.2.10",
+  "version": "1.2.13",
   "program": {
     "kind": "programNode",
     "name": "tokenWrap",
@@ -239,7 +239,7 @@
             "isOptional": false,
             "docs": [
               "The escrow account that holds the unwrapped tokens.",
-              "must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)"
+              "Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)"
             ]
           },
           {
@@ -320,8 +320,8 @@
             "isSigner": false,
             "isOptional": false,
             "docs": [
-              "The escrow account holding the unwrapped tokens, ",
-              "must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)`"
+              "The escrow account holding the unwrapped tokens.",
+              "Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)"
             ]
           },
           {
@@ -597,6 +597,13 @@
         "name": "invalidBackpointerOwner",
         "code": 6,
         "message": "Wrapped backpointer account owner is not the expected token wrap program",
+        "docs": []
+      },
+      {
+        "kind": "errorNode",
+        "name": "escrowMismatch",
+        "code": 7,
+        "message": "Escrow account address does not match expected ATA",
         "docs": []
       }
     ]

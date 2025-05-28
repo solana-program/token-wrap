@@ -66,8 +66,10 @@ async function main() {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
-  await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  if (!createEscrowMessage.exists) {
+    const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
+    await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  }
 
   // Create recipient account where wrapped tokens will be minted to
   const [wrappedMint] = await findWrappedMintPda({
@@ -93,7 +95,6 @@ async function main() {
     blockhash,
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -115,7 +116,6 @@ async function main() {
     blockhash,
     payer,
     wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
-    unwrappedEscrow: createEscrowMessage.keyPair.address,
     amount: AMOUNT_TO_WRAP,
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
   });
