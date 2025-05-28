@@ -24,7 +24,6 @@ import { findAssociatedTokenPda } from '@solana-program/token-2022';
 interface TxBuilderArgs {
   payer: TransactionSigner;
   unwrappedTokenAccount: Address;
-  escrowAccount: Address;
   wrappedTokenProgram: Address;
   amount: bigint | number;
   wrappedMint: Address;
@@ -47,7 +46,7 @@ export interface MultiSignerWrapTxBuilderArgs extends TxBuilderArgs {
 // Used to collect signatures
 export function multisigOfflineSignWrapTx(
   args: MultiSignerWrapTxBuilderArgs,
-): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
+): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
   return buildWrapTransaction(args);
 }
 
@@ -59,7 +58,6 @@ export interface SingleSignerWrapArgs {
   };
   payer: TransactionSigner; // Fee payer and default transfer authority
   unwrappedTokenAccount: Address;
-  escrowAccount: Address;
   wrappedTokenProgram: Address;
   amount: bigint | number;
   transferAuthority?: Address | TransactionSigner; // Defaults to payer if not provided
@@ -80,7 +78,6 @@ export async function singleSignerWrapTx({
   blockhash,
   payer,
   unwrappedTokenAccount,
-  escrowAccount,
   wrappedTokenProgram,
   amount,
   transferAuthority: inputTransferAuthority,
@@ -95,6 +92,7 @@ export async function singleSignerWrapTx({
     wrappedMintAuthority,
     recipientWrappedTokenAccount,
     transferAuthority,
+    unwrappedEscrow,
   } = await resolveAddrs({
     rpc,
     payer,
@@ -106,11 +104,10 @@ export async function singleSignerWrapTx({
     inputRecipientTokenAccount,
   });
 
-  const tx = buildWrapTransaction({
+  const tx = await buildWrapTransaction({
     blockhash,
     payer,
     unwrappedTokenAccount,
-    escrowAccount,
     wrappedTokenProgram,
     amount,
     transferAuthority,
@@ -124,7 +121,7 @@ export async function singleSignerWrapTx({
   return {
     tx,
     recipientWrappedTokenAccount,
-    escrowAccount,
+    escrowAccount: unwrappedEscrow,
     amount: BigInt(amount),
   };
 }
@@ -164,10 +161,16 @@ async function resolveAddrs({
         tokenProgram: wrappedTokenProgram,
       })
     )[0];
+  const [unwrappedEscrow] = await findAssociatedTokenPda({
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    tokenProgram: unwrappedTokenProgram,
+  });
 
   const transferAuthority = inputTransferAuthority ?? payer;
 
   return {
+    unwrappedEscrow,
     transferAuthority,
     unwrappedMint,
     unwrappedTokenProgram,
@@ -177,10 +180,9 @@ async function resolveAddrs({
   };
 }
 
-function buildWrapTransaction({
+async function buildWrapTransaction({
   payer,
   unwrappedTokenAccount,
-  escrowAccount,
   wrappedTokenProgram,
   amount,
   transferAuthority,
@@ -191,7 +193,13 @@ function buildWrapTransaction({
   wrappedMintAuthority,
   blockhash,
   multiSigners = [],
-}: TxBuilderArgs): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
+}: TxBuilderArgs): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+  const [unwrappedEscrow] = await findAssociatedTokenPda({
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    tokenProgram: unwrappedTokenProgram,
+  });
+
   const wrapInstructionInput: WrapInput = {
     recipientWrappedTokenAccount,
     wrappedMint,
@@ -200,7 +208,7 @@ function buildWrapTransaction({
     wrappedTokenProgram,
     unwrappedTokenAccount,
     unwrappedMint,
-    unwrappedEscrow: escrowAccount,
+    unwrappedEscrow,
     transferAuthority,
     amount: BigInt(amount),
     multiSigners,

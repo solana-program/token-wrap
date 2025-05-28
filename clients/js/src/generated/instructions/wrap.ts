@@ -159,7 +159,7 @@ export type WrapInput<
   unwrappedMint: Address<TAccountUnwrappedMint>;
   /**
    * The escrow account that holds the unwrapped tokens.
-   * must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)
+   * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
    */
   unwrappedEscrow: Address<TAccountUnwrappedEscrow>;
   /** The authority to transfer the unwrapped tokens. */
@@ -326,7 +326,7 @@ export type ParsedWrapInstruction<
     unwrappedMint: TAccountMetas[6];
     /**
      * The escrow account that holds the unwrapped tokens.
-     * must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)
+     * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
      */
 
     unwrappedEscrow: TAccountMetas[7];

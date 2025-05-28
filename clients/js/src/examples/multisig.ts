@@ -88,8 +88,10 @@ async function main() {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
-  await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  if (!createEscrowMessage.exists) {
+    const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
+    await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  }
 
   // Create recipient account where wrapped tokens will be minted to
   const [wrappedMint] = await findWrappedMintPda({
@@ -119,10 +121,9 @@ async function main() {
 
   // Two signers and the payer sign the transaction independently
 
-  const wrapTxA = multisigOfflineSignWrapTx({
+  const wrapTxA = await multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -136,10 +137,9 @@ async function main() {
   });
   const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
 
-  const wrapTxB = multisigOfflineSignWrapTx({
+  const wrapTxB = await multisigOfflineSignWrapTx({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -153,10 +153,9 @@ async function main() {
   });
   const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
 
-  const wrapTxC = multisigOfflineSignWrapTx({
+  const wrapTxC = await multisigOfflineSignWrapTx({
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -192,9 +191,8 @@ async function main() {
 
   const { value: unwrapBlockhash } = await rpc.getLatestBlockhash().send();
 
-  const unwrapTxA = multisigOfflineSignUnwrap({
+  const unwrapTxA = await multisigOfflineSignUnwrap({
     payer: createNoopSigner(payer.address),
-    unwrappedEscrow: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -209,9 +207,8 @@ async function main() {
   });
   const signedUnwrapTxA = await partiallySignTransactionMessageWithSigners(unwrapTxA);
 
-  const unwrapTxB = multisigOfflineSignUnwrap({
+  const unwrapTxB = await multisigOfflineSignUnwrap({
     payer: createNoopSigner(payer.address),
-    unwrappedEscrow: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
@@ -226,9 +223,8 @@ async function main() {
   });
   const signedUnwrapTxB = await partiallySignTransactionMessageWithSigners(unwrapTxB);
 
-  const unwrapTxC = multisigOfflineSignUnwrap({
+  const unwrapTxC = await multisigOfflineSignUnwrap({
     payer: payer,
-    unwrappedEscrow: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,

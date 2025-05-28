@@ -1,5 +1,11 @@
 # @solana-program/token-wrap
 
+## 1.1.0
+
+### Minor Changes
+
+- createEscrowAccountTx initializes ATA
+
 ## 1.0.0
 
 ### Major Changes
