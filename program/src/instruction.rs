@@ -51,8 +51,9 @@ pub enum TokenWrapInstruction {
     /// 5. `[w]` Unwrapped token account to wrap
     ///    `get_wrapped_mint_authority(wrapped_mint_address)`
     /// 6. `[]` Unwrapped token mint
-    /// 7. `[w]` Escrow of unwrapped tokens, must be owned by:
-    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
+    /// 7. `[w]` Escrow of unwrapped tokens, address must be an `ATA`:
+    ///    `get_escrow_address(unwrapped_mint, unwrapped_token_program,
+    ///    wrapped_token_program)`
     /// 8. `[s]` Transfer authority on unwrapped token account. Not required to
     ///    be a signer if it's a multisig.
     /// 9. `..8+M` `[s]` (Optional) M multisig signers on unwrapped token
@@ -68,22 +69,21 @@ pub enum TokenWrapInstruction {
     /// tokens from the escrow account to the provided account.
     ///
     /// Accounts expected by this instruction:
-    ///
-    /// 0. `[writeable]` Escrow of unwrapped tokens, must be owned by:
-    ///    `get_wrapped_mint_authority(wrapped_mint_address)`
-    /// 1. `[writeable]` Recipient unwrapped tokens
+    /// 0. `[w]` Escrow of unwrapped tokens, address must be an `ATA`:
+    ///    `get_escrow_address(unwrapped_mint, unwrapped_token_program,
+    ///    wrapped_token_program)`
+    /// 1. `[w]` Recipient unwrapped tokens
     /// 2. `[]` Wrapped mint authority, address must be:
     ///    `get_wrapped_mint_authority(wrapped_mint)`
     /// 3. `[]` Unwrapped token mint
     /// 4. `[]` SPL Token program for wrapped mint
     /// 5. `[]` SPL Token program for unwrapped mint
-    /// 6. `[writeable]` Wrapped token account to unwrap
-    /// 7. `[writeable]` Wrapped mint, address must be:
+    /// 6. `[w]` Wrapped token account to unwrap
+    /// 7. `[w]` Wrapped mint, address must be:
     ///    `get_wrapped_mint_address(unwrapped_mint_address,
     ///    wrapped_token_program_id)`
-    /// 8. `[signer]` Transfer authority on wrapped token account
-    /// 9. `..8+M` `[signer]` (Optional) M multisig signers on wrapped token
-    ///    account
+    /// 8. `[s]` Transfer authority on wrapped token account
+    /// 9. `..8+M` `[s]` (Optional) M multisig signers on wrapped token account
     Unwrap {
         /// little-endian `u64` representing the amount to unwrap
         amount: u64,

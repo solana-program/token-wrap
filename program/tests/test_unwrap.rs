@@ -15,7 +15,10 @@ use {
         extension::PodStateWithExtensions,
         pod::{PodAccount, PodMint},
     },
-    spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
+    spl_token_wrap::{
+        error::TokenWrapError, get_escrow_address, get_wrapped_mint_address,
+        get_wrapped_mint_authority,
+    },
 };
 
 pub mod helpers;
@@ -49,6 +52,16 @@ fn test_incorrect_wrapped_mint_authority() {
     UnwrapBuilder::default()
         .wrapped_mint_authority(incorrect_authority)
         .check(Check::err(TokenWrapError::MintAuthorityMismatch.into()))
+        .execute();
+}
+
+#[test]
+fn test_incorrect_escrow_address() {
+    let not_derived_ata = Default::default();
+
+    UnwrapBuilder::default()
+        .unwrapped_escrow_account(not_derived_ata)
+        .check(Check::err(TokenWrapError::EscrowMismatch.into()))
         .execute();
 }
 
@@ -278,7 +291,18 @@ fn test_unwrap_with_transfer_hook() {
         let wrapped_mint_addr =
             get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
         let mint_authority = get_wrapped_mint_authority(&wrapped_mint_addr);
-        setup_transfer_hook_account(&mint_authority, &unwrapped_mint, escrow_starting_amount)
+        KeyedAccount {
+            key: get_escrow_address(
+                &unwrapped_mint.key,
+                &unwrapped_mint.account.owner,
+                &spl_token_2022::id(),
+            ),
+            account: setup_transfer_hook_account(
+                &mint_authority,
+                &unwrapped_mint,
+                escrow_starting_amount,
+            ),
+        }
     };
 
     // Validation state account required in order for counter account to be passed

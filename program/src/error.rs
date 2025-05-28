@@ -36,6 +36,9 @@ pub enum TokenWrapError {
     /// Wrapped backpointer account owner is not the expected token wrap program
     #[error("Wrapped backpointer account owner is not the expected token wrap program")]
     InvalidBackpointerOwner,
+    /// Escrow account address does not match expected `ATA`
+    #[error("Escrow account address does not match expected ATA")]
+    EscrowMismatch,
 }
 
 impl From<TokenWrapError> for ProgramError {

@@ -27,7 +27,9 @@ use {
     solana_signer::Signer,
     solana_transaction::Transaction,
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
+    spl_token_wrap::{
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
+    },
     std::{
         fmt::{Display, Formatter},
         rc::Rc,
@@ -40,10 +42,6 @@ pub struct WrapArgs {
     /// The address of the unwrapped token account to wrap from
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_token_account: Pubkey,
-
-    /// The address of the escrow account that will hold the unwrapped tokens
-    #[clap(value_parser = parse_pubkey)]
-    pub escrow_account: Pubkey,
 
     /// The address of the token program that the wrapped mint should belong to
     #[clap(value_parser = parse_token_program)]
@@ -258,6 +256,12 @@ pub async fn command_wrap(
         get_account_owner(&config.rpc_client, &args.unwrapped_token_account).await?
     };
 
+    let escrow_account = get_escrow_address(
+        &unwrapped_mint,
+        &unwrapped_token_program,
+        &args.wrapped_token_program,
+    );
+
     let instruction = wrap(
         &spl_token_wrap::id(),
         &recipient_token_account,
@@ -267,7 +271,7 @@ pub async fn command_wrap(
         &args.wrapped_token_program,
         &args.unwrapped_token_account,
         &unwrapped_mint,
-        &args.escrow_account,
+        &escrow_account,
         &transfer_authority_signer.pubkey(),
         &multisig_pubkeys.iter().collect::<Vec<&Pubkey>>(),
         args.amount,
@@ -320,7 +324,7 @@ pub async fn command_wrap(
         wrapped_mint_address,
         unwrapped_token_account: args.unwrapped_token_account,
         recipient_token_account,
-        escrow_account: args.escrow_account,
+        escrow_account,
         amount: args.amount,
         signatures: transaction.signatures,
         sign_only_data,

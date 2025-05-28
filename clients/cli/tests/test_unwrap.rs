@@ -38,7 +38,6 @@ async fn setup_for_unwrap(
     initial_unwrapped_balance: u64,
     wrap_amount: u64,
     maybe_wrapped_owner: Option<Pubkey>,
-    use_ata_for_escrow: bool,
 ) -> UnwrapSetup {
     // --- Create Mints ---
     let unwrapped_token_program = spl_token::id();
@@ -67,23 +66,13 @@ async fn setup_for_unwrap(
     // 2) Escrow account (owned by PDA)
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
-    let escrow_account = if use_ata_for_escrow {
-        create_associated_token_account(
-            env,
-            &unwrapped_token_program,
-            &unwrapped_mint,
-            &wrapped_mint_authority,
-        )
-        .await
-    } else {
-        create_token_account(
-            env,
-            &unwrapped_token_program,
-            &unwrapped_mint,
-            &wrapped_mint_authority,
-        )
-        .await
-    };
+    let escrow_account = create_associated_token_account(
+        env,
+        &unwrapped_token_program,
+        &unwrapped_mint,
+        &wrapped_mint_authority,
+    )
+    .await;
 
     // 3) Target account for wrapped tokens
     let wrapped_owner = maybe_wrapped_owner.unwrap_or(env.payer.pubkey());
@@ -97,7 +86,6 @@ async fn setup_for_unwrap(
             "-C".to_string(),
             env.config_file_path.clone(),
             source_unwrapped_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
             "--recipient-token-account".to_string(),
@@ -184,14 +172,7 @@ async fn test_unwrap_single_signer_with_defaults() {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(
-        &env,
-        initial_unwrapped_balance,
-        setup_wrap_amount,
-        None,
-        true,
-    )
-    .await;
+    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     let status = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
@@ -239,7 +220,6 @@ async fn test_unwrap_single_signer_with_optional_flags() {
         initial_unwrapped_balance,
         setup_wrap_amount,
         Some(transfer_authority.pubkey()),
-        false,
     )
     .await;
 
@@ -254,8 +234,6 @@ async fn test_unwrap_single_signer_with_optional_flags() {
             setup.wrapped_token_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
-            "--escrow-account".to_string(),
-            setup.escrow_account.to_string(),
             "--unwrapped-mint".to_string(),
             setup.unwrapped_mint.to_string(),
             "--wrapped-token-program".to_string(),
@@ -294,14 +272,7 @@ async fn test_unwrap_fail_invalid_wrapped_token_program() {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(
-        &env,
-        initial_unwrapped_balance,
-        setup_wrap_amount,
-        None,
-        true,
-    )
-    .await;
+    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Pass the wrong token program ID for the wrapped mint
     let wrong_wrapped_token_program = spl_token::id();
@@ -338,14 +309,7 @@ async fn test_unwrap_fail_mismatched_unwrapped_mint() {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(
-        &env,
-        initial_unwrapped_balance,
-        setup_wrap_amount,
-        None,
-        true,
-    )
-    .await;
+    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Create a *different* unwrapped mint
     let wrong_unwrapped_mint = create_unwrapped_mint(&env, &setup.unwrapped_token_program).await;
@@ -382,14 +346,7 @@ async fn test_unwrap_fail_invalid_unwrapped_token_program() {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(
-        &env,
-        initial_unwrapped_balance,
-        setup_wrap_amount,
-        None,
-        true,
-    )
-    .await;
+    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Pass the wrong token program ID for the unwrapped mint
     let wrong_unwrapped_token_program = spl_token_2022::id();
@@ -436,7 +393,6 @@ async fn test_unwrap_with_multisig() {
         initial_unwrapped_balance,
         setup_wrap_amount,
         Some(multisig_pubkey),
-        true,
     )
     .await;
 
@@ -459,8 +415,6 @@ async fn test_unwrap_with_multisig() {
             setup.wrapped_token_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
-            "--escrow-account".to_string(),
-            setup.escrow_account.to_string(),
             "--fee-payer".to_string(),
             env.payer.pubkey().to_string(),
             "--transfer-authority".to_string(),
@@ -499,8 +453,6 @@ async fn test_unwrap_with_multisig() {
             setup.wrapped_token_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
-            "--escrow-account".to_string(),
-            setup.escrow_account.to_string(),
             "--fee-payer".to_string(),
             env.payer.pubkey().to_string(),
             "--transfer-authority".to_string(),
@@ -541,8 +493,6 @@ async fn test_unwrap_with_multisig() {
             setup.wrapped_token_account.to_string(),
             setup.unwrapped_token_recipient.to_string(),
             unwrap_amount.to_string(),
-            "--escrow-account".to_string(),
-            setup.escrow_account.to_string(),
             "--transfer-authority".to_string(),
             multisig_pubkey.to_string(),
             "--multisig-signer".to_string(),

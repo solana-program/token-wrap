@@ -2,9 +2,10 @@
 
 use {
     crate::{
-        error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
-        get_wrapped_mint_authority, get_wrapped_mint_authority_signer_seeds,
-        get_wrapped_mint_authority_with_seed, get_wrapped_mint_backpointer_address_signer_seeds,
+        error::TokenWrapError, get_escrow_address, get_wrapped_mint_address,
+        get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
+        get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
+        get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction, state::Backpointer,
     },
@@ -202,6 +203,15 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
+    let expected_escrow = get_escrow_address(
+        unwrapped_mint.key,
+        unwrapped_token_program.key,
+        wrapped_token_program.key,
+    );
+    if *unwrapped_escrow.key != expected_escrow {
+        Err(TokenWrapError::EscrowMismatch)?
+    }
+
     {
         let escrow_data = unwrapped_escrow.try_borrow_data()?;
         let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
@@ -280,6 +290,15 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
     if *wrapped_mint_authority.key != expected_authority {
         Err(TokenWrapError::MintAuthorityMismatch)?
+    }
+
+    let expected_escrow = get_escrow_address(
+        unwrapped_mint.key,
+        unwrapped_token_program.key,
+        wrapped_token_program.key,
+    );
+    if *unwrapped_escrow.key != expected_escrow {
+        Err(TokenWrapError::EscrowMismatch)?
     }
 
     // Burn wrapped tokens

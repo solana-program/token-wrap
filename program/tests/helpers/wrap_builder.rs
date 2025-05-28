@@ -15,7 +15,9 @@ use {
         },
         pod::{PodAccount, PodCOption},
     },
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap},
+    spl_token_wrap::{
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
+    },
 };
 
 #[derive(Debug, Clone, Default)]
@@ -290,9 +292,11 @@ impl<'a> WrapBuilder<'a> {
             .clone()
             .unwrap_or_else(|| self.setup_token_account(wrapped_token_program, &wrapped_mint));
 
-        let unwrapped_escrow_address = self
-            .unwrapped_escrow_addr
-            .unwrap_or_else(Pubkey::new_unique);
+        let unwrapped_escrow_address = self.unwrapped_escrow_addr.unwrap_or(get_escrow_address(
+            &unwrapped_mint.key,
+            &unwrapped_token_program.id(),
+            &wrapped_token_program.id(),
+        ));
 
         let mut instruction = wrap(
             &spl_token_wrap::id(),

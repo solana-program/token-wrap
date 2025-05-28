@@ -28,6 +28,7 @@ solana-pubkey = { workspace = true }
 solana-rent = { workspace = true }
 solana-system-interface = { workspace = true }
 solana-sysvar = { workspace = true }
+spl-associated-token-account-client = { workspace = true }
 spl-pod = { workspace = true }
 spl-token = { workspace = true }
 spl-transfer-hook-interface = { workspace = true }

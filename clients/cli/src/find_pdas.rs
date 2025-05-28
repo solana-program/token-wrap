@@ -11,7 +11,8 @@ use {
     solana_cli_output::{display::writeln_name_value, QuietDisplay, VerboseDisplay},
     solana_pubkey::Pubkey,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
+        get_wrapped_mint_backpointer_address,
     },
     std::fmt::{Display, Formatter},
 };
@@ -21,6 +22,10 @@ pub struct FindPdasArgs {
     /// The address of the mint to wrap
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
+
+    /// The address of the token program that the unwrapped tokens belong to
+    #[clap(value_parser = parse_token_program)]
+    pub unwrapped_token_program: Pubkey,
 
     /// The address of the token program that the wrapped mint should belong to
     #[clap(value_parser = parse_token_program)]
@@ -37,6 +42,8 @@ pub struct PdasOutput {
     pub wrapped_mint_authority: Pubkey,
     #[serde_as(as = "DisplayFromStr")]
     pub wrapped_backpointer_address: Pubkey,
+    #[serde_as(as = "DisplayFromStr")]
+    pub unwrapped_escrow: Pubkey,
 }
 
 impl Display for PdasOutput {
@@ -56,6 +63,11 @@ impl Display for PdasOutput {
             "Wrapped backpointer address:",
             &self.wrapped_backpointer_address.to_string(),
         )?;
+        writeln_name_value(
+            f,
+            "Unwrapped escrow address:",
+            &self.unwrapped_escrow.to_string(),
+        )?;
 
         Ok(())
     }
@@ -73,6 +85,11 @@ pub async fn command_get_pdas(config: &Config, args: FindPdasArgs) -> CommandRes
         get_wrapped_mint_address(&args.unwrapped_mint, &args.wrapped_token_program);
     let wrapped_backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+    let unwrapped_escrow = get_escrow_address(
+        &args.unwrapped_mint,
+        &args.unwrapped_token_program,
+        &args.wrapped_token_program,
+    );
 
     Ok(format_output(
         config,
@@ -80,6 +97,7 @@ pub async fn command_get_pdas(config: &Config, args: FindPdasArgs) -> CommandRes
             wrapped_mint_address,
             wrapped_mint_authority,
             wrapped_backpointer_address,
+            unwrapped_escrow,
         },
     ))
 }

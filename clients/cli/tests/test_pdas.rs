@@ -2,7 +2,7 @@ use {
     crate::helpers::TOKEN_WRAP_CLI_BIN,
     solana_pubkey::Pubkey,
     spl_token_wrap::{
-        self, get_wrapped_mint_address, get_wrapped_mint_authority,
+        self, get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
         get_wrapped_mint_backpointer_address,
     },
     std::{process::Command, str::FromStr},
@@ -20,6 +20,7 @@ fn test_pdas() {
         .args([
             "find-pdas",
             &unwrapped_mint.to_string(),
+            &spl_token::id().to_string(),
             &spl_token_2022::id().to_string(),
             "--output",
             "json",
@@ -36,6 +37,8 @@ fn test_pdas() {
     let expected_wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
     let expected_authority = get_wrapped_mint_authority(&expected_wrapped_mint);
     let expected_backpointer = get_wrapped_mint_backpointer_address(&expected_wrapped_mint);
+    let expected_escrow =
+        get_escrow_address(&unwrapped_mint, &spl_token::id(), &spl_token_2022::id());
 
     // Verify the JSON values match the expected addresses
     assert_eq!(
@@ -46,6 +49,11 @@ fn test_pdas() {
     assert_eq!(
         json_result["wrappedMintAuthority"].as_str().unwrap(),
         expected_authority.to_string(),
+    );
+
+    assert_eq!(
+        json_result["unwrappedEscrow"].as_str().unwrap(),
+        expected_escrow.to_string(),
     );
 
     assert_eq!(
