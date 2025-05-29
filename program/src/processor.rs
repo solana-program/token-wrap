@@ -195,13 +195,12 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
-    {
-        let escrow_data = unwrapped_escrow.try_borrow_data()?;
-        let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
-        if escrow_account.base.owner != expected_authority {
-            Err(TokenWrapError::EscrowOwnerMismatch)?
-        }
+    let escrow_data = unwrapped_escrow.try_borrow_data()?;
+    let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
+    if escrow_account.base.owner != expected_authority {
+        Err(TokenWrapError::EscrowOwnerMismatch)?
     }
+    drop(escrow_data);
 
     // Transfer unwrapped tokens from user to escrow
 
@@ -238,9 +237,7 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             wrapped_mint_authority.clone(),
         ],
         &[&signer_seeds],
-    )?;
-
-    Ok(())
+    )
 }
 
 /// Processes [`Unwrap`](enum.TokenWrapInstruction.html) instruction.
@@ -311,9 +308,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         amount,
         unwrapped_mint_state.base.decimals,
         &[&signer_seeds],
-    )?;
-
-    Ok(())
+    )
 }
 
 /// Instruction processor
