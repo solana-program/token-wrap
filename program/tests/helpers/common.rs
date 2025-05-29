@@ -62,7 +62,7 @@ pub const MINT_SUPPLY: u64 = 500_000_000;
 pub const FREEZE_AUTHORITY: Pubkey =
     Pubkey::from_str_const("11111115q4EpJaTXAZWpCg3J2zppWGSZ46KXozzo9");
 
-fn token_2022_with_extension_data(supply: u64) -> Vec<u8> {
+fn _token_2022_with_extension_data(supply: u64) -> Vec<u8> {
     let mint_size = ExtensionType::try_calculate_account_len::<PodMint>(&[
         ExtensionType::MintCloseAuthority,
         ExtensionType::TransferFeeConfig,
@@ -106,7 +106,13 @@ pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubk
     };
     let mut data = match token_program {
         TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-        TokenProgram::SplToken2022 => token_2022_with_extension_data(MINT_SUPPLY),
+        TokenProgram::SplToken2022 => token_2022_with_extension_data_generic(
+            MINT_SUPPLY,
+            vec![
+                ExtensionType::MintCloseAuthority,
+                ExtensionType::TransferFeeConfig,
+            ],
+        ),
     };
     state.pack_into_slice(&mut data);
 
@@ -300,4 +306,204 @@ pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAcco
         ..Default::default()
     };
     (native_mint, native_token_account)
+}
+
+// =========================== RUNTIME VERIFICATION ===========================
+
+fn token_2022_with_extension_data_generic(supply: u64, extensions: Vec<ExtensionType>) -> Vec<u8> {
+    let mint_size = ExtensionType::try_calculate_account_len::<PodMint>(&extensions).unwrap();
+    let mut buffer = vec![0; mint_size];
+    let mut state: PodStateWithExtensionsMut<'_, PodMint> =
+        PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut buffer).unwrap();
+    state.base.decimals = MINT_DECIMALS;
+    state.base.is_initialized = PodBool::from_bool(true);
+    state.base.supply = PodU64::from(supply);
+    state.base.freeze_authority = PodCOption::from(COption::Some(FREEZE_AUTHORITY));
+    state.init_account_type().unwrap();
+
+    extensions.iter().for_each(|ext| match ext {
+        ExtensionType::Uninitialized => _uninitialized(&mut state),
+        ExtensionType::TransferFeeConfig => transfer_fee_config(&mut state),
+        ExtensionType::TransferFeeAmount => _transfer_fee_amount(&mut state),
+        ExtensionType::MintCloseAuthority => mint_close_authority(&mut state),
+        ExtensionType::ConfidentialTransferMint => _confidential_transfer_mint(&mut state),
+        ExtensionType::ConfidentialTransferAccount => _confidential_transfer_account(&mut state),
+        ExtensionType::DefaultAccountState => _default_account_state(&mut state),
+        ExtensionType::ImmutableOwner => _immutable_owner(&mut state),
+        ExtensionType::MemoTransfer => _memo_transfer(&mut state),
+        ExtensionType::NonTransferable => _non_transferable(&mut state),
+        ExtensionType::InterestBearingConfig => _interest_bearing_config(&mut state),
+        ExtensionType::CpiGuard => _cpi_guard(&mut state),
+        ExtensionType::PermanentDelegate => _permanent_delegate(&mut state),
+        ExtensionType::NonTransferableAccount => _non_transferable_account(&mut state),
+        ExtensionType::TransferHook => _transfer_hook(&mut state),
+        ExtensionType::TransferHookAccount => _transfer_hook_account(&mut state),
+        ExtensionType::ConfidentialTransferFeeConfig => {
+            _confidential_transfer_fee_config(&mut state)
+        }
+        ExtensionType::ConfidentialTransferFeeAmount => {
+            _confidential_transfer_fee_amount(&mut state)
+        }
+        ExtensionType::MetadataPointer => _metadata_pointer(&mut state),
+        ExtensionType::TokenMetadata => _token_metadata(&mut state),
+        ExtensionType::GroupPointer => _group_pointer(&mut state),
+        ExtensionType::TokenGroup => _token_group(&mut state),
+        ExtensionType::GroupMemberPointer => _group_member_pointer(&mut state),
+        ExtensionType::TokenGroupMember => _token_group_member(&mut state),
+        ExtensionType::ConfidentialMintBurn => _confidential_mint_burn(&mut state),
+        ExtensionType::ScaledUiAmount => _scaled_ui_amount(&mut state),
+        ExtensionType::Pausable => _pausable(&mut state),
+        ExtensionType::PausableAccount => _pausable_account(&mut state),
+    });
+
+    buffer
+}
+
+fn _uninitialized(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+/// Initialize TransferFeeConfig extension
+fn transfer_fee_config(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let transfer_fee_ext = state.init_extension::<TransferFeeConfig>(false).unwrap();
+    let transfer_fee_config_authority = Pubkey::new_unique();
+    let withdraw_withheld_authority = Pubkey::new_unique();
+    transfer_fee_ext.transfer_fee_config_authority =
+        OptionalNonZeroPubkey::try_from(Some(transfer_fee_config_authority)).unwrap();
+    transfer_fee_ext.withdraw_withheld_authority =
+        OptionalNonZeroPubkey::try_from(Some(withdraw_withheld_authority)).unwrap();
+    transfer_fee_ext.withheld_amount = PodU64::from(0);
+}
+
+fn _transfer_fee_amount(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+/// Initialize MintCloseAuthority extension
+fn mint_close_authority(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
+    let close_authority = OptionalNonZeroPubkey::try_from(Some(Pubkey::new_unique())).unwrap();
+    extension.close_authority = close_authority;
+}
+
+fn _confidential_transfer_mint(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _confidential_transfer_account(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _default_account_state(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _immutable_owner(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _memo_transfer(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _non_transferable(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _interest_bearing_config(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _cpi_guard(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _permanent_delegate(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _non_transferable_account(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _transfer_hook(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _transfer_hook_account(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _confidential_transfer_fee_config(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _confidential_transfer_fee_amount(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _metadata_pointer(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _token_metadata(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _group_pointer(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _token_group(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _group_member_pointer(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _token_group_member(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _confidential_mint_burn(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _scaled_ui_amount(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _pausable(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
+}
+
+fn _pausable_account(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = state;
+    todo!();
 }
