@@ -18,7 +18,7 @@ use {
     solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::Sysvar,
     spl_token_2022::{
-        extension::PodStateWithExtensions,
+        extension::{BaseStateWithExtensions, PodStateWithExtensions},
         instruction::initialize_mint2,
         onchain::{extract_multisig_accounts, invoke_transfer_checked},
         pod::{PodAccount, PodMint},
@@ -108,8 +108,18 @@ pub fn process_create_mint(
 
     // New wrapped mint matches decimals & freeze authority of unwrapped mint
     let unwrapped_mint_data = unwrapped_mint_account.try_borrow_data()?;
-    let unpacked_unwrapped_mint =
-        PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?.base;
+
+    use spl_token_2022::extension::ExtensionType;
+    let unpacked_unwrapped_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
+    let extensions = unpacked_unwrapped_state.get_extension_types()?;
+    extensions
+        .iter()
+        // .for_each(|ext| println!("{:?}", ext));
+        .for_each(|ext| match ext {
+            ExtensionType::TransferFeeConfig => panic!(),
+            _ => {}
+        });
+    let unpacked_unwrapped_mint = unpacked_unwrapped_state.base;
     let decimals = unpacked_unwrapped_mint.decimals;
     let freeze_authority = unpacked_unwrapped_mint
         .freeze_authority
