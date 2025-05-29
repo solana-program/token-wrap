@@ -31,6 +31,20 @@ use {
     std::convert::TryFrom,
 };
 
+use std::fs::OpenOptions;
+use std::io::{self, Write};
+pub const FILE_PATH: &'static str = "log_file.txt";
+
+/// A utility for logging to a file
+pub fn logger(contents: &str, overwrite: bool) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .create(true) // create the file if it doesn't exist
+        .append(overwrite) // append or overwrite
+        .open(FILE_PATH)?;
+
+    file.write_all(contents.as_bytes())?;
+    Ok(())
+}
 pub fn init_mollusk() -> Mollusk {
     let mut mollusk = Mollusk::new(&spl_token_wrap::id(), "spl_token_wrap");
     mollusk_svm_programs_token::token::add_program(&mut mollusk);
