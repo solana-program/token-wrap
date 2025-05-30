@@ -12,7 +12,7 @@ import {
   TransactionMessageWithBlockhashLifetime,
   TransactionSigner,
 } from '@solana/kit';
-import { getTokenDecoder } from '@solana-program/token-2022';
+import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
 import { findWrappedMintAuthorityPda, getUnwrapInstruction, UnwrapInput } from './generated';
 import { Blockhash } from '@solana/rpc-types';
 import { getMintFromTokenAccount, getOwnerFromAccount } from './utilities';
@@ -25,7 +25,6 @@ export interface SingleSignerUnwrapArgs {
   };
   payer: TransactionSigner; // Fee payer and default transfer authority
   wrappedTokenAccount: Address;
-  unwrappedEscrow: Address;
   amount: bigint | number;
   recipientUnwrappedToken: Address;
   // Optional arguments below (will be derived/defaulted if not provided)
@@ -39,7 +38,7 @@ async function resolveUnwrapAddrs({
   rpc,
   payer,
   wrappedTokenAccount,
-  unwrappedEscrow,
+  recipientUnwrappedToken,
   inputUnwrappedMint,
   inputTransferAuthority,
   inputWrappedTokenProgram,
@@ -48,7 +47,7 @@ async function resolveUnwrapAddrs({
   rpc: Rpc<GetAccountInfoApi>;
   payer: TransactionSigner;
   wrappedTokenAccount: Address;
-  unwrappedEscrow: Address;
+  recipientUnwrappedToken: Address;
   inputUnwrappedMint?: Address;
   inputTransferAuthority?: Address | TransactionSigner;
   inputWrappedTokenProgram?: Address;
@@ -57,10 +56,9 @@ async function resolveUnwrapAddrs({
   const wrappedTokenProgram =
     inputWrappedTokenProgram ?? (await getOwnerFromAccount(rpc, wrappedTokenAccount));
   const unwrappedTokenProgram =
-    inputUnwrappedTokenProgram ?? (await getOwnerFromAccount(rpc, unwrappedEscrow));
-
-  // Get unwrapped mint from escrow account
-  const unwrappedMint = inputUnwrappedMint ?? (await getMintFromTokenAccount(rpc, unwrappedEscrow));
+    inputUnwrappedTokenProgram ?? (await getOwnerFromAccount(rpc, recipientUnwrappedToken));
+  const unwrappedMint =
+    inputUnwrappedMint ?? (await getMintFromTokenAccount(rpc, recipientUnwrappedToken));
 
   // Get wrapped mint from the token account being burned
   const wrappedAccountInfo = await fetchEncodedAccount(rpc, wrappedTokenAccount);
@@ -86,7 +84,6 @@ async function resolveUnwrapAddrs({
 
 interface UnwrapTxBuilderArgs {
   payer: TransactionSigner;
-  unwrappedEscrow: Address;
   wrappedTokenAccount: Address;
   amount: bigint | number;
   wrappedMint: Address;
@@ -103,9 +100,8 @@ interface UnwrapTxBuilderArgs {
   multiSigners?: TransactionSigner[];
 }
 
-function buildUnwrapTransaction({
+async function buildUnwrapTransaction({
   payer,
-  unwrappedEscrow,
   recipientUnwrappedToken,
   wrappedMintAuthority,
   unwrappedMint,
@@ -117,7 +113,15 @@ function buildUnwrapTransaction({
   amount,
   blockhash,
   multiSigners = [],
-}: UnwrapTxBuilderArgs): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
+}: UnwrapTxBuilderArgs): Promise<
+  CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime
+> {
+  const [unwrappedEscrow] = await findAssociatedTokenPda({
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    tokenProgram: unwrappedTokenProgram,
+  });
+
   const unwrapInstructionInput: UnwrapInput = {
     unwrappedEscrow,
     recipientUnwrappedToken,
@@ -157,7 +161,6 @@ export async function singleSignerUnwrapTx({
   blockhash,
   payer,
   wrappedTokenAccount,
-  unwrappedEscrow,
   amount,
   recipientUnwrappedToken,
   transferAuthority: inputTransferAuthority,
@@ -176,16 +179,15 @@ export async function singleSignerUnwrapTx({
     rpc,
     payer,
     wrappedTokenAccount,
-    unwrappedEscrow,
+    recipientUnwrappedToken,
     inputUnwrappedMint,
     inputTransferAuthority,
     inputWrappedTokenProgram,
     inputUnwrappedTokenProgram,
   });
 
-  const tx = buildUnwrapTransaction({
+  const tx = await buildUnwrapTransaction({
     payer,
-    unwrappedEscrow,
     recipientUnwrappedToken,
     wrappedMintAuthority,
     unwrappedMint,
@@ -210,8 +212,8 @@ export interface MultiSignerUnWrapTxBuilderArgs extends UnwrapTxBuilderArgs {
 }
 
 // Used to collect signatures
-export function multisigOfflineSignUnwrap(
+export async function multisigOfflineSignUnwrap(
   args: MultiSignerUnWrapTxBuilderArgs,
-): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
+): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
   return buildUnwrapTransaction(args);
 }
