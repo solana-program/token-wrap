@@ -26,8 +26,10 @@ use {
     solana_signature::Signature,
     solana_signer::Signer,
     solana_transaction::Transaction,
-    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::unwrap},
+    spl_token_wrap::{
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
+        instruction::unwrap,
+    },
     std::{
         fmt::{Display, Formatter},
         rc::Rc,
@@ -48,12 +50,6 @@ pub struct UnwrapArgs {
     /// The amount of tokens to unwrap
     #[clap(value_parser)]
     pub amount: u64,
-
-    /// The address of the escrow account holding the unwrapped tokens.
-    /// If not provided, defaults to the Associated Token Account (`ATA`) for
-    /// the wrapped mint authority PDA on the unwrapped mint.
-    #[clap(long, value_parser = parse_pubkey)]
-    pub escrow_account: Option<Pubkey>,
 
     /// Signer source of transfer authority (to burn wrapped tokens)
     /// if different from fee payer
@@ -369,18 +365,11 @@ async fn resolve_addresses(
         get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program);
     let wrapped_mint_authority_address = get_wrapped_mint_authority(&wrapped_mint_address);
 
-    // If not passed, default to the ATA of the `wrapped_mint_authority`
-    let escrow_account = args.escrow_account.unwrap_or_else(|| {
-        println_display(
-            config,
-            "Escrow account not provided, defaulting to `wrapped_mint_authority` ATA.".to_string(),
-        );
-        get_associated_token_address_with_program_id(
-            &wrapped_mint_authority_address,
-            &unwrapped_mint_address,
-            &unwrapped_token_program,
-        )
-    });
+    let escrow_account = get_escrow_address(
+        &unwrapped_mint_address,
+        &unwrapped_token_program,
+        &wrapped_token_program,
+    );
 
     if !config.dry_run {
         println_display(

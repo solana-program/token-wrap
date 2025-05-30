@@ -15,7 +15,10 @@ use {
         },
         pod::{PodAccount, PodCOption},
     },
-    spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority, instruction::unwrap},
+    spl_token_wrap::{
+        get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
+        instruction::unwrap,
+    },
 };
 
 pub struct UnwrapBuilder<'a> {
@@ -81,11 +84,8 @@ impl<'a> UnwrapBuilder<'a> {
         self
     }
 
-    pub fn unwrapped_escrow_account(mut self, account: Account) -> Self {
-        self.unwrapped_escrow_account = Some(KeyedAccount {
-            key: Pubkey::new_unique(),
-            account,
-        });
+    pub fn unwrapped_escrow_account(mut self, account: KeyedAccount) -> Self {
+        self.unwrapped_escrow_account = Some(account);
         self
     }
 
@@ -246,16 +246,22 @@ impl<'a> UnwrapBuilder<'a> {
         );
 
         // Setup escrow account
-        let escrow = self.unwrapped_escrow_account.clone().unwrap_or(
-            self.setup_token_account(
+        let escrow = self.unwrapped_escrow_account.clone().unwrap_or({
+            let mut account = self.setup_token_account(
                 unwrapped_token_program,
                 &unwrapped_mint,
                 &self
                     .unwrapped_escrow_owner
                     .unwrap_or(wrapped_mint_authority),
                 self.escrow_starting_amount.unwrap_or(100_000),
-            ),
-        );
+            );
+            account.key = get_escrow_address(
+                &unwrapped_mint.key,
+                &unwrapped_token_program.id(),
+                &wrapped_token_program.id(),
+            );
+            account
+        });
 
         // Setup recipient account for unwrapped tokens
         let recipient = self.recipient_token_account.clone().unwrap_or_else(|| {

@@ -111,9 +111,7 @@ impl Command {
             Command::Wrap(args) => command_wrap(config, args, matches, wallet_manager).await,
             Command::FindPdas(args) => command_get_pdas(config, args).await,
             Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
-            Command::CreateEscrowAccount(args) => {
-                command_create_escrow_account(config, args, matches, wallet_manager).await
-            }
+            Command::CreateEscrowAccount(args) => command_create_escrow_account(config, args).await,
         }
     }
 }

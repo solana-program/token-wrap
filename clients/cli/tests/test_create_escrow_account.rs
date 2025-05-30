@@ -161,8 +161,6 @@ async fn test_create_escrow_account_with_signer() {
             &env.config_file_path,
             &unwrapped_mint.to_string(),
             &wrapped_token_program_id.to_string(),
-            "--escrow-account-signer",
-            escrow_keypair_file.path().to_str().unwrap(),
             "--output",
             "json",
         ])
@@ -203,18 +201,12 @@ async fn test_create_escrow_account_signer_idempotent() {
 
     let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
 
-    let escrow_keypair = Keypair::new();
-    let escrow_keypair_file = NamedTempFile::new().unwrap();
-    write_keypair_file(&escrow_keypair, &escrow_keypair_file).unwrap();
-
     let args = [
         "create-escrow-account",
         "-C",
         &env.config_file_path,
         &unwrapped_mint.to_string(),
         &wrapped_token_program_id.to_string(),
-        "--escrow-account-signer",
-        escrow_keypair_file.path().to_str().unwrap(),
         "--idempotent",
     ];
     let mut command_a = Command::new(TOKEN_WRAP_CLI_BIN);
@@ -235,15 +227,18 @@ async fn test_create_escrow_account_signer_idempotent() {
             &env.config_file_path,
             &unwrapped_mint.to_string(),
             &wrapped_token_program_id.to_string(),
-            "--escrow-account-signer",
-            escrow_keypair_file.path().to_str().unwrap(),
         ])
         .output()
         .unwrap();
     assert!(!output.status.success());
     let stderr = String::from_utf8(output.stderr).unwrap();
+    let derived_escrow_address = spl_token_wrap::get_escrow_address(
+        &unwrapped_mint,
+        &unwrapped_token_program_id,
+        &wrapped_token_program_id,
+    );
     assert!(stderr
-        .contains(format!("Escrow account {} already exists", escrow_keypair.pubkey()).as_str()));
+        .contains(format!("Escrow account {} already exists", derived_escrow_address).as_str()));
 }
 
 #[tokio::test]

@@ -54,6 +54,16 @@ fn test_incorrect_wrapped_mint_authority() {
 }
 
 #[test]
+fn test_incorrect_escrow_address() {
+    let not_derived_ata = Pubkey::new_unique();
+
+    WrapBuilder::default()
+        .unwrapped_escrow_addr(not_derived_ata)
+        .check(Check::err(TokenWrapError::EscrowMismatch.into()))
+        .execute();
+}
+
+#[test]
 fn test_incorrect_escrow_owner() {
     let incorrect_escrow_owner = Pubkey::new_unique();
     WrapBuilder::default()

@@ -58,7 +58,7 @@ async fn test_wrap_single_signer_with_defaults() {
 
     // Setup escrow with mint_authority as owner
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
-    let escrow_account = create_token_account(
+    let escrow_account = create_associated_token_account(
         &env,
         &unwrapped_token_program,
         &unwrapped_mint,
@@ -75,7 +75,6 @@ async fn test_wrap_single_signer_with_defaults() {
             "-C".to_string(),
             env.config_file_path.clone(),
             unwrapped_token_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
         ])
@@ -140,7 +139,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
 
     // Setup escrow with mint_authority as owner
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
-    let escrow_account = create_token_account(
+    let escrow_account = create_associated_token_account(
         &env,
         &unwrapped_token_program,
         &unwrapped_mint,
@@ -157,7 +156,6 @@ async fn test_wrap_single_signer_with_optional_flags() {
             "-C".to_string(),
             env.config_file_path.clone(),
             unwrapped_token_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
             "--unwrapped-token-program".to_string(),
@@ -268,7 +266,7 @@ async fn test_wrap_with_multisig() {
     .await;
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
-    let escrow_account = create_token_account(
+    let escrow_account = create_associated_token_account(
         &env,
         &unwrapped_token_program,
         &unwrapped_mint,
@@ -297,7 +295,6 @@ async fn test_wrap_with_multisig() {
             "-C".to_string(),
             env.config_file_path.clone(),
             unwrapped_token_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
             "--fee-payer".to_string(),
@@ -341,7 +338,6 @@ async fn test_wrap_with_multisig() {
             "-C".to_string(),
             env.config_file_path.clone(),
             unwrapped_token_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
             "--fee-payer".to_string(),
@@ -385,7 +381,6 @@ async fn test_wrap_with_multisig() {
             "-C".to_string(),
             env.config_file_path.clone(),
             unwrapped_token_account.to_string(),
-            escrow_account.to_string(),
             wrapped_token_program.to_string(),
             wrap_amount.to_string(),
             "--recipient-token-account".to_string(),

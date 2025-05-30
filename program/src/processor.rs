@@ -17,6 +17,7 @@ use {
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::Sysvar,
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
         extension::PodStateWithExtensions,
         instruction::initialize_mint2,
@@ -202,6 +203,16 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
+    let expected_escrow = get_associated_token_address_with_program_id(
+        wrapped_mint_authority.key,
+        unwrapped_mint.key,
+        unwrapped_token_program.key,
+    );
+
+    if *unwrapped_escrow.key != expected_escrow {
+        Err(TokenWrapError::EscrowMismatch)?
+    }
+
     {
         let escrow_data = unwrapped_escrow.try_borrow_data()?;
         let escrow_account = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
@@ -280,6 +291,15 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
     if *wrapped_mint_authority.key != expected_authority {
         Err(TokenWrapError::MintAuthorityMismatch)?
+    }
+
+    let expected_escrow = get_associated_token_address_with_program_id(
+        wrapped_mint_authority.key,
+        unwrapped_mint.key,
+        unwrapped_token_program.key,
+    );
+    if *unwrapped_escrow.key != expected_escrow {
+        Err(TokenWrapError::EscrowMismatch)?
     }
 
     // Burn wrapped tokens

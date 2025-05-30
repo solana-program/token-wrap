@@ -8,7 +8,10 @@ pub mod instruction;
 pub mod processor;
 pub mod state;
 
-use solana_pubkey::Pubkey;
+use {
+    solana_pubkey::Pubkey,
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+};
 
 solana_pubkey::declare_id!("TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR");
 
@@ -111,4 +114,20 @@ pub(crate) fn get_wrapped_mint_backpointer_address_with_seed(
 /// Derive the SPL Token wrapped mint backpointer address
 pub fn get_wrapped_mint_backpointer_address(wrapped_mint: &Pubkey) -> Pubkey {
     get_wrapped_mint_backpointer_address_with_seed(wrapped_mint).0
+}
+
+/// Derive the escrow `ATA` that backs a given wrapped mint.
+pub fn get_escrow_address(
+    unwrapped_mint: &Pubkey,
+    unwrapped_token_program_id: &Pubkey,
+    wrapped_token_program_id: &Pubkey,
+) -> Pubkey {
+    let wrapped_mint = get_wrapped_mint_address(unwrapped_mint, wrapped_token_program_id);
+    let mint_authority = get_wrapped_mint_authority(&wrapped_mint);
+
+    get_associated_token_address_with_program_id(
+        &mint_authority,
+        unwrapped_mint,
+        unwrapped_token_program_id,
+    )
 }
