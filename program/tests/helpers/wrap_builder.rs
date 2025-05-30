@@ -199,9 +199,10 @@ impl<'a> WrapBuilder<'a> {
         *state.base = recipient_account_data;
         state.init_account_type().unwrap();
 
-        // For SPL Token 2022, initialize the TransferFeeAmount extension
-        if let TokenProgram::SplToken2022 { extensions} = token_program {
+        // For SPL Token 2022
+        if let TokenProgram::SplToken2022 { extensions } = token_program {
             if extensions.contains(&ExtensionType::TransferFeeAmount) {
+                // Initialize the TransferFeeAmount extension
                 state.init_extension::<TransferFeeAmount>(true).unwrap();
                 let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
                 fee_extension.withheld_amount = 12.into();
@@ -219,7 +220,8 @@ impl<'a> WrapBuilder<'a> {
         let unwrapped_token_account_authority = self.transfer_authority.clone().unwrap_or_default();
 
         let unwrapped_token_program = self
-            .unwrapped_token_program.clone()
+            .unwrapped_token_program
+            .clone()
             .unwrap_or(TokenProgram::SplToken);
 
         let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {

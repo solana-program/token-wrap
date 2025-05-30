@@ -10,7 +10,8 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
-            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut
+            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType,
+            PodStateWithExtensionsMut,
         },
         pod::{PodAccount, PodCOption},
     },
@@ -195,7 +196,7 @@ impl<'a> UnwrapBuilder<'a> {
         *state.base = account_data;
         state.init_account_type().unwrap();
 
-        if let TokenProgram::SplToken2022 { extensions} = token_program {
+        if let TokenProgram::SplToken2022 { extensions } = token_program {
             if extensions.contains(&ExtensionType::TransferFeeAmount) {
                 state.init_extension::<TransferFeeAmount>(true).unwrap();
                 let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
@@ -214,7 +215,8 @@ impl<'a> UnwrapBuilder<'a> {
         let transfer_authority = self.transfer_authority.clone().unwrap_or_default();
 
         let unwrapped_token_program = self
-            .unwrapped_token_program.clone()
+            .unwrapped_token_program
+            .clone()
             .unwrap_or(TokenProgram::SplToken);
 
         let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
@@ -227,13 +229,13 @@ impl<'a> UnwrapBuilder<'a> {
         });
 
         let wrapped_token_program = self
-            .wrapped_token_program.clone()
+            .wrapped_token_program
+            .clone()
             .unwrap_or(TokenProgram::default_2022());
 
-        let wrapped_mint = self
-            .wrapped_mint
-            .clone()
-            .unwrap_or_else(|| self.get_wrapped_mint(wrapped_token_program.clone(), unwrapped_mint.key));
+        let wrapped_mint = self.wrapped_mint.clone().unwrap_or_else(|| {
+            self.get_wrapped_mint(wrapped_token_program.clone(), unwrapped_mint.key)
+        });
 
         let wrapped_mint_authority = self
             .wrapped_mint_authority

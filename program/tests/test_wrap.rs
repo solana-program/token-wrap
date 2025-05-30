@@ -131,7 +131,9 @@ fn test_successful_spl_token_wrap() {
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
+        .wrapped_token_program(TokenProgram::SplToken2022 {
+            extensions: vec![ExtensionType::TransferFeeAmount],
+        })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -161,7 +163,9 @@ fn test_successful_spl_token_2022_to_token_2022() {
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::default_2022())
-        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
+        .wrapped_token_program(TokenProgram::SplToken2022 {
+            extensions: vec![ExtensionType::TransferFeeAmount],
+        })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -236,7 +240,9 @@ fn test_wrap_with_transfer_hook() {
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::default_2022())
-        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
+        .wrapped_token_program(TokenProgram::SplToken2022 {
+            extensions: vec![ExtensionType::TransferFeeAmount],
+        })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .unwrapped_mint(unwrapped_mint)

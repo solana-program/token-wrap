@@ -43,7 +43,7 @@ pub fn logger(contents: &str, overwrite: bool) -> io::Result<()> {
     if overwrite {
         options.truncate(true); // overwrite (clear contents)
     } else {
-        options.append(true);   // add to existing file
+        options.append(true); // add to existing file
     }
 
     let mut file = options.open(FILE_PATH)?;
@@ -101,11 +101,7 @@ fn _token_2022_with_extension_data(supply: u64) -> Vec<u8> {
 }
 
 // spl_token and spl_token_2022 are the same account structure except for owner
-pub fn setup_mint(
-    token_program: TokenProgram,
-    rent: &Rent,
-    mint_authority: Pubkey,
-) -> Account {
+pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubkey) -> Account {
     let state = spl_token::state::Mint {
         decimals: MINT_DECIMALS,
         is_initialized: true,
@@ -115,7 +111,7 @@ pub fn setup_mint(
     };
     let mut data = match token_program.clone() {
         TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-        TokenProgram::SplToken2022 { extensions} => {
+        TokenProgram::SplToken2022 { extensions } => {
             token_2022_with_extension_data_generic(MINT_SUPPLY, extensions)
         }
     };
@@ -333,7 +329,7 @@ fn token_2022_with_extension_data_generic(supply: u64, extensions: Vec<Extension
     extensions.iter().for_each(|ext| match ext {
         ExtensionType::Uninitialized => _uninitialized(&mut state),
         ExtensionType::TransferFeeConfig => transfer_fee_config(&mut state),
-        ExtensionType::TransferFeeAmount => _transfer_fee_amount(&mut state),
+        ExtensionType::TransferFeeAmount => transfer_fee_amount(&mut state),
         ExtensionType::MintCloseAuthority => mint_close_authority(&mut state),
         ExtensionType::ConfidentialTransferMint => _confidential_transfer_mint(&mut state),
         ExtensionType::ConfidentialTransferAccount => _confidential_transfer_account(&mut state),
@@ -385,9 +381,11 @@ fn transfer_fee_config(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
     transfer_fee_ext.withheld_amount = PodU64::from(0);
 }
 
-fn _transfer_fee_amount(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
-    let _ = state;
-    todo!();
+fn transfer_fee_amount(state: &mut PodStateWithExtensionsMut<'_, PodMint>) {
+    let _ = logger(
+        &format!("transfer_fee_amount reached by {:?}\n", state),
+        false,
+    );
 }
 
 /// Initialize MintCloseAuthority extension

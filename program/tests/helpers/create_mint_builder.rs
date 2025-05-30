@@ -31,9 +31,7 @@ impl KeyedAccount {
 #[derive(Debug, Clone)]
 pub enum TokenProgram {
     SplToken,
-    SplToken2022 {
-        extensions: Vec<ExtensionType>
-    },
+    SplToken2022 { extensions: Vec<ExtensionType> },
 }
 
 impl TokenProgram {
@@ -47,7 +45,9 @@ impl TokenProgram {
     pub fn keyed_account(&self) -> (Pubkey, Account) {
         match self {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::SplToken2022 { extensions: _} => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 { extensions: _ } => {
+                mollusk_svm_programs_token::token2022::keyed_account()
+            }
         }
     }
 
@@ -86,7 +86,9 @@ impl Default for CreateMintBuilder<'_> {
         ];
         Self {
             mollusk: init_mollusk(),
-            wrapped_token_program: TokenProgram::SplToken2022 { extensions: EXTENSIONS.into() },
+            wrapped_token_program: TokenProgram::SplToken2022 {
+                extensions: EXTENSIONS.into(),
+            },
             wrapped_token_program_addr: None,
             unwrapped_mint_addr: None,
             unwrapped_mint_account: None,
@@ -194,7 +196,9 @@ impl<'a> CreateMintBuilder<'a> {
 
         let mut keyed_token_program = match self.wrapped_token_program {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::SplToken2022 { extensions: _ } => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 { extensions: _ } => {
+                mollusk_svm_programs_token::token2022::keyed_account()
+            }
         };
         keyed_token_program.0 = wrapped_token_program_id;
 
