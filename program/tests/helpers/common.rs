@@ -37,11 +37,16 @@ pub const FILE_PATH: &'static str = "log_file.txt";
 
 /// A utility for logging to a file
 pub fn logger(contents: &str, overwrite: bool) -> io::Result<()> {
-    let mut file = OpenOptions::new()
-        .create(true) // create the file if it doesn't exist
-        .append(overwrite) // append or overwrite
-        .open(FILE_PATH)?;
+    let mut options = OpenOptions::new();
+    options.create(true).write(true);
 
+    if overwrite {
+        options.truncate(true); // overwrite (clear contents)
+    } else {
+        options.append(true);   // add to existing file
+    }
+
+    let mut file = options.open(FILE_PATH)?;
     file.write_all(contents.as_bytes())?;
     Ok(())
 }
