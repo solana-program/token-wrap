@@ -2,10 +2,9 @@
 
 use {
     crate::{
-        error::TokenWrapError, get_escrow_address, get_wrapped_mint_address,
-        get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
-        get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
-        get_wrapped_mint_backpointer_address_signer_seeds,
+        error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
+        get_wrapped_mint_authority, get_wrapped_mint_authority_signer_seeds,
+        get_wrapped_mint_authority_with_seed, get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction, state::Backpointer,
     },
@@ -18,6 +17,7 @@ use {
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::Sysvar,
+    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
         extension::PodStateWithExtensions,
         instruction::initialize_mint2,
@@ -203,11 +203,12 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
-    let expected_escrow = get_escrow_address(
+    let expected_escrow = get_associated_token_address_with_program_id(
+        wrapped_mint_authority.key,
         unwrapped_mint.key,
         unwrapped_token_program.key,
-        wrapped_token_program.key,
     );
+
     if *unwrapped_escrow.key != expected_escrow {
         Err(TokenWrapError::EscrowMismatch)?
     }
@@ -292,10 +293,10 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
-    let expected_escrow = get_escrow_address(
+    let expected_escrow = get_associated_token_address_with_program_id(
+        wrapped_mint_authority.key,
         unwrapped_mint.key,
         unwrapped_token_program.key,
-        wrapped_token_program.key,
     );
     if *unwrapped_escrow.key != expected_escrow {
         Err(TokenWrapError::EscrowMismatch)?

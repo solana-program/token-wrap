@@ -1,6 +1,6 @@
 use {
     crate::{
-        common::{parse_pubkey, parse_token_program},
+        common::{get_account_owner, parse_pubkey, parse_token_program},
         config::Config,
         output::format_output,
         CommandResult,
@@ -22,10 +22,6 @@ pub struct FindPdasArgs {
     /// The address of the mint to wrap
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
-
-    /// The address of the token program that the unwrapped tokens belong to
-    #[clap(value_parser = parse_token_program)]
-    pub unwrapped_token_program: Pubkey,
 
     /// The address of the token program that the wrapped mint should belong to
     #[clap(value_parser = parse_token_program)]
@@ -85,9 +81,13 @@ pub async fn command_get_pdas(config: &Config, args: FindPdasArgs) -> CommandRes
         get_wrapped_mint_address(&args.unwrapped_mint, &args.wrapped_token_program);
     let wrapped_backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+
+    let unwrapped_token_program =
+        get_account_owner(&config.rpc_client, &args.unwrapped_mint).await?;
+
     let unwrapped_escrow = get_escrow_address(
         &args.unwrapped_mint,
-        &args.unwrapped_token_program,
+        &unwrapped_token_program,
         &args.wrapped_token_program,
     );
 
