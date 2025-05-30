@@ -12,7 +12,7 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         error::TokenError,
-        extension::PodStateWithExtensions,
+        extension::{ExtensionType, PodStateWithExtensions},
         pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
@@ -124,7 +124,7 @@ fn test_successful_spl_token_2022_to_spl_token_unwrap() {
     let wrap_result = UnwrapBuilder::default()
         .wrapped_token_starting_amount(source_starting_amount)
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .escrow_starting_amount(escrow_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .unwrap_amount(unwrap_amount)
@@ -148,7 +148,7 @@ fn test_successful_spl_token_to_spl_token_2022_unwrap() {
     let unwrap_amount = 40_000;
 
     let wrap_result = UnwrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .wrapped_token_program(TokenProgram::SplToken)
         .escrow_starting_amount(escrow_starting_amount)
         .wrapped_token_starting_amount(source_starting_amount)
@@ -174,8 +174,8 @@ fn test_successful_token_2022_to_token_2022_unwrap() {
     let unwrap_amount = 100_000;
 
     let wrap_result = UnwrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .escrow_starting_amount(escrow_starting_amount)
         .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
@@ -203,7 +203,7 @@ fn test_unwrap_with_spl_token_multisig() {
 
     let wrap_result = UnwrapBuilder::default()
         .transfer_authority(multisig)
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .wrapped_token_program(TokenProgram::SplToken)
         .escrow_starting_amount(escrow_starting_amount)
         .wrapped_token_starting_amount(source_starting_amount)
@@ -223,7 +223,7 @@ fn test_unwrap_with_spl_token_multisig() {
 
 #[test]
 fn test_unwrap_with_spl_token_2022_multisig() {
-    let multisig = setup_multisig(TokenProgram::SplToken2022);
+    let multisig = setup_multisig(TokenProgram::default_2022());
 
     let source_starting_amount = 101;
     let recipient_starting_amount = 101;
@@ -233,7 +233,7 @@ fn test_unwrap_with_spl_token_2022_multisig() {
     let wrap_result = UnwrapBuilder::default()
         .transfer_authority(multisig)
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .escrow_starting_amount(escrow_starting_amount)
         .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
@@ -288,8 +288,8 @@ fn test_unwrap_with_transfer_hook() {
 
     // Execute the unwrap instruction using our UnwrapBuilder.
     let unwrap_result = UnwrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .wrapped_token_starting_amount(source_starting_amount)
         .recipient_starting_amount(recipient_starting_amount)
         .recipient_token_account(recipient_token_account)
@@ -322,6 +322,10 @@ fn test_unwrap_with_transfer_hook() {
 
 #[test]
 fn test_successfully_unwraps_to_native_mint() {
+    const EXTENSIONS: [ExtensionType; 2] = [
+        ExtensionType::MintCloseAuthority,
+        ExtensionType::TransferFeeConfig,
+    ];
     let source_starting_amount = 50_000;
     let recipient_starting_amount = 25_000;
     let escrow_starting_amount = 42_000;
@@ -332,11 +336,14 @@ fn test_successfully_unwraps_to_native_mint() {
         signers: vec![],
     };
 
-    let (native_mint, native_token_account) =
-        setup_native_token(recipient_starting_amount, &transfer_authority);
+    let (native_mint, native_token_account) = setup_native_token(
+        recipient_starting_amount,
+        &transfer_authority,
+        EXTENSIONS.into(),
+    );
 
     let wrap_result = UnwrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::SplToken2022 { extensions: EXTENSIONS.into() })
         .unwrapped_mint(native_mint)
         .transfer_authority(transfer_authority)
         .recipient_token_account(native_token_account)

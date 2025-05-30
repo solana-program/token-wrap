@@ -4,6 +4,7 @@ use {
     solana_account::Account,
     solana_pubkey::Pubkey,
     solana_sdk_ids::system_program,
+    spl_token_2022::extension::ExtensionType,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
@@ -27,25 +28,38 @@ impl KeyedAccount {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum TokenProgram {
     SplToken,
-    SplToken2022,
+    SplToken2022 {
+        extensions: Vec<ExtensionType>
+    },
 }
 
 impl TokenProgram {
     pub fn id(&self) -> Pubkey {
         match self {
             TokenProgram::SplToken => spl_token::id(),
-            TokenProgram::SplToken2022 => spl_token_2022::id(),
+            TokenProgram::SplToken2022 { extensions: _ } => spl_token_2022::id(),
         }
     }
 
     pub fn keyed_account(&self) -> (Pubkey, Account) {
         match self {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 { extensions: _} => mollusk_svm_programs_token::token2022::keyed_account(),
         }
+    }
+
+    pub fn extensions(&self) -> Vec<ExtensionType> {
+        match self {
+            TokenProgram::SplToken => vec![],
+            TokenProgram::SplToken2022 { extensions } => extensions.clone(),
+        }
+    }
+
+    pub fn default_2022() -> Self {
+        TokenProgram::SplToken2022 { extensions: vec![] }
     }
 }
 
@@ -66,9 +80,13 @@ pub struct CreateMintBuilder<'a> {
 
 impl Default for CreateMintBuilder<'_> {
     fn default() -> Self {
+        const EXTENSIONS: [ExtensionType; 2] = [
+            ExtensionType::MintCloseAuthority,
+            ExtensionType::TransferFeeConfig,
+        ];
         Self {
             mollusk: init_mollusk(),
-            wrapped_token_program: TokenProgram::SplToken2022,
+            wrapped_token_program: TokenProgram::SplToken2022 { extensions: EXTENSIONS.into() },
             wrapped_token_program_addr: None,
             unwrapped_mint_addr: None,
             unwrapped_mint_account: None,
@@ -141,7 +159,7 @@ impl<'a> CreateMintBuilder<'a> {
 
         let unwrapped_mint_account = self.unwrapped_mint_account.clone().unwrap_or_else(|| {
             setup_mint(
-                self.unwrapped_token_program,
+                self.unwrapped_token_program.clone(),
                 &self.mollusk.sysvars.rent,
                 Pubkey::new_unique(),
             )
@@ -176,7 +194,7 @@ impl<'a> CreateMintBuilder<'a> {
 
         let mut keyed_token_program = match self.wrapped_token_program {
             TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+            TokenProgram::SplToken2022 { extensions: _ } => mollusk_svm_programs_token::token2022::keyed_account(),
         };
         keyed_token_program.0 = wrapped_token_program_id;
 

@@ -13,7 +13,7 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     spl_token_2022::{
-        extension::PodStateWithExtensions,
+        extension::{ExtensionType, PodStateWithExtensions},
         pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
@@ -131,7 +131,7 @@ fn test_successful_spl_token_wrap() {
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -145,7 +145,7 @@ fn test_successful_spl_token_2022_to_spl_token_wrap() {
     let wrap_amount = 7_543;
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
         .wrapped_token_program(TokenProgram::SplToken)
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
@@ -160,8 +160,8 @@ fn test_successful_spl_token_2022_to_token_2022() {
     let wrap_amount = 599;
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -188,11 +188,11 @@ fn test_wrap_with_spl_token_multisig() {
 fn test_wrap_with_token_2022_multisig() {
     let starting_amount = 10_000;
     let wrap_amount = 252;
-    let multisig = setup_multisig(TokenProgram::SplToken2022);
+    let multisig = setup_multisig(TokenProgram::default_2022());
 
     let wrap_result = WrapBuilder::default()
         .transfer_authority(multisig)
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .execute();
@@ -235,8 +235,8 @@ fn test_wrap_with_transfer_hook() {
     let starting_amount = 50_000;
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
+        .wrapped_token_program(TokenProgram::SplToken2022 { extensions: vec![ExtensionType::MintCloseAuthority, ExtensionType::TransferFeeConfig] })
         .recipient_starting_amount(starting_amount)
         .wrap_amount(wrap_amount)
         .unwrapped_mint(unwrapped_mint)
@@ -261,6 +261,10 @@ fn test_wrap_with_transfer_hook() {
 
 #[test]
 fn test_successfully_wraps_native_mint() {
+    const EXTENSIONS: [ExtensionType; 2] = [
+        ExtensionType::MintCloseAuthority,
+        ExtensionType::TransferFeeConfig,
+    ];
     let starting_amount = 50_000;
     let wrap_amount = 12_555;
 
@@ -269,10 +273,11 @@ fn test_successfully_wraps_native_mint() {
         signers: vec![],
     };
 
-    let (native_mint, native_token_account) = setup_native_token(wrap_amount, &transfer_authority);
+    let (native_mint, native_token_account) =
+        setup_native_token(wrap_amount, &transfer_authority, EXTENSIONS.into());
 
     let wrap_result = WrapBuilder::default()
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
         .unwrapped_token_account(native_token_account)
         .unwrapped_mint(native_mint)
         .transfer_authority(transfer_authority)

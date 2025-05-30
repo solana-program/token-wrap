@@ -170,7 +170,7 @@ fn test_improperly_derived_addresses_fail() {
 fn test_successful_spl_token_to_spl_token_2022() {
     let result = CreateMintBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
-        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::default_2022())
         .execute();
 
     // Assert state of resulting wrapped mint account
@@ -210,7 +210,7 @@ fn test_successful_spl_token_2022_to_spl_token() {
 
     let result = CreateMintBuilder::default()
         .unwrapped_mint_addr(unwrapped_mint_address)
-        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .unwrapped_token_program(TokenProgram::default_2022())
         .wrapped_mint_addr(wrapped_mint_address)
         .wrapped_token_program(TokenProgram::SplToken)
         .execute();

@@ -10,8 +10,7 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
-            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType,
-            PodStateWithExtensionsMut,
+            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut
         },
         pod::{PodAccount, PodCOption},
     },
@@ -152,7 +151,11 @@ impl<'a> UnwrapBuilder<'a> {
 
         self.wrapped_mint.clone().unwrap_or(KeyedAccount {
             key: wrapped_mint_addr,
-            account: setup_mint(token_program, &self.mollusk.sysvars.rent, mint_authority),
+            account: setup_mint(
+                token_program.clone(),
+                &self.mollusk.sysvars.rent,
+                mint_authority,
+            ),
         })
     }
 
@@ -163,10 +166,7 @@ impl<'a> UnwrapBuilder<'a> {
         owner: &Pubkey,
         starting_amount: u64,
     ) -> KeyedAccount {
-        let extensions = match token_program {
-            TokenProgram::SplToken => vec![],
-            TokenProgram::SplToken2022 => vec![ExtensionType::TransferFeeAmount],
-        };
+        let extensions = token_program.extensions();
 
         let account_size =
             ExtensionType::try_calculate_account_len::<PodAccount>(&extensions).unwrap();
@@ -195,10 +195,12 @@ impl<'a> UnwrapBuilder<'a> {
         *state.base = account_data;
         state.init_account_type().unwrap();
 
-        if let TokenProgram::SplToken2022 = token_program {
-            state.init_extension::<TransferFeeAmount>(true).unwrap();
-            let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
-            fee_extension.withheld_amount = 12.into();
+        if let TokenProgram::SplToken2022 { extensions} = token_program {
+            if extensions.contains(&ExtensionType::TransferFeeAmount) {
+                state.init_extension::<TransferFeeAmount>(true).unwrap();
+                let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
+                fee_extension.withheld_amount = 12.into();
+            }
         }
 
         KeyedAccount {
@@ -212,26 +214,26 @@ impl<'a> UnwrapBuilder<'a> {
         let transfer_authority = self.transfer_authority.clone().unwrap_or_default();
 
         let unwrapped_token_program = self
-            .unwrapped_token_program
+            .unwrapped_token_program.clone()
             .unwrap_or(TokenProgram::SplToken);
 
         let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
             key: Pubkey::new_unique(),
             account: setup_mint(
-                unwrapped_token_program,
+                unwrapped_token_program.clone(),
                 &self.mollusk.sysvars.rent,
                 Pubkey::new_unique(),
             ),
         });
 
         let wrapped_token_program = self
-            .wrapped_token_program
-            .unwrap_or(TokenProgram::SplToken2022);
+            .wrapped_token_program.clone()
+            .unwrap_or(TokenProgram::default_2022());
 
         let wrapped_mint = self
             .wrapped_mint
             .clone()
-            .unwrap_or_else(|| self.get_wrapped_mint(wrapped_token_program, unwrapped_mint.key));
+            .unwrap_or_else(|| self.get_wrapped_mint(wrapped_token_program.clone(), unwrapped_mint.key));
 
         let wrapped_mint_authority = self
             .wrapped_mint_authority
@@ -239,7 +241,7 @@ impl<'a> UnwrapBuilder<'a> {
 
         // Setup wrapped token account to be unwrapped
         let wrapped_token_account = self.setup_token_account(
-            wrapped_token_program,
+            wrapped_token_program.clone(),
             &wrapped_mint,
             &transfer_authority.keyed_account.key,
             self.wrapped_token_starting_amount.unwrap_or(unwrap_amount),
@@ -248,7 +250,7 @@ impl<'a> UnwrapBuilder<'a> {
         // Setup escrow account
         let escrow = self.unwrapped_escrow_account.clone().unwrap_or(
             self.setup_token_account(
-                unwrapped_token_program,
+                unwrapped_token_program.clone(),
                 &unwrapped_mint,
                 &self
                     .unwrapped_escrow_owner
@@ -260,7 +262,7 @@ impl<'a> UnwrapBuilder<'a> {
         // Setup recipient account for unwrapped tokens
         let recipient = self.recipient_token_account.clone().unwrap_or_else(|| {
             self.setup_token_account(
-                unwrapped_token_program,
+                unwrapped_token_program.clone(),
                 &unwrapped_mint,
                 &Pubkey::new_unique(),
                 self.recipient_starting_amount.unwrap_or(0),

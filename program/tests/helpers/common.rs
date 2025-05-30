@@ -96,7 +96,11 @@ fn _token_2022_with_extension_data(supply: u64) -> Vec<u8> {
 }
 
 // spl_token and spl_token_2022 are the same account structure except for owner
-pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubkey) -> Account {
+pub fn setup_mint(
+    token_program: TokenProgram,
+    rent: &Rent,
+    mint_authority: Pubkey,
+) -> Account {
     let state = spl_token::state::Mint {
         decimals: MINT_DECIMALS,
         is_initialized: true,
@@ -104,15 +108,11 @@ pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubk
         mint_authority: COption::Some(mint_authority),
         freeze_authority: COption::Some(FREEZE_AUTHORITY),
     };
-    let mut data = match token_program {
+    let mut data = match token_program.clone() {
         TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-        TokenProgram::SplToken2022 => token_2022_with_extension_data_generic(
-            MINT_SUPPLY,
-            vec![
-                ExtensionType::MintCloseAuthority,
-                ExtensionType::TransferFeeConfig,
-            ],
-        ),
+        TokenProgram::SplToken2022 { extensions} => {
+            token_2022_with_extension_data_generic(MINT_SUPPLY, extensions)
+        }
     };
     state.pack_into_slice(&mut data);
 
@@ -268,11 +268,15 @@ pub fn setup_validation_state_account(
     }
 }
 
-pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAccount, Account) {
+pub fn setup_native_token(
+    balance: u64,
+    owner: &TransferAuthority,
+    extensions: Vec<ExtensionType>,
+) -> (KeyedAccount, Account) {
     let native_mint = KeyedAccount {
         key: spl_token_2022::native_mint::id(),
         account: setup_mint(
-            TokenProgram::SplToken2022,
+            TokenProgram::SplToken2022 { extensions },
             &Rent::default(),
             Pubkey::new_unique(),
         ),
