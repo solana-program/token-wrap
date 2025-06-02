@@ -1,23 +1,23 @@
 export * from './generated';
 
-export { createMintTx, type CreateMintTxArgs, type CreateMintTxResult } from './create-mint';
+export { createMint, type CreateMintArgs, type CreateMintResult } from './create-mint';
 export {
-  singleSignerWrapTx,
+  singleSignerWrap,
   type SingleSignerWrapArgs,
   type SingleSignerWrapResult,
-  multisigOfflineSignWrapTx,
-  type MultiSignerWrapTxBuilderArgs,
+  multisigOfflineSignWrap,
+  type MultiSignerWrapIxBuilderArgs,
 } from './wrap';
 export {
-  singleSignerUnwrapTx,
+  singleSignerUnwrap,
   type SingleSignerUnwrapArgs,
   type SingleSignerUnwrapResult,
   multisigOfflineSignUnwrap,
 } from './unwrap';
 export {
-  createEscrowAccountTx,
-  type CreateEscrowAccountTxArgs,
-  type CreateEscrowAccountTxResult,
+  createEscrowAccount,
+  type CreateEscrowAccountArgs,
+  type CreateEscrowAccountResult,
   combinedMultisigTx,
   type MultiSigCombineArgs,
 } from './utilities';

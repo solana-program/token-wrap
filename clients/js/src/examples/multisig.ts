@@ -1,26 +1,31 @@
 import {
   address,
+  appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,
   createNoopSigner,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
+  createTransactionMessage,
   getBase58Decoder,
   getSignatureFromTransaction,
   partiallySignTransactionMessageWithSigners,
+  pipe,
   sendAndConfirmTransactionFactory,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import {
   findWrappedMintAuthorityPda,
   findWrappedMintPda,
-  multisigOfflineSignWrapTx,
   combinedMultisigTx,
-  createEscrowAccountTx,
-  createMintTx,
+  createMint,
   multisigOfflineSignUnwrap,
+  createEscrowAccount,
+  multisigOfflineSignWrap,
 } from '../index';
-import { createTokenAccountTx, getOwnerFromAccount } from '../utilities';
+import { createTokenAccount, getOwnerFromAccount } from '../utilities';
 
 // Replace these consts with your own
 const PAYER_KEYPAIR_BYTES = new Uint8Array([
@@ -59,38 +64,55 @@ async function main() {
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
 
   // Initialize the wrapped mint
-  const createMintMessage = await createMintTx({
+  const createMintHelper = await createMint({
     rpc,
-    blockhash,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,
     idempotent: true,
   });
-  const signedCreateMintTx = await signTransactionMessageWithSigners(createMintMessage.tx);
-  await sendAndConfirm(signedCreateMintTx, { commitment: 'confirmed' });
-  const createMintSignature = getSignatureFromTransaction(signedCreateMintTx);
+  const createMintTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(createMintHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
+  );
+  await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
+  const createMintSignature = getSignatureFromTransaction(createMintTx);
 
   console.log('======== Create Mint Successful ========');
-  console.log('Wrapped Mint:', createMintMessage.wrappedMint);
-  console.log('Backpointer:', createMintMessage.backpointer);
-  console.log('Funded wrapped mint lamports:', createMintMessage.fundedWrappedMintLamports);
-  console.log('Funded backpointer lamports:', createMintMessage.fundedBackpointerLamports);
+  console.log('Wrapped Mint:', createMintHelper.wrappedMint);
+  console.log('Backpointer:', createMintHelper.backpointer);
+  console.log('Funded wrapped mint lamports:', createMintHelper.fundedWrappedMintLamports);
+  console.log('Funded backpointer lamports:', createMintHelper.fundedBackpointerLamports);
   console.log('Signature:', createMintSignature);
 
   // === Setup accounts needed for wrap ===
 
   // Create escrow account that with hold unwrapped tokens
-  const createEscrowMessage = await createEscrowAccountTx({
+  const createEscrowHelper = await createEscrowAccount({
     rpc,
-    blockhash,
     payer,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  if (!createEscrowMessage.exists) {
-    const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
-    await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  if ('exists' in createEscrowHelper && !createEscrowHelper.exists) {
+    const createEscrowTx = await pipe(
+      createTransactionMessage({ version: 0 }),
+      tx => setTransactionMessageFeePayerSigner(payer, tx),
+      tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+      tx => appendTransactionMessageInstructions(createEscrowHelper.ixs, tx),
+      tx => signTransactionMessageWithSigners(tx),
+    );
+    await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
+    const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
+
+    console.log('======== Create Escrow Successful ========');
+    console.log('Escrow address:', createEscrowHelper.address);
+    console.log('Signature:', createEscrowSignature);
+  } else {
+    console.log('======== Escrow already exists, skipping creation ========');
   }
 
   // Create recipient account where wrapped tokens will be minted to
@@ -98,18 +120,21 @@ async function main() {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const recipientTokenAccountMessage = await createTokenAccountTx({
+  const recipientTokenAccountHelper = await createTokenAccount({
     rpc,
-    blockhash,
     payer,
     mint: wrappedMint,
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     owner: MULTISIG_SPL_TOKEN_2022,
   });
-  const signedRecipientAccountTx = await signTransactionMessageWithSigners(
-    recipientTokenAccountMessage.tx,
+  const recipientTokenAccountTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(recipientTokenAccountHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
   );
-  await sendAndConfirm(signedRecipientAccountTx, { commitment: 'confirmed' });
+  await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, UNWRAPPED_TOKEN_ACCOUNT);
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
@@ -121,13 +146,13 @@ async function main() {
 
   // Two signers and the payer sign the transaction independently
 
-  const wrapTxA = await multisigOfflineSignWrapTx({
+  const wrapTxA = await multisigOfflineSignWrap({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientWrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
@@ -137,13 +162,13 @@ async function main() {
   });
   const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
 
-  const wrapTxB = await multisigOfflineSignWrapTx({
+  const wrapTxB = await multisigOfflineSignWrap({
     payer: createNoopSigner(payer.address),
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientWrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
@@ -153,13 +178,13 @@ async function main() {
   });
   const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
 
-  const wrapTxC = await multisigOfflineSignWrapTx({
+  const wrapTxC = await multisigOfflineSignWrap({
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientWrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     transferAuthority: MULTISIG_SPL_TOKEN,
     wrappedMint,
     wrappedMintAuthority,
@@ -196,7 +221,7 @@ async function main() {
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    wrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
     transferAuthority: MULTISIG_SPL_TOKEN_2022,
     wrappedMint,
@@ -212,7 +237,7 @@ async function main() {
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    wrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
     transferAuthority: MULTISIG_SPL_TOKEN_2022,
     wrappedMint,
@@ -228,7 +253,7 @@ async function main() {
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    wrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
     transferAuthority: MULTISIG_SPL_TOKEN_2022,
     wrappedMint,

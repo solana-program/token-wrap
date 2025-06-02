@@ -1,18 +1,11 @@
 import {
   Address,
-  appendTransactionMessageInstructions,
-  CompilableTransactionMessage,
-  createTransactionMessage,
   fetchEncodedAccount,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
   IInstruction,
   KeyPairSigner,
-  pipe,
   Rpc,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
-  TransactionMessageWithBlockhashLifetime,
 } from '@solana/kit';
 import { getMintSize } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
@@ -22,36 +15,30 @@ import {
   getBackpointerSize,
   getCreateMintInstruction,
 } from './generated';
-import { Blockhash } from '@solana/rpc-types';
 
-export interface CreateMintTxArgs {
+export interface CreateMintArgs {
   rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
   payer: KeyPairSigner;
   idempotent: boolean;
 }
 
-export interface CreateMintTxResult {
+export interface CreateMintResult {
   wrappedMint: Address;
   backpointer: Address;
   fundedWrappedMintLamports: bigint;
   fundedBackpointerLamports: bigint;
-  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+  ixs: IInstruction[];
 }
 
-export async function createMintTx({
+export async function createMint({
   rpc,
-  blockhash,
   unwrappedMint,
   wrappedTokenProgram,
   payer,
   idempotent = false,
-}: CreateMintTxArgs): Promise<CreateMintTxResult> {
+}: CreateMintArgs): Promise<CreateMintResult> {
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint,
     wrappedTokenProgram: wrappedTokenProgram,
@@ -113,17 +100,10 @@ export async function createMintTx({
     }),
   );
 
-  const tx = pipe(
-    createTransactionMessage({ version: 0 }),
-    tx => setTransactionMessageFeePayerSigner(payer, tx),
-    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    tx => appendTransactionMessageInstructions(instructions, tx),
-  );
-
   return {
     wrappedMint,
     backpointer,
-    tx,
+    ixs: instructions,
     fundedWrappedMintLamports,
     fundedBackpointerLamports,
   };

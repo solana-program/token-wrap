@@ -1,10 +1,10 @@
 # @solana-program/token-wrap
 
-## 1.1.0
+## 2.0.0
 
-### Minor Changes
+### Major Changes
 
-- createEscrowAccountTx initializes ATA
+- Single signer helpers return instructions, not transactions
 
 ## 1.0.0
 

@@ -5,6 +5,7 @@ import {
   createTransactionMessage,
   fetchEncodedAccount,
   GetAccountInfoApi,
+  IInstruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
@@ -14,15 +15,11 @@ import {
 } from '@solana/kit';
 import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
 import { findWrappedMintAuthorityPda, getUnwrapInstruction, UnwrapInput } from './generated';
-import { Blockhash } from '@solana/rpc-types';
 import { getMintFromTokenAccount, getOwnerFromAccount } from './utilities';
+import { Blockhash } from '@solana/rpc-types';
 
 export interface SingleSignerUnwrapArgs {
   rpc: Rpc<GetAccountInfoApi>;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   payer: TransactionSigner; // Fee payer and default transfer authority
   wrappedTokenAccount: Address;
   amount: bigint | number;
@@ -83,7 +80,6 @@ async function resolveUnwrapAddrs({
 }
 
 interface UnwrapTxBuilderArgs {
-  payer: TransactionSigner;
   wrappedTokenAccount: Address;
   amount: bigint | number;
   wrappedMint: Address;
@@ -92,16 +88,11 @@ interface UnwrapTxBuilderArgs {
   recipientUnwrappedToken: Address;
   unwrappedTokenProgram: Address;
   wrappedTokenProgram: Address;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   transferAuthority: Address | TransactionSigner;
   multiSigners?: TransactionSigner[];
 }
 
 async function buildUnwrapTransaction({
-  payer,
   recipientUnwrappedToken,
   wrappedMintAuthority,
   unwrappedMint,
@@ -111,11 +102,8 @@ async function buildUnwrapTransaction({
   wrappedMint,
   transferAuthority,
   amount,
-  blockhash,
   multiSigners = [],
-}: UnwrapTxBuilderArgs): Promise<
-  CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime
-> {
+}: UnwrapTxBuilderArgs): Promise<IInstruction> {
   const [unwrappedEscrow] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
     mint: unwrappedMint,
@@ -136,18 +124,11 @@ async function buildUnwrapTransaction({
     multiSigners,
   };
 
-  const unwrapInstruction = getUnwrapInstruction(unwrapInstructionInput);
-
-  return pipe(
-    createTransactionMessage({ version: 0 }),
-    tx => setTransactionMessageFeePayerSigner(payer, tx),
-    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    tx => appendTransactionMessageInstructions([unwrapInstruction], tx),
-  );
+  return getUnwrapInstruction(unwrapInstructionInput);
 }
 
 export interface SingleSignerUnwrapResult {
-  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+  ixs: IInstruction[];
   recipientUnwrappedToken: Address;
   amount: bigint;
 }
@@ -156,9 +137,8 @@ export interface SingleSignerUnwrapResult {
  * Creates, signs (single signer or default authority), and sends an unwrap transaction.
  * Derives necessary PDAs and default accounts if not provided.
  */
-export async function singleSignerUnwrapTx({
+export async function singleSignerUnwrap({
   rpc,
-  blockhash,
   payer,
   wrappedTokenAccount,
   amount,
@@ -186,8 +166,7 @@ export async function singleSignerUnwrapTx({
     inputUnwrappedTokenProgram,
   });
 
-  const tx = await buildUnwrapTransaction({
-    payer,
+  const ix = await buildUnwrapTransaction({
     recipientUnwrappedToken,
     wrappedMintAuthority,
     unwrappedMint,
@@ -197,17 +176,21 @@ export async function singleSignerUnwrapTx({
     wrappedMint,
     transferAuthority,
     amount,
-    blockhash,
   });
 
   return {
     recipientUnwrappedToken,
     amount: BigInt(amount),
-    tx,
+    ixs: [ix],
   };
 }
 
 export interface MultiSignerUnWrapTxBuilderArgs extends UnwrapTxBuilderArgs {
+  payer: TransactionSigner;
+  blockhash: {
+    blockhash: Blockhash;
+    lastValidBlockHeight: bigint;
+  };
   multiSigners: TransactionSigner[];
 }
 
@@ -215,5 +198,12 @@ export interface MultiSignerUnWrapTxBuilderArgs extends UnwrapTxBuilderArgs {
 export async function multisigOfflineSignUnwrap(
   args: MultiSignerUnWrapTxBuilderArgs,
 ): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
-  return buildUnwrapTransaction(args);
+  const unwrapIx = await buildUnwrapTransaction(args);
+
+  return pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(args.payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(args.blockhash, tx),
+    tx => appendTransactionMessageInstructions([unwrapIx], tx),
+  );
 }
