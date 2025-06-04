@@ -16,12 +16,16 @@ use {
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
-    solana_sysvar::Sysvar,
+    solana_sysvar::{clock::Clock, Sysvar},
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
-        extension::PodStateWithExtensions,
+        extension::{
+            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, PodStateWithExtensions,
+        },
         instruction::initialize_mint2,
-        onchain::{extract_multisig_accounts, invoke_transfer_checked},
+        onchain::{
+            extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
+        },
         pod::{PodAccount, PodMint},
     },
 };
@@ -225,17 +229,45 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
     let unwrapped_mint_data = unwrapped_mint.try_borrow_data()?;
     let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-    invoke_transfer_checked(
-        unwrapped_token_program.key,
-        unwrapped_token_account.clone(),
-        unwrapped_mint.clone(),
-        unwrapped_escrow.clone(),
-        transfer_authority.clone(),
-        &accounts[9..],
-        amount,
-        unwrapped_mint_state.base.decimals,
-        &[],
-    )?;
+
+    // Calculate amount to mint (subtracting for possible transfer fee)
+    let clock = Clock::get()?.epoch;
+    let fee = unwrapped_mint_state
+        .get_extension::<TransferFeeConfig>()
+        .ok()
+        .and_then(|cfg| cfg.calculate_epoch_fee(clock, amount))
+        .unwrap_or(0);
+    let net_amount = amount
+        .checked_sub(fee)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    if unwrapped_token_program.key == &spl_token_2022::id() {
+        // This invoke fn does extra validation on calculated fee
+        invoke_transfer_checked_with_fee(
+            unwrapped_token_program.key,
+            unwrapped_token_account.clone(),
+            unwrapped_mint.clone(),
+            unwrapped_escrow.clone(),
+            transfer_authority.clone(),
+            &accounts[9..],
+            amount,
+            unwrapped_mint_state.base.decimals,
+            fee,
+            &[],
+        )?;
+    } else {
+        invoke_transfer_checked(
+            unwrapped_token_program.key,
+            unwrapped_token_account.clone(),
+            unwrapped_mint.clone(),
+            unwrapped_escrow.clone(),
+            transfer_authority.clone(),
+            &accounts[9..],
+            amount,
+            unwrapped_mint_state.base.decimals,
+            &[],
+        )?;
+    }
 
     // Mint wrapped tokens to recipient
     let bump_seed = [bump];
@@ -248,7 +280,7 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
             recipient_wrapped_token_account.key,
             wrapped_mint_authority.key,
             &[],
-            amount,
+            net_amount,
         )?,
         &[
             wrapped_mint.clone(),

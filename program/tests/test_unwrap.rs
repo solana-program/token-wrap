@@ -2,7 +2,8 @@ use {
     crate::helpers::{
         common::{
             setup_counter, setup_multisig, setup_native_token, setup_transfer_hook_account,
-            setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
+            setup_validation_state_account, transfer_fee_mint, unwrapped_mint_with_transfer_hook,
+            MINT_SUPPLY,
         },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
@@ -12,7 +13,10 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         error::TokenError,
-        extension::PodStateWithExtensions,
+        extension::{
+            transfer_fee::{TransferFeeAmount, TransferFeeConfig},
+            BaseStateWithExtensions, PodStateWithExtensions,
+        },
         pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{
@@ -379,4 +383,52 @@ fn test_successfully_unwraps_to_native_mint() {
         unwrap_amount,
         &wrap_result,
     );
+}
+
+#[test]
+fn unwrap_with_transfer_fee() {
+    let unwrap_amount = 500_000;
+    let unwrapped_mint = transfer_fee_mint();
+
+    let mint = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint.account.data).unwrap();
+    let transfer_fee_cfg = mint.get_extension::<TransferFeeConfig>().unwrap();
+    let transfer_fee = transfer_fee_cfg
+        .calculate_epoch_fee(0, unwrap_amount)
+        .unwrap();
+
+    let result = UnwrapBuilder::default()
+        .unwrapped_mint(unwrapped_mint.clone())
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_starting_amount(unwrap_amount)
+        .escrow_starting_amount(unwrap_amount)
+        .unwrap_amount(unwrap_amount)
+        .check(Check::success())
+        .execute();
+
+    // Source wrapped account burned in full
+    let wrapped_src =
+        PodStateWithExtensions::<PodAccount>::unpack(&result.wrapped_token_account.account.data)
+            .unwrap();
+    assert_eq!(u64::from(wrapped_src.base.amount), 0);
+
+    // Recipient received the unwrapped amount minus fee
+    let recipient = PodStateWithExtensions::<PodAccount>::unpack(
+        &result.recipient_unwrapped_token.account.data,
+    )
+    .unwrap();
+    assert_eq!(
+        u64::from(recipient.base.amount),
+        unwrap_amount - transfer_fee
+    );
+
+    // Recipient withheld amount bumped higher
+    let recipient_ext = recipient.get_extension::<TransferFeeAmount>().unwrap();
+    assert_eq!(u64::from(recipient_ext.withheld_amount), transfer_fee);
+
+    // Escrow is zeroed out
+    let escrow =
+        PodStateWithExtensions::<PodAccount>::unpack(&result.unwrapped_escrow.account.data)
+            .unwrap();
+    assert_eq!(u64::from(escrow.base.amount), 0);
 }
