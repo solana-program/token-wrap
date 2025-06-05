@@ -296,9 +296,6 @@ pub fn transfer_fee_mint() -> KeyedAccount {
     let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
 
     let extension = mint.init_extension::<TransferFeeConfig>(true).unwrap();
-
-    extension.transfer_fee_config_authority = Default::default();
-    extension.withdraw_withheld_authority = Default::default();
     extension.withheld_amount = 0.into();
     extension.older_transfer_fee = TransferFee {
         epoch: 0.into(),
