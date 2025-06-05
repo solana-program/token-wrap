@@ -204,7 +204,7 @@ impl<'a> WrapBuilder<'a> {
         if let TokenProgram::SplToken2022 = token_program {
             state.init_extension::<TransferFeeAmount>(true).unwrap();
             let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
-            fee_extension.withheld_amount = 12.into();
+            fee_extension.withheld_amount = 0.into();
         }
 
         KeyedAccount {

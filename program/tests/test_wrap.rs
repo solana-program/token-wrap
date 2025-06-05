@@ -1,19 +1,23 @@
 use {
     crate::helpers::{
         common::{
-            setup_counter, setup_multisig, setup_native_token, setup_transfer_hook_account,
-            setup_validation_state_account, unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
+            setup_counter, setup_multisig, setup_native_token, setup_transfer_fee_account,
+            setup_transfer_hook_account, setup_validation_state_account, transfer_fee_mint,
+            unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
         },
         create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
         wrap_builder::{TransferAuthority, WrapBuilder, WrapResult},
     },
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
-    solana_account::Account,
+    solana_account::{Account, ReadableAccount},
     solana_program_error::ProgramError,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     spl_token_2022::{
-        extension::PodStateWithExtensions,
+        extension::{
+            transfer_fee::{TransferFeeAmount, TransferFeeConfig},
+            BaseStateWithExtensions, PodStateWithExtensions,
+        },
         pod::{PodAccount, PodMint},
     },
     spl_token_wrap::{error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority},
@@ -292,4 +296,69 @@ fn test_successfully_wraps_native_mint() {
         .execute();
 
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+}
+
+#[test]
+fn wrap_with_transfer_fee() {
+    let wrap_amount = 500_000;
+    let unwrapped_mint = transfer_fee_mint();
+    let transfer_authority = KeyedAccount::default();
+    let unwrapped_token_account =
+        setup_transfer_fee_account(&transfer_authority.key, &unwrapped_mint.key, wrap_amount);
+    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_authority_pda = get_wrapped_mint_authority(&wrapped_mint_address);
+    let escrow = setup_transfer_fee_account(
+        &wrapped_mint_authority_pda,
+        &unwrapped_mint.key,
+        0, // escrow is empty before wrap
+    );
+
+    let wrap_res = WrapBuilder::default()
+        .unwrapped_mint(unwrapped_mint.clone())
+        .unwrapped_token_account(unwrapped_token_account)
+        .unwrapped_escrow_account(escrow)
+        .transfer_authority(TransferAuthority {
+            keyed_account: transfer_authority,
+            signers: vec![],
+        })
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .wrap_amount(wrap_amount)
+        .recipient_starting_amount(0)
+        .check(Check::success())
+        .execute();
+
+    let unwrapped_mint_state =
+        PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint.account.data).unwrap();
+    let transfer_fee_config = unwrapped_mint_state
+        .get_extension::<TransferFeeConfig>()
+        .unwrap();
+
+    let fee = transfer_fee_config
+        .calculate_epoch_fee(0, wrap_amount)
+        .unwrap();
+    let net_transfer_to_escrow = wrap_amount.checked_sub(fee).unwrap();
+
+    // Recipient of wrapped tokens receives the net amount
+    let recipient_wrapped_token_state = PodStateWithExtensions::<PodAccount>::unpack(
+        wrap_res.recipient_wrapped_token.account.data(),
+    )
+    .unwrap();
+    assert_eq!(
+        u64::from(recipient_wrapped_token_state.base.amount),
+        net_transfer_to_escrow
+    );
+
+    // Escrow receives net amount from the user's source
+    let escrow_state =
+        PodStateWithExtensions::<PodAccount>::unpack(wrap_res.unwrapped_escrow.account.data())
+            .unwrap();
+    assert_eq!(u64::from(escrow_state.base.amount), net_transfer_to_escrow);
+
+    // Fee shows as withheld in the escrow's TransferFeeAmount extension
+    let escrow_transfer_fee_amount_ext = escrow_state.get_extension::<TransferFeeAmount>().unwrap();
+    assert_eq!(
+        u64::from(escrow_transfer_fee_amount_ext.withheld_amount),
+        fee
+    );
 }

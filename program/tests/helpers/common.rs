@@ -17,12 +17,12 @@ use {
     spl_token_2022::{
         extension::{
             mint_close_authority::MintCloseAuthority,
-            transfer_fee::TransferFeeConfig,
+            transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
             transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
             StateWithExtensionsMut,
         },
-        pod::{PodCOption, PodMint},
+        pod::{PodAccount, PodCOption, PodMint},
         state::{AccountState, Mint},
     },
     spl_transfer_hook_interface::{
@@ -286,4 +286,74 @@ pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAcco
         ..Default::default()
     };
     (native_mint, native_token_account)
+}
+
+pub fn transfer_fee_mint() -> KeyedAccount {
+    let mint_len =
+        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferFeeConfig])
+            .unwrap();
+    let mut data = vec![0u8; mint_len];
+    let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
+
+    let extension = mint.init_extension::<TransferFeeConfig>(true).unwrap();
+    extension.withheld_amount = 0.into();
+    extension.older_transfer_fee = TransferFee {
+        epoch: 0.into(),
+        maximum_fee: 50_000.into(),
+        transfer_fee_basis_points: 100.into(), // 1%
+    };
+    extension.newer_transfer_fee = extension.older_transfer_fee;
+
+    mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
+    mint.base.freeze_authority = PodCOption::some(FREEZE_AUTHORITY);
+    mint.base.supply = MINT_SUPPLY.into();
+    mint.base.decimals = MINT_DECIMALS;
+    mint.base.is_initialized = PodBool::from_bool(true);
+
+    mint.init_account_type().unwrap();
+
+    KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: Account {
+            lamports: Rent::default().minimum_balance(mint_len),
+            data,
+            owner: spl_token_2022::id(),
+            ..Default::default()
+        },
+    }
+}
+
+pub fn setup_transfer_fee_account(owner: &Pubkey, mint: &Pubkey, initial_amount: u64) -> Account {
+    let account_size =
+        ExtensionType::try_calculate_account_len::<PodAccount>(&[ExtensionType::TransferFeeAmount])
+            .unwrap();
+
+    let mut account = Account {
+        lamports: Rent::default().minimum_balance(account_size),
+        owner: spl_token_2022::id(),
+        data: vec![0; account_size],
+        ..Default::default()
+    };
+
+    let pod_account_data = PodAccount {
+        mint: *mint,
+        owner: *owner,
+        amount: initial_amount.into(),
+        delegate: PodCOption::none(),
+        state: AccountState::Initialized.into(),
+        is_native: PodCOption::none(),
+        delegated_amount: 0.into(),
+        close_authority: PodCOption::none(),
+    };
+
+    let mut state =
+        PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut account.data).unwrap();
+    *state.base = pod_account_data;
+
+    let fee_extension = state.init_extension::<TransferFeeAmount>(true).unwrap();
+    fee_extension.withheld_amount = 0.into();
+
+    state.init_account_type().unwrap();
+
+    account
 }
