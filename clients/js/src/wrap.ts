@@ -4,6 +4,7 @@ import {
   CompilableTransactionMessage,
   createTransactionMessage,
   GetAccountInfoApi,
+  IInstruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
@@ -17,22 +18,16 @@ import {
   getWrapInstruction,
   WrapInput,
 } from './generated';
-import { Blockhash } from '@solana/rpc-types';
 import { getMintFromTokenAccount, getOwnerFromAccount } from './utilities';
 import { findAssociatedTokenPda } from '@solana-program/token-2022';
+import { Blockhash } from '@solana/rpc-types';
 
-interface TxBuilderArgs {
-  payer: TransactionSigner;
+interface IxBuilderArgs {
   unwrappedTokenAccount: Address;
-  escrowAccount: Address;
   wrappedTokenProgram: Address;
   amount: bigint | number;
   wrappedMint: Address;
   wrappedMintAuthority: Address;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   transferAuthority: Address | TransactionSigner;
   unwrappedMint: Address;
   recipientWrappedTokenAccount: Address;
@@ -40,26 +35,33 @@ interface TxBuilderArgs {
   multiSigners?: TransactionSigner[];
 }
 
-export interface MultiSignerWrapTxBuilderArgs extends TxBuilderArgs {
-  multiSigners: TransactionSigner[];
-}
-
-// Used to collect signatures
-export function multisigOfflineSignWrapTx(
-  args: MultiSignerWrapTxBuilderArgs,
-): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
-  return buildWrapTransaction(args);
-}
-
-export interface SingleSignerWrapArgs {
-  rpc: Rpc<GetAccountInfoApi>;
+export interface MultiSignerWrapIxBuilderArgs extends IxBuilderArgs {
+  payer: TransactionSigner;
   blockhash: {
     blockhash: Blockhash;
     lastValidBlockHeight: bigint;
   };
+  multiSigners: TransactionSigner[];
+}
+
+// Used to collect signatures
+export async function multisigOfflineSignWrap(
+  args: MultiSignerWrapIxBuilderArgs,
+): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+  const wrapIx = await buildWrapIx(args);
+
+  return pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(args.payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(args.blockhash, tx),
+    tx => appendTransactionMessageInstructions([wrapIx], tx),
+  );
+}
+
+export interface SingleSignerWrapArgs {
+  rpc: Rpc<GetAccountInfoApi>;
   payer: TransactionSigner; // Fee payer and default transfer authority
   unwrappedTokenAccount: Address;
-  escrowAccount: Address;
   wrappedTokenProgram: Address;
   amount: bigint | number;
   transferAuthority?: Address | TransactionSigner; // Defaults to payer if not provided
@@ -69,18 +71,16 @@ export interface SingleSignerWrapArgs {
 }
 
 export interface SingleSignerWrapResult {
-  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
+  ixs: IInstruction[];
   recipientWrappedTokenAccount: Address;
   escrowAccount: Address;
   amount: bigint;
 }
 
-export async function singleSignerWrapTx({
+export async function singleSignerWrap({
   rpc,
-  blockhash,
   payer,
   unwrappedTokenAccount,
-  escrowAccount,
   wrappedTokenProgram,
   amount,
   transferAuthority: inputTransferAuthority,
@@ -95,6 +95,7 @@ export async function singleSignerWrapTx({
     wrappedMintAuthority,
     recipientWrappedTokenAccount,
     transferAuthority,
+    unwrappedEscrow,
   } = await resolveAddrs({
     rpc,
     payer,
@@ -106,11 +107,8 @@ export async function singleSignerWrapTx({
     inputRecipientTokenAccount,
   });
 
-  const tx = buildWrapTransaction({
-    blockhash,
-    payer,
+  const ix = await buildWrapIx({
     unwrappedTokenAccount,
-    escrowAccount,
     wrappedTokenProgram,
     amount,
     transferAuthority,
@@ -122,9 +120,9 @@ export async function singleSignerWrapTx({
   });
 
   return {
-    tx,
+    ixs: [ix],
     recipientWrappedTokenAccount,
-    escrowAccount,
+    escrowAccount: unwrappedEscrow,
     amount: BigInt(amount),
   };
 }
@@ -164,10 +162,16 @@ async function resolveAddrs({
         tokenProgram: wrappedTokenProgram,
       })
     )[0];
+  const [unwrappedEscrow] = await findAssociatedTokenPda({
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    tokenProgram: unwrappedTokenProgram,
+  });
 
   const transferAuthority = inputTransferAuthority ?? payer;
 
   return {
+    unwrappedEscrow,
     transferAuthority,
     unwrappedMint,
     unwrappedTokenProgram,
@@ -177,10 +181,8 @@ async function resolveAddrs({
   };
 }
 
-function buildWrapTransaction({
-  payer,
+async function buildWrapIx({
   unwrappedTokenAccount,
-  escrowAccount,
   wrappedTokenProgram,
   amount,
   transferAuthority,
@@ -189,9 +191,14 @@ function buildWrapTransaction({
   unwrappedTokenProgram,
   wrappedMint,
   wrappedMintAuthority,
-  blockhash,
   multiSigners = [],
-}: TxBuilderArgs): CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime {
+}: IxBuilderArgs): Promise<IInstruction> {
+  const [unwrappedEscrow] = await findAssociatedTokenPda({
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    tokenProgram: unwrappedTokenProgram,
+  });
+
   const wrapInstructionInput: WrapInput = {
     recipientWrappedTokenAccount,
     wrappedMint,
@@ -200,18 +207,11 @@ function buildWrapTransaction({
     wrappedTokenProgram,
     unwrappedTokenAccount,
     unwrappedMint,
-    unwrappedEscrow: escrowAccount,
+    unwrappedEscrow,
     transferAuthority,
     amount: BigInt(amount),
     multiSigners,
   };
 
-  const wrapInstruction = getWrapInstruction(wrapInstructionInput);
-
-  return pipe(
-    createTransactionMessage({ version: 0 }),
-    tx => setTransactionMessageFeePayerSigner(payer, tx),
-    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    tx => appendTransactionMessageInstructions([wrapInstruction], tx),
-  );
+  return getWrapInstruction(wrapInstructionInput);
 }

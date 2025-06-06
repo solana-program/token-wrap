@@ -1,5 +1,11 @@
 # @solana-program/token-wrap
 
+## 2.0.0
+
+### Major Changes
+
+- Single signer helpers return instructions, not transactions
+
 ## 1.0.0
 
 ### Major Changes

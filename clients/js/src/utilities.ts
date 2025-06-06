@@ -1,24 +1,18 @@
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
-  appendTransactionMessageInstructions,
   assertTransactionIsFullySigned,
-  CompilableTransactionMessage,
   containsBytes,
-  createTransactionMessage,
   fetchEncodedAccount,
   FullySignedTransaction,
   generateKeyPairSigner,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
+  IInstruction,
   KeyPairSigner,
-  pipe,
   Rpc,
-  setTransactionMessageFeePayerSigner,
-  setTransactionMessageLifetimeUsingBlockhash,
   SignatureBytes,
   Transaction,
-  TransactionMessageWithBlockhashLifetime,
   TransactionWithBlockhashLifetime,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
@@ -27,11 +21,16 @@ import {
   TOKEN_PROGRAM_ADDRESS,
 } from '@solana-program/token';
 import {
+  fetchMaybeToken,
+  findAssociatedTokenPda,
+  getCreateAssociatedTokenInstruction,
   getInitializeAccountInstruction as initializeToken2022,
   getTokenDecoder,
+  Token,
   TOKEN_2022_PROGRAM_ADDRESS,
 } from '@solana-program/token-2022';
 import { Blockhash } from '@solana/rpc-types';
+import { Account } from '@solana/accounts';
 
 function getInitializeTokenFn(tokenProgram: Address) {
   if (tokenProgram === TOKEN_PROGRAM_ADDRESS) return initializeToken;
@@ -39,24 +38,19 @@ function getInitializeTokenFn(tokenProgram: Address) {
   throw new Error(`${tokenProgram} is not a valid token program.`);
 }
 
-export async function createTokenAccountTx({
+export async function createTokenAccount({
   rpc,
-  blockhash,
   payer,
   mint,
   owner,
   tokenProgram,
 }: {
   rpc: Rpc<GetMinimumBalanceForRentExemptionApi>;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   payer: KeyPairSigner;
   mint: Address;
   owner: Address;
   tokenProgram: Address;
-}) {
+}): Promise<{ ixs: IInstruction[]; keyPair: KeyPairSigner }> {
   const [keyPair, lamports] = await Promise.all([
     generateKeyPairSigner(),
     rpc.getMinimumBalanceForRentExemption(165n).send(),
@@ -76,55 +70,57 @@ export async function createTokenAccountTx({
     owner,
   });
 
-  // Build and send the transaction
-  const tx = pipe(
-    createTransactionMessage({ version: 0 }),
-    tx => setTransactionMessageFeePayerSigner(payer, tx),
-    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    tx => appendTransactionMessageInstructions([createAccountIx, initializeAccountIx], tx),
-  );
-
   return {
-    tx,
+    ixs: [createAccountIx, initializeAccountIx],
     keyPair,
   };
 }
 
-export interface CreateEscrowAccountTxArgs {
+export interface CreateEscrowAccountArgs {
   rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
-  blockhash: {
-    blockhash: Blockhash;
-    lastValidBlockHeight: bigint;
-  };
   payer: KeyPairSigner;
   unwrappedMint: Address;
   wrappedTokenProgram: Address;
 }
 
-export interface CreateEscrowAccountTxResult {
-  tx: CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime;
-  keyPair: KeyPairSigner;
-}
+export type CreateEscrowAccountResult =
+  | { kind: 'already_exists'; account: Account<Token> }
+  | {
+      kind: 'instructions_to_create';
+      address: Address;
+      ixs: IInstruction[];
+    };
 
-export async function createEscrowAccountTx({
+export async function createEscrowAccount({
   rpc,
-  blockhash,
   payer,
   unwrappedMint,
   wrappedTokenProgram,
-}: CreateEscrowAccountTxArgs): Promise<CreateEscrowAccountTxResult> {
+}: CreateEscrowAccountArgs): Promise<CreateEscrowAccountResult> {
   const [wrappedMint] = await findWrappedMintPda({ unwrappedMint, wrappedTokenProgram });
   const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, unwrappedMint);
 
-  return createTokenAccountTx({
-    rpc,
-    blockhash,
-    payer,
-    mint: unwrappedMint,
+  const [escrowAta] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
+    mint: unwrappedMint,
     tokenProgram: unwrappedTokenProgram,
   });
+
+  const escrowResult = await fetchMaybeToken(rpc, escrowAta);
+  if (escrowResult.exists) {
+    return { kind: 'already_exists', account: escrowResult };
+  }
+
+  const ix = getCreateAssociatedTokenInstruction({
+    payer,
+    owner: wrappedMintAuthority,
+    mint: unwrappedMint,
+    ata: escrowAta,
+    tokenProgram: unwrappedTokenProgram,
+  });
+
+  return { address: escrowAta, ixs: [ix], kind: 'instructions_to_create' };
 }
 
 export async function getOwnerFromAccount(
