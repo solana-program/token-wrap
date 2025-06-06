@@ -84,12 +84,12 @@ export interface CreateEscrowAccountArgs {
 }
 
 export type CreateEscrowAccountResult =
+  | { kind: 'already_exists'; account: Account<Token> }
   | {
+      kind: 'instructions_to_create';
       address: Address;
       ixs: IInstruction[];
-      exists: boolean;
-    }
-  | Account<Token>;
+    };
 
 export async function createEscrowAccount({
   rpc,
@@ -109,7 +109,7 @@ export async function createEscrowAccount({
 
   const escrowResult = await fetchMaybeToken(rpc, escrowAta);
   if (escrowResult.exists) {
-    return escrowResult;
+    return { kind: 'already_exists', account: escrowResult };
   }
 
   const ix = getCreateAssociatedTokenInstruction({
@@ -120,7 +120,7 @@ export async function createEscrowAccount({
     tokenProgram: unwrappedTokenProgram,
   });
 
-  return { address: escrowAta, ixs: [ix], exists: false };
+  return { address: escrowAta, ixs: [ix], kind: 'instructions_to_create' };
 }
 
 export async function getOwnerFromAccount(

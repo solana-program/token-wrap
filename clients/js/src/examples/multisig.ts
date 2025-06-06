@@ -97,7 +97,7 @@ async function main() {
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  if ('exists' in createEscrowHelper && !createEscrowHelper.exists) {
+  if (createEscrowHelper.kind === 'instructions_to_create') {
     const createEscrowTx = await pipe(
       createTransactionMessage({ version: 0 }),
       tx => setTransactionMessageFeePayerSigner(payer, tx),
