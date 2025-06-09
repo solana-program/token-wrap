@@ -1,21 +1,26 @@
 import {
   address,
+  appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
+  createTransactionMessage,
   getSignatureFromTransaction,
+  pipe,
   sendAndConfirmTransactionFactory,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
 } from '@solana/kit';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import {
-  createEscrowAccountTx,
+  createEscrowAccount,
   findWrappedMintPda,
-  createMintTx,
-  singleSignerUnwrapTx,
-  singleSignerWrapTx,
+  createMint,
+  singleSignerUnwrap,
+  singleSignerWrap,
 } from '../index';
-import { createTokenAccountTx } from '../utilities';
+import { createTokenAccount } from '../utilities';
 
 // Replace these consts with your own
 const PRIVATE_KEY_PAIR = new Uint8Array([
@@ -37,96 +42,128 @@ async function main() {
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
 
   // Initialize the wrapped mint
-  const createMintMessage = await createMintTx({
+  const createMintHelper = await createMint({
     rpc,
-    blockhash,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     payer,
     idempotent: true,
   });
-  const signedCreateMintTx = await signTransactionMessageWithSigners(createMintMessage.tx);
-  await sendAndConfirm(signedCreateMintTx, { commitment: 'confirmed' });
-  const createMintSignature = getSignatureFromTransaction(signedCreateMintTx);
+  const createMintTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(createMintHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
+  );
+  await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
+  const createMintSignature = getSignatureFromTransaction(createMintTx);
 
   console.log('======== Create Mint Successful ========');
-  console.log('Wrapped Mint:', createMintMessage.wrappedMint);
-  console.log('Backpointer:', createMintMessage.backpointer);
-  console.log('Funded wrapped mint lamports:', createMintMessage.fundedWrappedMintLamports);
-  console.log('Funded backpointer lamports:', createMintMessage.fundedBackpointerLamports);
+  console.log('Wrapped Mint:', createMintHelper.wrappedMint);
+  console.log('Backpointer:', createMintHelper.backpointer);
+  console.log('Funded wrapped mint lamports:', createMintHelper.fundedWrappedMintLamports);
+  console.log('Funded backpointer lamports:', createMintHelper.fundedBackpointerLamports);
   console.log('Signature:', createMintSignature);
 
   // === Setup accounts needed for wrap ===
 
   // Create escrow account that with hold unwrapped tokens
-  const createEscrowMessage = await createEscrowAccountTx({
+  const createEscrowHelper = await createEscrowAccount({
     rpc,
-    blockhash,
     payer,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const signedCreateEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage.tx);
-  await sendAndConfirm(signedCreateEscrowTx, { commitment: 'confirmed' });
+  if (createEscrowHelper.kind === 'instructions_to_create') {
+    const createEscrowTx = await pipe(
+      createTransactionMessage({ version: 0 }),
+      tx => setTransactionMessageFeePayerSigner(payer, tx),
+      tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+      tx => appendTransactionMessageInstructions(createEscrowHelper.ixs, tx),
+      tx => signTransactionMessageWithSigners(tx),
+    );
+    await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
+    const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
+
+    console.log('======== Create Escrow Successful ========');
+    console.log('Escrow address:', createEscrowHelper.address);
+    console.log('Signature:', createEscrowSignature);
+  } else {
+    console.log('======== Escrow already exists, skipping creation ========');
+  }
 
   // Create recipient account where wrapped tokens will be minted to
   const [wrappedMint] = await findWrappedMintPda({
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
-  const recipientTokenAccountMessage = await createTokenAccountTx({
+  const recipientTokenAccountHelper = await createTokenAccount({
     rpc,
-    blockhash,
     payer,
     mint: wrappedMint,
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     owner: payer.address,
   });
-  const signedRecipientAccountTx = await signTransactionMessageWithSigners(
-    recipientTokenAccountMessage.tx,
+  const recipientTokenAccountTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(recipientTokenAccountHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
   );
-  await sendAndConfirm(signedRecipientAccountTx, { commitment: 'confirmed' });
+  await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   // Execute wrap
-  const wrapMessage = await singleSignerWrapTx({
+  const wrapHelper = await singleSignerWrap({
     rpc,
-    blockhash,
     payer,
     unwrappedTokenAccount: UNWRAPPED_TOKEN_ACCOUNT,
-    escrowAccount: createEscrowMessage.keyPair.address,
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     amount: AMOUNT_TO_WRAP,
     unwrappedMint: UNWRAPPED_MINT_ADDRESS,
-    recipientWrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
+    recipientWrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
   });
 
-  const signedWrapTx = await signTransactionMessageWithSigners(wrapMessage.tx);
-  await sendAndConfirm(signedWrapTx, { commitment: 'confirmed' });
-  const wrapSignature = getSignatureFromTransaction(signedWrapTx);
+  const wrapTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(wrapHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
+  );
+  await sendAndConfirm(wrapTx, { commitment: 'confirmed' });
+  const wrapSignature = getSignatureFromTransaction(wrapTx);
 
   console.log('======== Wrap Successful ========');
-  console.log('Wrap amount:', wrapMessage.amount);
-  console.log('Recipient account:', wrapMessage.recipientWrappedTokenAccount);
-  console.log('Escrow Account:', wrapMessage.escrowAccount);
+  console.log('Wrap amount:', wrapHelper.amount);
+  console.log('Recipient account:', wrapHelper.recipientWrappedTokenAccount);
+  console.log('Escrow Account:', wrapHelper.escrowAccount);
   console.log('Signature:', wrapSignature);
 
-  const unwrapMessage = await singleSignerUnwrapTx({
+  // execute unwrap
+
+  const unwrapHelper = await singleSignerUnwrap({
     rpc,
-    blockhash,
     payer,
-    wrappedTokenAccount: recipientTokenAccountMessage.keyPair.address,
-    unwrappedEscrow: createEscrowMessage.keyPair.address,
+    wrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
     amount: AMOUNT_TO_WRAP,
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
   });
 
-  const signedUnwrapTx = await signTransactionMessageWithSigners(unwrapMessage.tx);
-  await sendAndConfirm(signedUnwrapTx, { commitment: 'confirmed' });
-  const unwrapSignature = getSignatureFromTransaction(signedUnwrapTx);
+  const unwrapTx = await pipe(
+    createTransactionMessage({ version: 0 }),
+    tx => setTransactionMessageFeePayerSigner(payer, tx),
+    tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+    tx => appendTransactionMessageInstructions(unwrapHelper.ixs, tx),
+    tx => signTransactionMessageWithSigners(tx),
+  );
+  await sendAndConfirm(unwrapTx, { commitment: 'confirmed' });
+  const unwrapSignature = getSignatureFromTransaction(unwrapTx);
 
   console.log('======== Unwrap Successful ========');
-  console.log('Unwrapped amount:', unwrapMessage.amount);
-  console.log('Recipient account:', unwrapMessage.recipientUnwrappedToken);
+  console.log('Unwrapped amount:', unwrapHelper.amount);
+  console.log('Recipient account:', unwrapHelper.recipientUnwrappedToken);
   console.log('Signature:', unwrapSignature);
 }
 

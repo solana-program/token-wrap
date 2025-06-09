@@ -175,7 +175,7 @@ const codama = createFromRoot(
               name: "unwrappedEscrow",
               docs: [
                 "The escrow account that holds the unwrapped tokens.",
-                "must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)",
+                "Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)",
               ],
               isSigner: false,
               isWritable: true,
@@ -216,8 +216,8 @@ const codama = createFromRoot(
             instructionAccountNode({
               name: "unwrappedEscrow",
               docs: [
-                "The escrow account holding the unwrapped tokens, ",
-                "must be owned by: `get_wrapped_mint_authority(wrapped_mint_address)`",
+                "The escrow account holding the unwrapped tokens.",
+                "Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)",
               ],
               isSigner: false,
               isWritable: true,
@@ -362,6 +362,11 @@ const codama = createFromRoot(
           code: 6,
           message:
             "Wrapped backpointer account owner is not the expected token wrap program",
+        }),
+        errorNode({
+          name: "EscrowMismatch",
+          code: 7,
+          message: "Escrow account address does not match expected ATA",
         }),
       ],
     }),
