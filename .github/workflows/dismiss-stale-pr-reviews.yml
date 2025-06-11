@@ -15,10 +15,13 @@ permissions:
 
 jobs:
   dismiss_stale_approvals:
+    # Only run when:
+    # 1) the PR author isn’t dependabot[bot]
+    # 2) the author_association isn't owner/member/collaborator
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' && !contains('OWNER,MEMBER,COLLABORATOR', github.event.pull_request.author_association) }}
     runs-on: ubuntu-latest
     steps:
       - name: Dismiss Stale PR Reviews
-        if: ${{ !contains('OWNER,MEMBER,COLLABORATOR', github.event.pull_request.author_association) }}
         uses: withgraphite/dismiss-stale-approvals@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
