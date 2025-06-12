@@ -57,8 +57,8 @@ impl Config {
                 wallet_manager,
             ),
         }
-        .ok()
-        .map(Arc::from);
+        .map_err(|e| e.to_string())
+        .map(Arc::from)?;
 
         let output_format = match (cli.output_format, cli.verbose) {
             (Some(format), _) => format,
@@ -68,7 +68,7 @@ impl Config {
 
         Ok(Self {
             rpc_client,
-            fee_payer,
+            fee_payer: Some(fee_payer),
             output_format,
             dry_run: cli.dry_run,
         })
