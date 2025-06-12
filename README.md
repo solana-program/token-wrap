@@ -59,6 +59,13 @@ The SPL Token Wrap program is designed to be **permissionless**. This means:
   Wrap program itself. However, it is important to note that if the *unwrapped* token has a freeze authority,
   that freeze authority is *preserved* in the wrapped token.
 
+## Audits
+
+| Auditor              | Date       | Version                                                                                               | Report                                                                                                                                                |
+|----------------------|------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Zellic               | 2025-05-16 | [75c5529](https://github.com/solana-program/token-wrap/tree/75c5529d5a191f12bd58b6b92ca0104ce3464763) | [PDF](https://github.com/anza-xyz/security-audits/blob/2294fc0e61c153c8aed174e9f63a1730683f1f2a/spl/ZellicTokenWrapAudit-2025-05-16.pdf)              |
+| Runtime Verification | 2025-06-11 | [dd71fc1](https://github.com/solana-program/token-wrap/tree/dd71fc10c651b07b7d62b151021216e5321b1789) | [PDF](https://github.com/anza-xyz/security-audits/blob/2294fc0e61c153c8aed174e9f63a1730683f1f2a/spl/RuntimeVerificationTokenWrapAudit-2025-06-11.pdf) |
+
 ## Getting Started
 
 ### Prerequisites
