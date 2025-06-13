@@ -1,9 +1,8 @@
 use {
     crate::helpers::common::{init_mollusk, setup_mint},
-    mollusk_svm::{result::Check, Mollusk},
+    mollusk_svm::{program::keyed_account_for_system_program, result::Check, Mollusk},
     solana_account::Account,
     solana_pubkey::Pubkey,
-    solana_sdk_ids::system_program,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
@@ -189,13 +188,7 @@ impl<'a> CreateMintBuilder<'a> {
             (wrapped_mint_addr, wrapped_mint_account),
             (wrapped_backpointer_address, wrapped_backpointer_account),
             (unwrapped_mint_addr, unwrapped_mint_account),
-            (
-                system_program::id(),
-                Account {
-                    executable: true,
-                    ..Default::default()
-                },
-            ),
+            keyed_account_for_system_program(),
             keyed_token_program,
         ];
 
