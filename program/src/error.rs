@@ -39,6 +39,9 @@ pub enum TokenWrapError {
     /// Escrow account address does not match expected `ATA`
     #[error("Escrow account address does not match expected ATA")]
     EscrowMismatch,
+    /// The escrow account is in a good state and cannot be recreated
+    #[error("The escrow account is in a good state and cannot be recreated")]
+    EscrowInGoodState,
 }
 
 impl From<TokenWrapError> for ProgramError {

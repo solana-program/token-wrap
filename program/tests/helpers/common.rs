@@ -35,6 +35,7 @@ pub fn init_mollusk() -> Mollusk {
     let mut mollusk = Mollusk::new(&spl_token_wrap::id(), "spl_token_wrap");
     mollusk_svm_programs_token::token::add_program(&mut mollusk);
     mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
+    mollusk_svm_programs_token::associated_token::add_program(&mut mollusk);
     mollusk.add_program(
         &test_transfer_hook::id(),
         "test_transfer_hook",
@@ -356,4 +357,34 @@ pub fn setup_transfer_fee_account(owner: &Pubkey, mint: &Pubkey, initial_amount:
     state.init_account_type().unwrap();
 
     account
+}
+
+pub fn mint_with_close_authority(key: &Pubkey, close_authority_pubkey: &Pubkey) -> KeyedAccount {
+    let mint_len =
+        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::MintCloseAuthority])
+            .unwrap();
+    let mut data = vec![0u8; mint_len];
+    let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
+
+    let extension = mint.init_extension::<MintCloseAuthority>(true).unwrap();
+    extension.close_authority =
+        OptionalNonZeroPubkey::try_from(Some(*close_authority_pubkey)).unwrap();
+
+    mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
+    mint.base.decimals = MINT_DECIMALS;
+    mint.base.supply = 0.into();
+    mint.base.freeze_authority = PodCOption::none();
+    mint.base.is_initialized = PodBool::from_bool(true);
+
+    mint.init_account_type().unwrap();
+
+    KeyedAccount {
+        key: *key,
+        account: Account {
+            lamports: Rent::default().minimum_balance(mint_len),
+            data,
+            owner: spl_token_2022::id(),
+            ..Default::default()
+        },
+    }
 }
