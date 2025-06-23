@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
-        common::{init_mollusk, setup_mint},
-        create_mint_builder::{KeyedAccount, TokenProgram},
+        common::{init_mollusk, KeyedAccount, TokenProgram},
+        mint_builder::MintBuilder,
     },
     mollusk_svm::{result::Check, Mollusk},
     mollusk_svm_programs_token::token2022,
@@ -65,6 +65,11 @@ impl<'a> CloseStuckEscrowBuilder<'a> {
         self
     }
 
+    pub fn wrapped_token_program(mut self, program: TokenProgram) -> Self {
+        self.wrapped_token_program = Some(program);
+        self
+    }
+
     pub fn unwrapped_mint(mut self, account: KeyedAccount) -> Self {
         self.unwrapped_mint = Some(account);
         self
@@ -93,22 +98,22 @@ impl<'a> CloseStuckEscrowBuilder<'a> {
             .wrapped_token_program
             .unwrap_or(TokenProgram::SplToken2022);
 
-        let unwrapped_mint = self.unwrapped_mint.unwrap_or_else(|| KeyedAccount {
-            key: Pubkey::new_unique(),
-            account: setup_mint(
-                unwrapped_token_program,
-                &self.mollusk.sysvars.rent,
-                Pubkey::new_unique(),
-            ),
+        let unwrapped_mint = self.unwrapped_mint.unwrap_or_else(|| {
+            MintBuilder::new()
+                .token_program(unwrapped_token_program)
+                .rent(self.mollusk.sysvars.rent.clone())
+                .mint_authority(Pubkey::new_unique())
+                .build()
         });
 
-        let wrapped_mint = self.wrapped_mint.unwrap_or_else(|| KeyedAccount {
-            key: get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id()),
-            account: setup_mint(
-                wrapped_token_program,
-                &self.mollusk.sysvars.rent,
-                Pubkey::new_unique(),
-            ),
+        let wrapped_mint = self.wrapped_mint.unwrap_or_else(|| {
+            let key = get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id());
+            MintBuilder::new()
+                .token_program(wrapped_token_program)
+                .rent(self.mollusk.sysvars.rent.clone())
+                .mint_key(key)
+                .mint_authority(Pubkey::new_unique())
+                .build()
         });
 
         let wrapped_mint_authority = self

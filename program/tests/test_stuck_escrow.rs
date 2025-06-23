@@ -1,11 +1,13 @@
 use {
     crate::helpers::{
         close_stuck_escrow_builder::CloseStuckEscrowBuilder,
-        common::{
-            init_mollusk, mint_with_close_authority, setup_mint, setup_transfer_fee_account,
-            setup_transfer_hook_account, unwrapped_mint_with_transfer_hook, MINT_DECIMALS,
+        common::{init_mollusk, KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS},
+        mint_builder::MintBuilder,
+        mint_extensions::{MintCloseAuthorityInit, TransferHookInit},
+        token_account_builder::TokenAccountBuilder,
+        token_account_extensions::{
+            ImmutableOwnerExtension, TransferFeeAmountExtension, TransferHookAccountExtension,
         },
-        create_mint_builder::{KeyedAccount, TokenProgram},
     },
     mollusk_svm::{program::keyed_account_for_system_program, result::Check},
     mollusk_svm_programs_token::token2022,
@@ -99,23 +101,21 @@ fn test_close_stuck_escrow_fails_escrow_owner_mismatch() {
     let unwrapped_token_program = TokenProgram::SplToken2022;
     let wrapped_token_program = TokenProgram::SplToken2022;
 
-    let unwrapped_mint = KeyedAccount {
-        key: Pubkey::new_unique(),
-        account: setup_mint(
-            unwrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(unwrapped_token_program)
+        .rent(Rent::default())
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
-    let wrapped_mint = KeyedAccount {
-        key: get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id()),
-        account: setup_mint(
-            wrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .rent(Rent::default())
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
     // This is the correct PDA that *should* own the escrow account's tokens.
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
@@ -149,7 +149,7 @@ fn test_close_stuck_escrow_fails_escrow_owner_mismatch() {
 
     CloseStuckEscrowBuilder::default()
         .unwrapped_token_program(unwrapped_token_program)
-        .unwrapped_token_program(wrapped_token_program)
+        .wrapped_token_program(wrapped_token_program)
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint)
         .wrapped_mint_authority(wrapped_mint_authority)
@@ -163,23 +163,21 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
     let unwrapped_token_program = TokenProgram::SplToken2022;
     let wrapped_token_program = TokenProgram::SplToken2022;
 
-    let unwrapped_mint = KeyedAccount {
-        key: Pubkey::new_unique(),
-        account: setup_mint(
-            unwrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(unwrapped_token_program)
+        .rent(Rent::default())
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
-    let wrapped_mint = KeyedAccount {
-        key: get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id()),
-        account: setup_mint(
-            wrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .rent(Rent::default())
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
     let expected_escrow_address = get_escrow_address(
@@ -220,17 +218,24 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
 #[test]
 fn test_close_stuck_escrow_fails_when_in_good_state() {
     let hook_program_id = test_transfer_hook::id();
-    let unwrapped_mint = unwrapped_mint_with_transfer_hook(hook_program_id);
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_authority(Pubkey::new_unique())
+        .with_extension(TransferHookInit {
+            program_id: hook_program_id,
+        })
+        .build();
     let wrapped_token_program = TokenProgram::SplToken2022;
 
-    let wrapped_mint = KeyedAccount {
-        key: get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id()),
-        account: setup_mint(
-            wrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .rent(Rent::default())
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
     let escrow_address = get_escrow_address(
@@ -241,7 +246,15 @@ fn test_close_stuck_escrow_fails_when_in_good_state() {
 
     let good_escrow_account = KeyedAccount {
         key: escrow_address,
-        account: setup_transfer_hook_account(&wrapped_mint_authority, &unwrapped_mint, 0),
+        account: TokenAccountBuilder::new()
+            .token_program(TokenProgram::SplToken2022)
+            .mint(unwrapped_mint.clone())
+            .owner(wrapped_mint_authority)
+            .amount(0)
+            .with_extension(ImmutableOwnerExtension)
+            .with_extension(TransferHookAccountExtension::new(false))
+            .build()
+            .account,
     };
 
     CloseStuckEscrowBuilder::default()
@@ -257,16 +270,23 @@ fn test_close_stuck_escrow_succeeds() {
     let wrapped_token_program = TokenProgram::SplToken2022;
 
     // The "new" mint, with extensions that the old escrow doesn't have.
-    let unwrapped_mint = unwrapped_mint_with_transfer_hook(test_transfer_hook::id());
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_authority(Pubkey::new_unique())
+        .with_extension(TransferHookInit {
+            program_id: test_transfer_hook::id(),
+        })
+        .build();
 
-    let wrapped_mint = KeyedAccount {
-        key: get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id()),
-        account: setup_mint(
-            wrapped_token_program,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .rent(Rent::default())
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .mint_authority(Pubkey::new_unique())
+        .build();
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
     let escrow_address = get_escrow_address(
@@ -301,7 +321,7 @@ fn test_close_stuck_escrow_succeeds() {
     let initial_destination_lamports = destination.account.lamports;
 
     CloseStuckEscrowBuilder::default()
-        .unwrapped_token_program(wrapped_token_program)
+        .wrapped_token_program(wrapped_token_program)
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint)
         .escrow_account(stuck_escrow.clone())
@@ -316,6 +336,55 @@ fn test_close_stuck_escrow_succeeds() {
 }
 
 #[test]
+fn test_close_stuck_escrow_fails_when_account_frozen() {
+    let unwrapped_token_program = TokenProgram::SplToken2022;
+    let wrapped_token_program = TokenProgram::SplToken2022;
+
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(unwrapped_token_program)
+        .rent(Rent::default())
+        .mint_authority(Pubkey::new_unique())
+        .build();
+
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .rent(Rent::default())
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .mint_authority(Pubkey::new_unique())
+        .build();
+
+    let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
+    let escrow_address = get_escrow_address(
+        &unwrapped_mint.key,
+        &unwrapped_mint.account.owner,
+        &wrapped_token_program.id(),
+    );
+
+    let frozen_escrow_account = KeyedAccount {
+        key: escrow_address,
+        account: TokenAccountBuilder::new()
+            .token_program(TokenProgram::SplToken2022)
+            .mint(unwrapped_mint.clone())
+            .owner(wrapped_mint_authority)
+            .amount(0)
+            .state(AccountState::Frozen)
+            .with_extension(ImmutableOwnerExtension)
+            .build()
+            .account,
+    };
+
+    CloseStuckEscrowBuilder::default()
+        .unwrapped_mint(unwrapped_mint)
+        .wrapped_mint(wrapped_mint)
+        .escrow_account(frozen_escrow_account)
+        .check(Check::err(ProgramError::InvalidAccountData))
+        .execute();
+}
+
+#[test]
 fn test_end_to_end_close_mint_case() {
     let mollusk = init_mollusk();
     let payer = Pubkey::new_unique();
@@ -323,7 +392,16 @@ fn test_end_to_end_close_mint_case() {
 
     // Create an unwrapped mint that has a close authority.
     let unwrapped_mint_addr = Pubkey::new_unique();
-    let unwrapped_mint = mint_with_close_authority(&unwrapped_mint_addr, &close_authority);
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_key(unwrapped_mint_addr)
+        .mint_authority(Pubkey::new_unique())
+        .decimals(DEFAULT_MINT_DECIMALS)
+        .supply(0)
+        .with_extension(MintCloseAuthorityInit {
+            authority: close_authority,
+        })
+        .build();
 
     // Derive all necessary PDAs
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
@@ -377,7 +455,7 @@ fn test_end_to_end_close_mint_case() {
         &unwrapped_mint_addr,
         &payer,
         None,
-        MINT_DECIMALS,
+        DEFAULT_MINT_DECIMALS,
     )
     .unwrap();
 
@@ -412,10 +490,18 @@ fn test_end_to_end_close_mint_case() {
         &spl_token_2022::id(),
     );
 
-    let unwrapped_token_account_addr = Pubkey::new_unique();
-    let unwrapped_token_account = setup_transfer_fee_account(&payer, &unwrapped_mint.key, 10_000);
-
     let wrap_amount: u64 = 5_000;
+
+    let unwrapped_token_account_addr = Pubkey::new_unique();
+    let unwrapped_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(payer)
+        .amount(wrap_amount)
+        .with_extension(TransferFeeAmountExtension::new(0))
+        .build()
+        .account;
+
     let wrap_ix = spl_token_wrap::instruction::wrap(
         &spl_token_wrap::id(),
         &recipient_wrapped_addr,

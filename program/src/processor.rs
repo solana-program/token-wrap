@@ -28,6 +28,7 @@ use {
             extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
         },
         pod::{PodAccount, PodMint},
+        state::AccountState,
     },
 };
 
@@ -428,14 +429,22 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
         return Err(ProgramError::InvalidAccountData);
     }
 
+    // Ensure the account is in the initialized state
+    if escrow_state.base.state != (AccountState::Initialized as u8) {
+        return Err(ProgramError::InvalidAccountData);
+    }
+
     let current_account_extensions = escrow_state.get_extension_types()?;
     drop(escrow_data);
 
     let mint_data = unwrapped_mint.try_borrow_data()?;
     let mint_state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
     let mint_extensions = mint_state.get_extension_types()?;
-    let required_account_extensions =
+    let mut required_account_extensions =
         ExtensionType::get_required_init_account_extensions(&mint_extensions);
+
+    // ATAs always have the ImmutableOwner extension
+    required_account_extensions.push(ExtensionType::ImmutableOwner);
 
     // If the token account already shares the same extensions as the mint,
     // it does not need to be re-created
