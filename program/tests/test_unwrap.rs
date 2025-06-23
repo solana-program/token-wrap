@@ -5,7 +5,9 @@ use {
             TokenProgram, DEFAULT_MINT_SUPPLY,
         },
         create_mint_builder::CreateMintBuilder,
-        extensions::MintExtension::{TransferFeeConfig as TransferFeeConfigExt, TransferHook},
+        extensions::MintExtension::{
+            ConfidentialTransfer, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
+        },
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
@@ -460,4 +462,36 @@ fn unwrap_with_transfer_fee() {
         PodStateWithExtensions::<PodAccount>::unpack(&result.unwrapped_escrow.account.data)
             .unwrap();
     assert_eq!(u64::from(escrow.base.amount), 0);
+}
+
+#[test]
+fn test_unwrap_with_confidential_transfer_mint() {
+    let source_starting_amount = 50_000;
+    let recipient_starting_amount = 25_000;
+    let escrow_starting_amount = 100_000;
+    let unwrap_amount = 30_000;
+
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(ConfidentialTransfer)
+        .build();
+
+    let unwrap_result = UnwrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken)
+        .unwrapped_mint(unwrapped_mint)
+        .wrapped_token_starting_amount(source_starting_amount)
+        .recipient_starting_amount(recipient_starting_amount)
+        .escrow_starting_amount(escrow_starting_amount)
+        .unwrap_amount(unwrap_amount)
+        .check(Check::success())
+        .execute();
+
+    assert_unwrap_result(
+        source_starting_amount,
+        recipient_starting_amount,
+        escrow_starting_amount,
+        unwrap_amount,
+        &unwrap_result,
+    );
 }

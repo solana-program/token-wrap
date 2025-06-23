@@ -3,6 +3,7 @@ use {
     spl_pod::{optional_keys::OptionalNonZeroPubkey, primitives::PodU64},
     spl_token_2022::{
         extension::{
+            confidential_transfer::ConfidentialTransferMint,
             immutable_owner::ImmutableOwner,
             mint_close_authority::MintCloseAuthority,
             transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
@@ -15,6 +16,7 @@ use {
 
 #[derive(Clone, Debug)]
 pub enum MintExtension {
+    ConfidentialTransfer,
     TransferHook,
     TransferFeeConfig,
     MintCloseAuthority(Pubkey),
@@ -26,6 +28,7 @@ impl MintExtension {
             MintExtension::TransferHook => ExtensionType::TransferHook,
             MintExtension::TransferFeeConfig => ExtensionType::TransferFeeConfig,
             MintExtension::MintCloseAuthority(_) => ExtensionType::MintCloseAuthority,
+            MintExtension::ConfidentialTransfer => ExtensionType::ConfidentialTransferMint,
         }
     }
 }
@@ -70,6 +73,11 @@ pub fn init_mint_extensions(
                 let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
                 extension.close_authority =
                     OptionalNonZeroPubkey::try_from(Some(*authority)).unwrap();
+            }
+            MintExtension::ConfidentialTransfer => {
+                state
+                    .init_extension::<ConfidentialTransferMint>(false)
+                    .unwrap();
             }
         }
     }

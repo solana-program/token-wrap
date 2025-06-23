@@ -5,7 +5,9 @@ use {
             TokenProgram, DEFAULT_MINT_SUPPLY,
         },
         create_mint_builder::CreateMintBuilder,
-        extensions::MintExtension::{TransferFeeConfig as MintTransferFeeConfig, TransferHook},
+        extensions::MintExtension::{
+            ConfidentialTransfer, TransferFeeConfig as MintTransferFeeConfig, TransferHook,
+        },
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
         wrap_builder::{WrapBuilder, WrapResult},
@@ -405,4 +407,25 @@ fn wrap_with_transfer_fee() {
         u64::from(escrow_transfer_fee_amount_ext.withheld_amount),
         fee
     );
+}
+
+#[test]
+fn test_wrap_with_confidential_transfer_mint() {
+    let starting_amount = 50_000;
+    let wrap_amount = 12_555;
+
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(ConfidentialTransfer)
+        .build();
+
+    let wrap_result = WrapBuilder::default()
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .recipient_starting_amount(starting_amount)
+        .wrap_amount(wrap_amount)
+        .unwrapped_mint(unwrapped_mint)
+        .execute();
+
+    assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
 }
