@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS, DEFAULT_MINT_SUPPLY},
-        extensions::init_mint_extensions,
+        extensions::{init_mint_extensions, MintExtension},
     },
     solana_account::Account,
     solana_pubkey::Pubkey,
@@ -21,7 +21,7 @@ pub struct MintBuilder {
     decimals: u8,
     mint_key: Option<Pubkey>,
     lamports: Option<u64>,
-    extensions: Vec<ExtensionType>,
+    extensions: Vec<MintExtension>,
 }
 
 impl Default for MintBuilder {
@@ -79,14 +79,18 @@ impl MintBuilder {
         self
     }
 
-    pub fn with_extension(mut self, extension: ExtensionType) -> Self {
+    pub fn with_extension(mut self, extension: MintExtension) -> Self {
         self.extensions.push(extension);
         self
     }
 
     pub fn build(self) -> KeyedAccount {
         let extension_types = match self.token_program {
-            TokenProgram::SplToken2022 => self.extensions.clone(),
+            TokenProgram::SplToken2022 => self
+                .extensions
+                .iter()
+                .map(|ext| ext.extension_type())
+                .collect(),
             TokenProgram::SplToken => {
                 if self.extensions.is_empty() {
                     vec![]

@@ -88,6 +88,26 @@ pub enum TokenWrapInstruction {
         /// little-endian `u64` representing the amount to unwrap
         amount: u64,
     },
+
+    /// Closes a stuck escrow `ATA`. This is for the edge case where an
+    /// unwrapped mint with a close authority is closed and then a new mint
+    /// is created at the same address but with a different size, leaving
+    /// the escrow `ATA` in a bad state.
+    ///
+    /// This instruction will close the old escrow `ATA`, returning the lamports
+    /// to the destination account. It will only work if the current escrow has
+    /// different extensions than the mint. The client is then responsible
+    /// for calling `create_associated_token_account` to recreate it.
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    /// 0. `[w]` Escrow account to close (`ATA`)
+    /// 1. `[w]` Destination for lamports from closed account
+    /// 2. `[]` Unwrapped mint
+    /// 3. `[]` Wrapped mint
+    /// 4. `[]` Wrapped mint authority (PDA)
+    /// 5. `[]` Token-2022 program
+    CloseStuckEscrow,
 }
 
 impl TokenWrapInstruction {
@@ -108,6 +128,9 @@ impl TokenWrapInstruction {
             TokenWrapInstruction::Unwrap { amount } => {
                 buf.push(2);
                 buf.extend_from_slice(&amount.to_le_bytes());
+            }
+            TokenWrapInstruction::CloseStuckEscrow => {
+                buf.push(3);
             }
         }
         buf
@@ -133,6 +156,7 @@ impl TokenWrapInstruction {
                 let amount = u64::from_le_bytes(rest.try_into().unwrap());
                 Ok(TokenWrapInstruction::Unwrap { amount })
             }
+            Some((&3, [])) => Ok(TokenWrapInstruction::CloseStuckEscrow),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -231,5 +255,26 @@ pub fn unwrap(
     }
 
     let data = TokenWrapInstruction::Unwrap { amount }.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `CloseStuckEscrow` instruction.
+pub fn close_stuck_escrow(
+    program_id: &Pubkey,
+    escrow_address: &Pubkey,
+    destination_address: &Pubkey,
+    unwrapped_mint_address: &Pubkey,
+    wrapped_mint_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*escrow_address, false),
+        AccountMeta::new(*destination_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
+        AccountMeta::new_readonly(spl_token_2022::id(), false),
+    ];
+    let data = TokenWrapInstruction::CloseStuckEscrow.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }

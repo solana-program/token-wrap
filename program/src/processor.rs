@@ -20,13 +20,15 @@ use {
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
         extension::{
-            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, PodStateWithExtensions,
+            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, ExtensionType,
+            PodStateWithExtensions,
         },
         instruction::initialize_mint2,
         onchain::{
             extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
         },
         pod::{PodAccount, PodMint},
+        state::AccountState,
     },
 };
 
@@ -375,6 +377,109 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     Ok(())
 }
 
+/// Processes [`CloseStuckEscrow`](enum.TokenWrapInstruction.html) instruction.
+pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let escrow_account = next_account_info(account_info_iter)?;
+    let destination_account = next_account_info(account_info_iter)?;
+    let unwrapped_mint = next_account_info(account_info_iter)?;
+    let wrapped_mint = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority = next_account_info(account_info_iter)?;
+    let _token_2022_program = next_account_info(account_info_iter)?;
+
+    // This instruction is only for spl-token-2022 accounts because only they
+    // can have extensions that lead to size changes.
+    if *escrow_account.owner != spl_token_2022::id()
+        || unwrapped_mint.owner != &spl_token_2022::id()
+    {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    let expected_wrapped_mint_pubkey =
+        get_wrapped_mint_address(unwrapped_mint.key, wrapped_mint.owner);
+    if *wrapped_mint.key != expected_wrapped_mint_pubkey {
+        Err(TokenWrapError::WrappedMintMismatch)?
+    }
+
+    let (expected_authority, bump) = get_wrapped_mint_authority_with_seed(wrapped_mint.key);
+    if *wrapped_mint_authority.key != expected_authority {
+        Err(TokenWrapError::MintAuthorityMismatch)?
+    }
+
+    let expected_escrow_address = get_associated_token_address_with_program_id(
+        wrapped_mint_authority.key,
+        unwrapped_mint.key,
+        unwrapped_mint.owner,
+    );
+
+    if *escrow_account.key != expected_escrow_address {
+        return Err(TokenWrapError::EscrowMismatch.into());
+    }
+
+    let escrow_data = escrow_account.try_borrow_data()?;
+    let escrow_state = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?;
+
+    if escrow_state.base.owner != *wrapped_mint_authority.key {
+        return Err(TokenWrapError::EscrowOwnerMismatch.into());
+    }
+
+    // Closing only works when the token balance is zero
+    if u64::from(escrow_state.base.amount) != 0 {
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    // Ensure the account is in the initialized state
+    if escrow_state.base.state != (AccountState::Initialized as u8) {
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    let current_account_extensions = escrow_state.get_extension_types()?;
+    drop(escrow_data);
+
+    let mint_data = unwrapped_mint.try_borrow_data()?;
+    let mint_state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
+    let mint_extensions = mint_state.get_extension_types()?;
+    let mut required_account_extensions =
+        ExtensionType::get_required_init_account_extensions(&mint_extensions);
+
+    // ATAs always have the ImmutableOwner extension
+    required_account_extensions.push(ExtensionType::ImmutableOwner);
+
+    // If the token account already shares the same extensions as the mint,
+    // it does not need to be re-created
+    let in_good_state = current_account_extensions.len() == required_account_extensions.len()
+        && required_account_extensions
+            .iter()
+            .all(|item| current_account_extensions.contains(item));
+
+    if in_good_state {
+        return Err(TokenWrapError::EscrowInGoodState.into());
+    }
+
+    // Close old escrow account
+    let bump_seed = [bump];
+    let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
+
+    invoke_signed(
+        &spl_token_2022::instruction::close_account(
+            escrow_account.owner,
+            escrow_account.key,
+            destination_account.key,
+            wrapped_mint_authority.key,
+            &[],
+        )?,
+        &[
+            escrow_account.clone(),
+            destination_account.clone(),
+            wrapped_mint_authority.clone(),
+        ],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -393,6 +498,10 @@ pub fn process_instruction(
         TokenWrapInstruction::Unwrap { amount } => {
             msg!("Instruction: Unwrap");
             process_unwrap(accounts, amount)
+        }
+        TokenWrapInstruction::CloseStuckEscrow => {
+            msg!("Instruction: CloseStuckEscrow");
+            process_close_stuck_escrow(accounts)
         }
     }
 }
