@@ -1,21 +1,27 @@
 use {
     crate::helpers::{
         common::{
-            setup_counter, setup_multisig, setup_native_token, setup_transfer_hook_account,
-            setup_validation_state_account, transfer_fee_mint, unwrapped_mint_with_transfer_hook,
-            MINT_SUPPLY,
+            setup_counter, setup_multisig, setup_validation_state_account, KeyedAccount,
+            TokenProgram, DEFAULT_MINT_SUPPLY,
         },
-        create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
+        create_mint_builder::CreateMintBuilder,
+        mint_builder::MintBuilder,
+        token_account_builder::TokenAccountBuilder,
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
-        wrap_builder::TransferAuthority,
     },
+    helpers::common::TransferAuthority,
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     solana_pubkey::Pubkey,
     spl_token_2022::{
         error::TokenError,
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
-            BaseStateWithExtensions, PodStateWithExtensions,
+            BaseStateWithExtensions,
+            ExtensionType::{
+                ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
+                TransferHookAccount,
+            },
+            PodStateWithExtensions,
         },
         pod::{PodAccount, PodMint},
     },
@@ -106,7 +112,7 @@ fn assert_unwrap_result(
         .unwrap();
     assert_eq!(
         u64::from(mint.base.supply),
-        MINT_SUPPLY.checked_sub(unwrap_amount).unwrap()
+        DEFAULT_MINT_SUPPLY.checked_sub(unwrap_amount).unwrap()
     );
 
     // Verify escrow was debited
@@ -273,7 +279,10 @@ fn test_unwrap_with_transfer_hook() {
 
     // Testing if counter account is incremented via transfer hook
     let counter = setup_counter(hook_program_id);
-    let unwrapped_mint = unwrapped_mint_with_transfer_hook(hook_program_id);
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(TransferHook)
+        .build();
 
     let source_starting_amount = 50_000;
     let recipient_starting_amount = 50_000;
@@ -285,11 +294,14 @@ fn test_unwrap_with_transfer_hook() {
         keyed_account: Default::default(),
         signers: vec![],
     };
-    let recipient_token_account = setup_transfer_hook_account(
-        &transfer_authority.keyed_account.key,
-        &unwrapped_mint,
-        recipient_starting_amount,
-    );
+    let recipient_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(transfer_authority.keyed_account.key)
+        .amount(recipient_starting_amount)
+        .with_extension(TransferHookAccount)
+        .build()
+        .account;
 
     let escrow_account = {
         let wrapped_mint_addr =
@@ -301,11 +313,15 @@ fn test_unwrap_with_transfer_hook() {
                 &unwrapped_mint.account.owner,
                 &spl_token_2022::id(),
             ),
-            account: setup_transfer_hook_account(
-                &mint_authority,
-                &unwrapped_mint,
-                escrow_starting_amount,
-            ),
+            account: TokenAccountBuilder::new()
+                .token_program(TokenProgram::SplToken2022)
+                .mint(unwrapped_mint.clone())
+                .owner(mint_authority)
+                .amount(escrow_starting_amount)
+                .with_extension(TransferHookAccount)
+                .with_extension(ImmutableOwner)
+                .build()
+                .account,
         }
     };
 
@@ -360,8 +376,20 @@ fn test_successfully_unwraps_to_native_mint() {
         signers: vec![],
     };
 
-    let (native_mint, native_token_account) =
-        setup_native_token(recipient_starting_amount, &transfer_authority);
+    let native_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_authority(Pubkey::new_unique())
+        .mint_key(spl_token_2022::native_mint::id())
+        .build();
+
+    let native_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(native_mint.clone())
+        .owner(transfer_authority.keyed_account.key)
+        .amount(recipient_starting_amount)
+        .native_balance(recipient_starting_amount)
+        .build()
+        .account;
 
     let wrap_result = UnwrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken2022)
@@ -388,7 +416,10 @@ fn test_successfully_unwraps_to_native_mint() {
 #[test]
 fn unwrap_with_transfer_fee() {
     let unwrap_amount = 500_000;
-    let unwrapped_mint = transfer_fee_mint();
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(TransferFeeConfigExt)
+        .build();
 
     let mint = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint.account.data).unwrap();
     let transfer_fee_cfg = mint.get_extension::<TransferFeeConfig>().unwrap();

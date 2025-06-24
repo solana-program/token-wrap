@@ -1,17 +1,21 @@
 use {
     crate::helpers::{
-        common::{FREEZE_AUTHORITY, MINT_DECIMALS},
+        common::{TokenProgram, DEFAULT_MINT_DECIMALS},
         create_mint_builder::CreateMintBuilder,
     },
-    helpers::create_mint_builder::TokenProgram,
     mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,
+    solana_program_option::COption,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
-    spl_token_2022::{extension::PodStateWithExtensions, pod::PodMint, state::Mint},
+    spl_token_2022::{
+        extension::PodStateWithExtensions,
+        pod::{PodCOption, PodMint},
+        state::Mint,
+    },
     spl_token_wrap::{
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
         state::Backpointer,
@@ -184,16 +188,18 @@ fn test_invalid_unwrapped_mint_owner() {
 
 #[test]
 fn test_successful_spl_token_to_spl_token_2022() {
+    let freeze_authority = Pubkey::new_unique();
     let result = CreateMintBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken)
         .wrapped_token_program(TokenProgram::SplToken2022)
+        .freeze_authority(freeze_authority)
         .execute();
 
     // Assert state of resulting wrapped mint account
 
     assert_eq!(result.wrapped_mint.account.owner, spl_token_2022::id());
     let wrapped_mint_data = Mint::unpack(&result.wrapped_mint.account.data).unwrap();
-    assert_eq!(wrapped_mint_data.decimals, MINT_DECIMALS);
+    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
     assert_eq!(
         wrapped_mint_data.mint_authority.unwrap(),
@@ -202,8 +208,8 @@ fn test_successful_spl_token_to_spl_token_2022() {
     assert_eq!(wrapped_mint_data.supply, 0);
     assert!(wrapped_mint_data.is_initialized);
     assert_eq!(
-        wrapped_mint_data.freeze_authority.unwrap(),
-        FREEZE_AUTHORITY
+        wrapped_mint_data.freeze_authority,
+        COption::Some(freeze_authority)
     );
 
     // Assert state of resulting backpointer account
@@ -223,12 +229,14 @@ fn test_successful_spl_token_2022_to_spl_token() {
     let wrapped_token_program_id = spl_token::id();
     let wrapped_mint_address =
         get_wrapped_mint_address(&unwrapped_mint_address, &wrapped_token_program_id);
+    let freeze_authority = Pubkey::new_unique();
 
     let result = CreateMintBuilder::default()
         .unwrapped_mint_addr(unwrapped_mint_address)
         .unwrapped_token_program(TokenProgram::SplToken2022)
         .wrapped_mint_addr(wrapped_mint_address)
         .wrapped_token_program(TokenProgram::SplToken)
+        .freeze_authority(freeze_authority)
         .execute();
 
     // Assert state of resulting wrapped mint account
@@ -240,7 +248,7 @@ fn test_successful_spl_token_2022_to_spl_token() {
             .unwrap()
             .base;
 
-    assert_eq!(wrapped_mint_data.decimals, MINT_DECIMALS);
+    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     assert_eq!(
         wrapped_mint_data
@@ -252,11 +260,8 @@ fn test_successful_spl_token_2022_to_spl_token() {
     assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
     assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
     assert_eq!(
-        wrapped_mint_data
-            .freeze_authority
-            .ok_or(ProgramError::InvalidAccountData)
-            .unwrap(),
-        FREEZE_AUTHORITY
+        wrapped_mint_data.freeze_authority,
+        PodCOption::some(freeze_authority)
     );
 
     // Assert state of resulting backpointer account

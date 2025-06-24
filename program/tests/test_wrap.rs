@@ -1,13 +1,15 @@
 use {
     crate::helpers::{
         common::{
-            setup_counter, setup_multisig, setup_native_token, setup_transfer_fee_account,
-            setup_transfer_hook_account, setup_validation_state_account, transfer_fee_mint,
-            unwrapped_mint_with_transfer_hook, MINT_SUPPLY,
+            setup_counter, setup_multisig, setup_validation_state_account, KeyedAccount,
+            TokenProgram, DEFAULT_MINT_SUPPLY,
         },
-        create_mint_builder::{CreateMintBuilder, KeyedAccount, TokenProgram},
-        wrap_builder::{TransferAuthority, WrapBuilder, WrapResult},
+        create_mint_builder::CreateMintBuilder,
+        mint_builder::MintBuilder,
+        token_account_builder::TokenAccountBuilder,
+        wrap_builder::{WrapBuilder, WrapResult},
     },
+    helpers::common::TransferAuthority,
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     solana_account::{Account, ReadableAccount},
     solana_program_error::ProgramError,
@@ -16,7 +18,12 @@ use {
     spl_token_2022::{
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
-            BaseStateWithExtensions, PodStateWithExtensions,
+            BaseStateWithExtensions,
+            ExtensionType::{
+                ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
+                TransferHookAccount,
+            },
+            PodStateWithExtensions,
         },
         pod::{PodAccount, PodMint},
     },
@@ -105,7 +112,7 @@ fn assert_wrap_result(starting_amount: u64, wrap_amount: u64, wrap_result: &Wrap
         PodStateWithExtensions::<PodMint>::unpack(&wrap_result.wrapped_mint.account.data).unwrap();
     assert_eq!(
         u64::from(mint.base.supply),
-        MINT_SUPPLY.checked_add(wrap_amount).unwrap()
+        DEFAULT_MINT_SUPPLY.checked_add(wrap_amount).unwrap()
     );
 }
 
@@ -220,7 +227,10 @@ fn test_wrap_with_transfer_hook() {
 
     // Testing if counter account is incremented via transfer hook
     let counter = setup_counter(hook_program_id);
-    let unwrapped_mint = unwrapped_mint_with_transfer_hook(hook_program_id);
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(TransferHook)
+        .build();
 
     // Escrow & unwrapped token account need to have TransferHook extension as well
     let wrap_amount = 12_555;
@@ -228,17 +238,27 @@ fn test_wrap_with_transfer_hook() {
         keyed_account: Default::default(),
         signers: vec![],
     };
-    let unwrapped_token_account = setup_transfer_hook_account(
-        &transfer_authority.keyed_account.key,
-        &unwrapped_mint,
-        wrap_amount,
-    );
+    let unwrapped_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(transfer_authority.keyed_account.key)
+        .amount(wrap_amount)
+        .with_extension(TransferHookAccount)
+        .build();
 
     let escrow_account = {
         let wrapped_mint_addr =
             get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
         let mint_authority = get_wrapped_mint_authority(&wrapped_mint_addr);
-        setup_transfer_hook_account(&mint_authority, &unwrapped_mint, 0)
+        TokenAccountBuilder::new()
+            .token_program(TokenProgram::SplToken2022)
+            .mint(unwrapped_mint.clone())
+            .owner(mint_authority)
+            .amount(0)
+            .with_extension(TransferHookAccount)
+            .with_extension(ImmutableOwner)
+            .build()
+            .account
     };
 
     // Validation state account required in order for counter account to be passed
@@ -255,7 +275,7 @@ fn test_wrap_with_transfer_hook() {
         .wrap_amount(wrap_amount)
         .unwrapped_mint(unwrapped_mint)
         .transfer_authority(transfer_authority)
-        .unwrapped_token_account(unwrapped_token_account.clone())
+        .unwrapped_token_account(unwrapped_token_account)
         .unwrapped_escrow_account(escrow_account)
         .add_extra_account(counter)
         .add_extra_account(KeyedAccount {
@@ -283,7 +303,19 @@ fn test_successfully_wraps_native_mint() {
         signers: vec![],
     };
 
-    let (native_mint, native_token_account) = setup_native_token(wrap_amount, &transfer_authority);
+    let native_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_authority(Pubkey::new_unique())
+        .mint_key(spl_token_2022::native_mint::id())
+        .build();
+
+    let native_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(native_mint.clone())
+        .owner(transfer_authority.keyed_account.key)
+        .amount(wrap_amount)
+        .native_balance(wrap_amount)
+        .build();
 
     let wrap_result = WrapBuilder::default()
         .unwrapped_token_program(TokenProgram::SplToken2022)
@@ -301,17 +333,29 @@ fn test_successfully_wraps_native_mint() {
 #[test]
 fn wrap_with_transfer_fee() {
     let wrap_amount = 500_000;
-    let unwrapped_mint = transfer_fee_mint();
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(TransferFeeConfigExt)
+        .build();
     let transfer_authority = KeyedAccount::default();
-    let unwrapped_token_account =
-        setup_transfer_fee_account(&transfer_authority.key, &unwrapped_mint.key, wrap_amount);
+    let unwrapped_token_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(transfer_authority.key)
+        .amount(wrap_amount)
+        .with_extension(TransferFeeConfigExt)
+        .build();
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
     let wrapped_mint_authority_pda = get_wrapped_mint_authority(&wrapped_mint_address);
-    let escrow = setup_transfer_fee_account(
-        &wrapped_mint_authority_pda,
-        &unwrapped_mint.key,
-        0, // escrow is empty before wrap
-    );
+    let escrow = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(wrapped_mint_authority_pda)
+        .amount(0) // escrow is empty before wrap
+        .with_extension(TransferFeeConfigExt)
+        .with_extension(ImmutableOwner)
+        .build()
+        .account;
 
     let wrap_res = WrapBuilder::default()
         .unwrapped_mint(unwrapped_mint.clone())

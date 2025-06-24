@@ -1,109 +1,70 @@
 use {
-    crate::helpers::{
-        create_mint_builder::{KeyedAccount, TokenProgram},
-        wrap_builder::TransferAuthority,
-    },
     mollusk_svm::Mollusk,
+    mollusk_svm_programs_token,
     solana_account::Account,
-    solana_program_option::COption,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    spl_pod::{
-        optional_keys::OptionalNonZeroPubkey,
-        primitives::{PodBool, PodU64},
-    },
     spl_tlv_account_resolution::{account::ExtraAccountMeta, state::ExtraAccountMetaList},
-    spl_token_2022::{
-        extension::{
-            mint_close_authority::MintCloseAuthority,
-            transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
-            transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
-            StateWithExtensionsMut,
-        },
-        pod::{PodAccount, PodCOption, PodMint},
-        state::{AccountState, Mint},
-    },
     spl_transfer_hook_interface::{
         get_extra_account_metas_address, instruction::ExecuteInstruction,
     },
-    std::convert::TryFrom,
 };
+
+pub const DEFAULT_MINT_DECIMALS: u8 = 12;
+pub const DEFAULT_MINT_SUPPLY: u64 = 500_000_000;
+
+#[derive(Default, Debug, Clone)]
+pub struct KeyedAccount {
+    pub key: Pubkey,
+    pub account: Account,
+}
+
+impl KeyedAccount {
+    pub fn pair(&self) -> (Pubkey, Account) {
+        (self.key, self.account.clone())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TokenProgram {
+    SplToken,
+    SplToken2022,
+}
+
+impl TokenProgram {
+    pub fn id(&self) -> Pubkey {
+        match self {
+            TokenProgram::SplToken => spl_token::id(),
+            TokenProgram::SplToken2022 => spl_token_2022::id(),
+        }
+    }
+
+    pub fn keyed_account(&self) -> (Pubkey, Account) {
+        match self {
+            TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
+            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TransferAuthority {
+    pub keyed_account: KeyedAccount,
+    pub signers: Vec<Pubkey>,
+}
 
 pub fn init_mollusk() -> Mollusk {
     let mut mollusk = Mollusk::new(&spl_token_wrap::id(), "spl_token_wrap");
     mollusk_svm_programs_token::token::add_program(&mut mollusk);
     mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
+    mollusk_svm_programs_token::associated_token::add_program(&mut mollusk);
     mollusk.add_program(
         &test_transfer_hook::id(),
         "test_transfer_hook",
         &mollusk_svm::program::loader_keys::LOADER_V3,
     );
     mollusk
-}
-
-pub const MINT_DECIMALS: u8 = 12;
-pub const MINT_SUPPLY: u64 = 500_000_000;
-pub const FREEZE_AUTHORITY: Pubkey =
-    Pubkey::from_str_const("11111115q4EpJaTXAZWpCg3J2zppWGSZ46KXozzo9");
-
-fn token_2022_with_extension_data(supply: u64) -> Vec<u8> {
-    let mint_size = ExtensionType::try_calculate_account_len::<PodMint>(&[
-        ExtensionType::MintCloseAuthority,
-        ExtensionType::TransferFeeConfig,
-    ])
-    .unwrap();
-    let mut buffer = vec![0; mint_size];
-    let mut state =
-        PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut buffer).unwrap();
-    state.base.decimals = MINT_DECIMALS;
-    state.base.is_initialized = PodBool::from_bool(true);
-    state.base.supply = PodU64::from(supply);
-    state.base.freeze_authority = PodCOption::from(COption::Some(FREEZE_AUTHORITY));
-    state.init_account_type().unwrap();
-
-    // Initialize MintCloseAuthority extension
-    let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
-    let close_authority = OptionalNonZeroPubkey::try_from(Some(Pubkey::new_unique())).unwrap();
-    extension.close_authority = close_authority;
-
-    // Initialize TransferFeeConfig extension
-    let transfer_fee_ext = state.init_extension::<TransferFeeConfig>(false).unwrap();
-    let transfer_fee_config_authority = Pubkey::new_unique();
-    let withdraw_withheld_authority = Pubkey::new_unique();
-    transfer_fee_ext.transfer_fee_config_authority =
-        OptionalNonZeroPubkey::try_from(Some(transfer_fee_config_authority)).unwrap();
-    transfer_fee_ext.withdraw_withheld_authority =
-        OptionalNonZeroPubkey::try_from(Some(withdraw_withheld_authority)).unwrap();
-    transfer_fee_ext.withheld_amount = PodU64::from(0);
-
-    buffer
-}
-
-// spl_token and spl_token_2022 are the same account structure except for owner
-pub fn setup_mint(token_program: TokenProgram, rent: &Rent, mint_authority: Pubkey) -> Account {
-    let state = spl_token::state::Mint {
-        decimals: MINT_DECIMALS,
-        is_initialized: true,
-        supply: MINT_SUPPLY,
-        mint_authority: COption::Some(mint_authority),
-        freeze_authority: COption::Some(FREEZE_AUTHORITY),
-    };
-    let mut data = match token_program {
-        TokenProgram::SplToken => vec![0u8; spl_token::state::Mint::LEN],
-        TokenProgram::SplToken2022 => token_2022_with_extension_data(MINT_SUPPLY),
-    };
-    state.pack_into_slice(&mut data);
-
-    let lamports = rent.minimum_balance(data.len());
-
-    Account {
-        lamports,
-        data,
-        owner: token_program.id(),
-        ..Default::default()
-    }
 }
 
 pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
@@ -161,67 +122,6 @@ pub fn setup_counter(hook_program_id: Pubkey) -> KeyedAccount {
     }
 }
 
-pub fn unwrapped_mint_with_transfer_hook(hook_program_id: Pubkey) -> KeyedAccount {
-    let mint_len =
-        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook]).unwrap();
-    let mut data = vec![0u8; mint_len];
-    let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
-
-    let extension = mint.init_extension::<TransferHook>(true).unwrap();
-    extension.program_id = OptionalNonZeroPubkey(hook_program_id);
-
-    mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
-    mint.base.decimals = MINT_DECIMALS;
-    mint.base.supply = MINT_SUPPLY.into();
-    mint.base.freeze_authority = PodCOption::none();
-    mint.base.is_initialized = PodBool::from_bool(true);
-
-    mint.init_account_type().unwrap();
-
-    KeyedAccount {
-        key: Pubkey::new_unique(),
-        account: Account {
-            lamports: Rent::default().minimum_balance(Mint::LEN),
-            data,
-            owner: spl_token_2022::id(),
-            ..Default::default()
-        },
-    }
-}
-
-pub fn setup_transfer_hook_account(owner: &Pubkey, mint: &KeyedAccount, amount: u64) -> Account {
-    let account_size =
-        ExtensionType::try_calculate_account_len::<spl_token_2022::state::Account>(&[
-            ExtensionType::TransferHookAccount,
-        ])
-        .unwrap();
-    let mut account_data = vec![0; account_size];
-    let mut state = StateWithExtensionsMut::<spl_token_2022::state::Account>::unpack_uninitialized(
-        &mut account_data,
-    )
-    .unwrap();
-
-    let extension = state.init_extension::<TransferHookAccount>(true).unwrap();
-    extension.transferring = false.into();
-
-    state.base = spl_token_2022::state::Account {
-        mint: mint.key,
-        amount,
-        owner: *owner,
-        state: AccountState::Initialized,
-        ..Default::default()
-    };
-    state.pack_base();
-    state.init_account_type().unwrap();
-
-    Account {
-        lamports: Rent::default().minimum_balance(Mint::LEN),
-        data: account_data,
-        owner: spl_token_2022::id(),
-        ..Default::default()
-    }
-}
-
 pub fn setup_validation_state_account(
     hook_program_id: &Pubkey,
     counter: &KeyedAccount,
@@ -246,114 +146,4 @@ pub fn setup_validation_state_account(
             rent_epoch: 0,
         },
     }
-}
-
-pub fn setup_native_token(balance: u64, owner: &TransferAuthority) -> (KeyedAccount, Account) {
-    let native_mint = KeyedAccount {
-        key: spl_token_2022::native_mint::id(),
-        account: setup_mint(
-            TokenProgram::SplToken2022,
-            &Rent::default(),
-            Pubkey::new_unique(),
-        ),
-    };
-
-    let account_size =
-        ExtensionType::try_calculate_account_len::<spl_token_2022::state::Account>(&[]).unwrap();
-    let mut account_data = vec![0; account_size];
-    let mut state = StateWithExtensionsMut::<spl_token_2022::state::Account>::unpack_uninitialized(
-        &mut account_data,
-    )
-    .unwrap();
-
-    state.base = spl_token_2022::state::Account {
-        mint: native_mint.key,
-        amount: balance,
-        owner: owner.keyed_account.key,
-        state: AccountState::Initialized,
-        is_native: COption::Some(20),
-        ..Default::default()
-    };
-    state.pack_base();
-
-    let native_token_account = Account {
-        lamports: Rent::default()
-            .minimum_balance(spl_token_2022::state::Account::LEN)
-            .checked_add(balance)
-            .unwrap(),
-        data: account_data,
-        owner: spl_token_2022::id(),
-        ..Default::default()
-    };
-    (native_mint, native_token_account)
-}
-
-pub fn transfer_fee_mint() -> KeyedAccount {
-    let mint_len =
-        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferFeeConfig])
-            .unwrap();
-    let mut data = vec![0u8; mint_len];
-    let mut mint = PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
-
-    let extension = mint.init_extension::<TransferFeeConfig>(true).unwrap();
-    extension.withheld_amount = 0.into();
-    extension.older_transfer_fee = TransferFee {
-        epoch: 0.into(),
-        maximum_fee: 50_000.into(),
-        transfer_fee_basis_points: 100.into(), // 1%
-    };
-    extension.newer_transfer_fee = extension.older_transfer_fee;
-
-    mint.base.mint_authority = PodCOption::some(Pubkey::new_unique());
-    mint.base.freeze_authority = PodCOption::some(FREEZE_AUTHORITY);
-    mint.base.supply = MINT_SUPPLY.into();
-    mint.base.decimals = MINT_DECIMALS;
-    mint.base.is_initialized = PodBool::from_bool(true);
-
-    mint.init_account_type().unwrap();
-
-    KeyedAccount {
-        key: Pubkey::new_unique(),
-        account: Account {
-            lamports: Rent::default().minimum_balance(mint_len),
-            data,
-            owner: spl_token_2022::id(),
-            ..Default::default()
-        },
-    }
-}
-
-pub fn setup_transfer_fee_account(owner: &Pubkey, mint: &Pubkey, initial_amount: u64) -> Account {
-    let account_size =
-        ExtensionType::try_calculate_account_len::<PodAccount>(&[ExtensionType::TransferFeeAmount])
-            .unwrap();
-
-    let mut account = Account {
-        lamports: Rent::default().minimum_balance(account_size),
-        owner: spl_token_2022::id(),
-        data: vec![0; account_size],
-        ..Default::default()
-    };
-
-    let pod_account_data = PodAccount {
-        mint: *mint,
-        owner: *owner,
-        amount: initial_amount.into(),
-        delegate: PodCOption::none(),
-        state: AccountState::Initialized.into(),
-        is_native: PodCOption::none(),
-        delegated_amount: 0.into(),
-        close_authority: PodCOption::none(),
-    };
-
-    let mut state =
-        PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut account.data).unwrap();
-    *state.base = pod_account_data;
-
-    let fee_extension = state.init_extension::<TransferFeeAmount>(true).unwrap();
-    fee_extension.withheld_amount = 0.into();
-
-    state.init_account_type().unwrap();
-
-    account
 }

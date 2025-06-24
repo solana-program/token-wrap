@@ -1,5 +1,8 @@
 use {
-    crate::helpers::common::{init_mollusk, setup_mint},
+    crate::helpers::{
+        common::{init_mollusk, KeyedAccount, TokenProgram},
+        mint_builder::MintBuilder,
+    },
     mollusk_svm::{program::keyed_account_for_system_program, result::Check, Mollusk},
     solana_account::Account,
     solana_pubkey::Pubkey,
@@ -14,40 +17,6 @@ pub struct CreateMintResult {
     pub wrapped_backpointer: KeyedAccount,
 }
 
-#[derive(Default, Debug, Clone)]
-pub struct KeyedAccount {
-    pub key: Pubkey,
-    pub account: Account,
-}
-
-impl KeyedAccount {
-    pub fn pair(&self) -> (Pubkey, Account) {
-        (self.key, self.account.clone())
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum TokenProgram {
-    SplToken,
-    SplToken2022,
-}
-
-impl TokenProgram {
-    pub fn id(&self) -> Pubkey {
-        match self {
-            TokenProgram::SplToken => spl_token::id(),
-            TokenProgram::SplToken2022 => spl_token_2022::id(),
-        }
-    }
-
-    pub fn keyed_account(&self) -> (Pubkey, Account) {
-        match self {
-            TokenProgram::SplToken => mollusk_svm_programs_token::token::keyed_account(),
-            TokenProgram::SplToken2022 => mollusk_svm_programs_token::token2022::keyed_account(),
-        }
-    }
-}
-
 pub struct CreateMintBuilder<'a> {
     mollusk: Mollusk,
     wrapped_token_program: TokenProgram,
@@ -59,6 +28,7 @@ pub struct CreateMintBuilder<'a> {
     wrapped_mint_account: Option<Account>,
     backpointer_addr: Option<Pubkey>,
     backpointer_account: Option<Account>,
+    freeze_authority: Option<Pubkey>,
     idempotent: bool,
     checks: Vec<Check<'a>>,
 }
@@ -76,6 +46,7 @@ impl Default for CreateMintBuilder<'_> {
             wrapped_mint_account: None,
             backpointer_addr: None,
             backpointer_account: None,
+            freeze_authority: None,
             idempotent: false,
             checks: vec![],
         }
@@ -132,6 +103,11 @@ impl<'a> CreateMintBuilder<'a> {
         self
     }
 
+    pub fn freeze_authority(mut self, authority: Pubkey) -> Self {
+        self.freeze_authority = Some(authority);
+        self
+    }
+
     pub fn check(mut self, check: Check<'a>) -> Self {
         self.checks.push(check);
         self
@@ -144,11 +120,15 @@ impl<'a> CreateMintBuilder<'a> {
             .unwrap_or_else(|| self.wrapped_token_program.id());
 
         let unwrapped_mint_account = self.unwrapped_mint_account.clone().unwrap_or_else(|| {
-            setup_mint(
-                self.unwrapped_token_program,
-                &self.mollusk.sysvars.rent,
-                Pubkey::new_unique(),
-            )
+            let mut mint_builder = MintBuilder::new()
+                .token_program(self.unwrapped_token_program)
+                .mint_authority(Pubkey::new_unique());
+
+            if let Some(freeze_auth) = self.freeze_authority {
+                mint_builder = mint_builder.freeze_authority(freeze_auth);
+            }
+
+            mint_builder.build().account
         });
 
         let wrapped_mint_addr = self.wrapped_mint_addr.unwrap_or_else(|| {

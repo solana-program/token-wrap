@@ -1,8 +1,8 @@
 use {
     crate::helpers::{
-        common::{init_mollusk, setup_mint},
-        create_mint_builder::{KeyedAccount, TokenProgram},
-        wrap_builder::TransferAuthority,
+        common::{init_mollusk, KeyedAccount, TokenProgram, TransferAuthority},
+        mint_builder::MintBuilder,
+        token_account_builder::TokenAccountBuilder,
     },
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
@@ -10,10 +10,12 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
-            transfer_fee::TransferFeeAmount, BaseStateWithExtensionsMut, ExtensionType,
-            PodStateWithExtensionsMut,
+            transfer_fee::TransferFeeConfig,
+            BaseStateWithExtensions,
+            ExtensionType::{ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt},
+            PodStateWithExtensions,
         },
-        pod::{PodAccount, PodCOption},
+        pod::PodMint,
     },
     spl_token_wrap::{
         get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
@@ -142,6 +144,14 @@ impl<'a> UnwrapBuilder<'a> {
         self
     }
 
+    fn mint_has_transfer_fees(&self, mint: &KeyedAccount) -> bool {
+        if let Ok(mint_state) = PodStateWithExtensions::<PodMint>::unpack(&mint.account.data) {
+            mint_state.get_extension::<TransferFeeConfig>().is_ok()
+        } else {
+            false
+        }
+    }
+
     fn get_wrapped_mint(
         &self,
         token_program: TokenProgram,
@@ -152,59 +162,12 @@ impl<'a> UnwrapBuilder<'a> {
 
         self.wrapped_mint.clone().unwrap_or(KeyedAccount {
             key: wrapped_mint_addr,
-            account: setup_mint(token_program, &self.mollusk.sysvars.rent, mint_authority),
+            account: MintBuilder::new()
+                .token_program(token_program)
+                .mint_authority(mint_authority)
+                .build()
+                .account,
         })
-    }
-
-    pub fn setup_token_account(
-        &self,
-        token_program: TokenProgram,
-        mint: &KeyedAccount,
-        owner: &Pubkey,
-        starting_amount: u64,
-    ) -> KeyedAccount {
-        let extensions = match token_program {
-            TokenProgram::SplToken => vec![],
-            TokenProgram::SplToken2022 => vec![ExtensionType::TransferFeeAmount],
-        };
-
-        let account_size =
-            ExtensionType::try_calculate_account_len::<PodAccount>(&extensions).unwrap();
-
-        let mut token_account = Account {
-            lamports: 100_000_000,
-            owner: mint.account.owner,
-            data: vec![0; account_size],
-            ..Default::default()
-        };
-
-        let account_data = PodAccount {
-            mint: mint.key,
-            owner: *owner,
-            amount: starting_amount.into(),
-            delegate: PodCOption::none(),
-            state: spl_token_2022::state::AccountState::Initialized.into(),
-            is_native: PodCOption::none(),
-            delegated_amount: 0.into(),
-            close_authority: PodCOption::none(),
-        };
-
-        let mut state =
-            PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut token_account.data)
-                .unwrap();
-        *state.base = account_data;
-        state.init_account_type().unwrap();
-
-        if let TokenProgram::SplToken2022 = token_program {
-            state.init_extension::<TransferFeeAmount>(true).unwrap();
-            let fee_extension = state.get_extension_mut::<TransferFeeAmount>().unwrap();
-            fee_extension.withheld_amount = 0.into();
-        }
-
-        KeyedAccount {
-            key: Pubkey::new_unique(),
-            account: token_account,
-        }
     }
 
     pub fn execute(mut self) -> UnwrapResult {
@@ -217,11 +180,11 @@ impl<'a> UnwrapBuilder<'a> {
 
         let unwrapped_mint = self.unwrapped_mint.clone().unwrap_or(KeyedAccount {
             key: Pubkey::new_unique(),
-            account: setup_mint(
-                unwrapped_token_program,
-                &self.mollusk.sysvars.rent,
-                Pubkey::new_unique(),
-            ),
+            account: MintBuilder::new()
+                .token_program(unwrapped_token_program)
+                .mint_authority(Pubkey::new_unique())
+                .build()
+                .account,
         });
 
         let wrapped_token_program = self
@@ -238,39 +201,60 @@ impl<'a> UnwrapBuilder<'a> {
             .unwrap_or_else(|| get_wrapped_mint_authority(&wrapped_mint.key));
 
         // Setup wrapped token account to be unwrapped
-        let wrapped_token_account = self.setup_token_account(
-            wrapped_token_program,
-            &wrapped_mint,
-            &transfer_authority.keyed_account.key,
-            self.wrapped_token_starting_amount.unwrap_or(unwrap_amount),
-        );
+        let wrapped_token_account = TokenAccountBuilder::new()
+            .token_program(wrapped_token_program)
+            .mint(wrapped_mint.clone())
+            .owner(transfer_authority.keyed_account.key)
+            .amount(self.wrapped_token_starting_amount.unwrap_or(unwrap_amount))
+            .build();
 
         // Setup escrow account
-        let escrow = self.unwrapped_escrow_account.clone().unwrap_or({
-            let mut account = self.setup_token_account(
-                unwrapped_token_program,
-                &unwrapped_mint,
-                &self
-                    .unwrapped_escrow_owner
-                    .unwrap_or(wrapped_mint_authority),
-                self.escrow_starting_amount.unwrap_or(100_000),
-            );
-            account.key = get_escrow_address(
+        let escrow = self.unwrapped_escrow_account.clone().unwrap_or_else(|| {
+            let escrow_addr = get_escrow_address(
                 &unwrapped_mint.key,
                 &unwrapped_token_program.id(),
                 &wrapped_token_program.id(),
             );
-            account
+            let mut builder = TokenAccountBuilder::new()
+                .token_program(unwrapped_token_program)
+                .mint(unwrapped_mint.clone())
+                .owner(
+                    self.unwrapped_escrow_owner
+                        .unwrap_or(wrapped_mint_authority),
+                )
+                .amount(self.escrow_starting_amount.unwrap_or(100_000))
+                .account_key(escrow_addr);
+
+            // Only add extensions for SPL Token 2022
+            if unwrapped_token_program == TokenProgram::SplToken2022 {
+                builder = builder.with_extension(ImmutableOwner);
+
+                // Add TransferFeeAmount extension if the mint has transfer fees
+                if self.mint_has_transfer_fees(&unwrapped_mint) {
+                    builder = builder.with_extension(TransferFeeConfigExt);
+                }
+            }
+
+            builder.build()
         });
 
         // Setup recipient account for unwrapped tokens
         let recipient = self.recipient_token_account.clone().unwrap_or_else(|| {
-            self.setup_token_account(
-                unwrapped_token_program,
-                &unwrapped_mint,
-                &Pubkey::new_unique(),
-                self.recipient_starting_amount.unwrap_or(0),
-            )
+            let mut builder = TokenAccountBuilder::new()
+                .token_program(unwrapped_token_program)
+                .mint(unwrapped_mint.clone())
+                .owner(Pubkey::new_unique())
+                .amount(self.recipient_starting_amount.unwrap_or(0));
+
+            // Add TransferFeeAmount extension if the mint has transfer fees and it's SPL
+            // Token 2022
+            if unwrapped_token_program == TokenProgram::SplToken2022
+                && self.mint_has_transfer_fees(&unwrapped_mint)
+            {
+                builder = builder.with_extension(TransferFeeConfigExt);
+            }
+
+            builder.build()
         });
 
         let mut instruction = unwrap(
