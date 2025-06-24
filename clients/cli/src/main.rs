@@ -1,4 +1,5 @@
 mod cli;
+mod close_stuck_escrow;
 mod common;
 mod config;
 mod create_escrow_account;

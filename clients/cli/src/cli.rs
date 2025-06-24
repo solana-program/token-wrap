@@ -1,5 +1,6 @@
 use {
     crate::{
+        close_stuck_escrow::{command_close_stuck_escrow, CloseStuckEscrowArgs},
         config::Config,
         create_escrow_account::{command_create_escrow_account, CreateEscrowAccountArgs},
         create_mint::{command_create_mint, CreateMintArgs},
@@ -97,6 +98,9 @@ pub enum Command {
     Unwrap(UnwrapArgs),
     /// Create an account used to escrow unwrapped tokens
     CreateEscrowAccount(CreateEscrowAccountArgs),
+    /// Close a stuck escrow account when a mint has closed and re-created with
+    /// different mint extensions
+    CloseStuckEscrow(CloseStuckEscrowArgs),
 }
 
 impl Command {
@@ -112,6 +116,7 @@ impl Command {
             Command::FindPdas(args) => command_get_pdas(config, args).await,
             Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
             Command::CreateEscrowAccount(args) => command_create_escrow_account(config, args).await,
+            Command::CloseStuckEscrow(args) => command_close_stuck_escrow(config, args).await,
         }
     }
 }
