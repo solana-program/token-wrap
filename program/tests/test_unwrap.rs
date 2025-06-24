@@ -5,6 +5,7 @@ use {
             TokenProgram, DEFAULT_MINT_SUPPLY,
         },
         create_mint_builder::CreateMintBuilder,
+        extensions::MintExtension::{TransferFeeConfig as TransferFeeConfigExt, TransferHook},
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
@@ -17,10 +18,7 @@ use {
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
             BaseStateWithExtensions,
-            ExtensionType::{
-                ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
-                TransferHookAccount,
-            },
+            ExtensionType::{ImmutableOwner, TransferHookAccount},
             PodStateWithExtensions,
         },
         pod::{PodAccount, PodMint},

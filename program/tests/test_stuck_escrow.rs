@@ -2,12 +2,9 @@ use {
     crate::helpers::{
         close_stuck_escrow_builder::CloseStuckEscrowBuilder,
         common::{init_mollusk, KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS},
+        extensions::MintExtension::{MintCloseAuthority, TransferHook},
         mint_builder::MintBuilder,
-        mint_extensions::{MintCloseAuthorityInit, TransferHookInit},
         token_account_builder::TokenAccountBuilder,
-        token_account_extensions::{
-            ImmutableOwnerExtension, TransferFeeAmountExtension, TransferHookAccountExtension,
-        },
     },
     mollusk_svm::{program::keyed_account_for_system_program, result::Check},
     mollusk_svm_programs_token::token2022,
@@ -23,8 +20,10 @@ use {
     },
     spl_token_2022::{
         extension::{
-            transfer_fee::instruction::initialize_transfer_fee_config, BaseStateWithExtensionsMut,
-            ExtensionType, PodStateWithExtensionsMut,
+            transfer_fee::instruction::initialize_transfer_fee_config,
+            BaseStateWithExtensionsMut,
+            ExtensionType::{self, ImmutableOwner, TransferFeeConfig, TransferHookAccount},
+            PodStateWithExtensionsMut,
         },
         instruction::initialize_mint2,
         pod::PodAccount,
@@ -103,13 +102,11 @@ fn test_close_stuck_escrow_fails_escrow_owner_mismatch() {
 
     let unwrapped_mint = MintBuilder::new()
         .token_program(unwrapped_token_program)
-        .rent(Rent::default())
         .mint_authority(Pubkey::new_unique())
         .build();
 
     let wrapped_mint = MintBuilder::new()
         .token_program(wrapped_token_program)
-        .rent(Rent::default())
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
             &wrapped_token_program.id(),
@@ -165,13 +162,11 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
 
     let unwrapped_mint = MintBuilder::new()
         .token_program(unwrapped_token_program)
-        .rent(Rent::default())
         .mint_authority(Pubkey::new_unique())
         .build();
 
     let wrapped_mint = MintBuilder::new()
         .token_program(wrapped_token_program)
-        .rent(Rent::default())
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
             &wrapped_token_program.id(),
@@ -217,19 +212,15 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
 
 #[test]
 fn test_close_stuck_escrow_fails_when_in_good_state() {
-    let hook_program_id = test_transfer_hook::id();
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .mint_authority(Pubkey::new_unique())
-        .with_extension(TransferHookInit {
-            program_id: hook_program_id,
-        })
+        .with_extension(TransferHook)
         .build();
     let wrapped_token_program = TokenProgram::SplToken2022;
 
     let wrapped_mint = MintBuilder::new()
         .token_program(wrapped_token_program)
-        .rent(Rent::default())
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
             &wrapped_token_program.id(),
@@ -251,8 +242,8 @@ fn test_close_stuck_escrow_fails_when_in_good_state() {
             .mint(unwrapped_mint.clone())
             .owner(wrapped_mint_authority)
             .amount(0)
-            .with_extension(ImmutableOwnerExtension)
-            .with_extension(TransferHookAccountExtension::new(false))
+            .with_extension(ImmutableOwner)
+            .with_extension(TransferHookAccount)
             .build()
             .account,
     };
@@ -273,14 +264,11 @@ fn test_close_stuck_escrow_succeeds() {
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .mint_authority(Pubkey::new_unique())
-        .with_extension(TransferHookInit {
-            program_id: test_transfer_hook::id(),
-        })
+        .with_extension(TransferHook)
         .build();
 
     let wrapped_mint = MintBuilder::new()
         .token_program(wrapped_token_program)
-        .rent(Rent::default())
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
             &wrapped_token_program.id(),
@@ -342,13 +330,11 @@ fn test_close_stuck_escrow_fails_when_account_frozen() {
 
     let unwrapped_mint = MintBuilder::new()
         .token_program(unwrapped_token_program)
-        .rent(Rent::default())
         .mint_authority(Pubkey::new_unique())
         .build();
 
     let wrapped_mint = MintBuilder::new()
         .token_program(wrapped_token_program)
-        .rent(Rent::default())
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
             &wrapped_token_program.id(),
@@ -371,7 +357,7 @@ fn test_close_stuck_escrow_fails_when_account_frozen() {
             .owner(wrapped_mint_authority)
             .amount(0)
             .state(AccountState::Frozen)
-            .with_extension(ImmutableOwnerExtension)
+            .with_extension(ImmutableOwner)
             .build()
             .account,
     };
@@ -398,9 +384,7 @@ fn test_end_to_end_close_mint_case() {
         .mint_authority(Pubkey::new_unique())
         .decimals(DEFAULT_MINT_DECIMALS)
         .supply(0)
-        .with_extension(MintCloseAuthorityInit {
-            authority: close_authority,
-        })
+        .with_extension(MintCloseAuthority(close_authority))
         .build();
 
     // Derive all necessary PDAs
@@ -440,7 +424,7 @@ fn test_end_to_end_close_mint_case() {
     .unwrap();
 
     // The newly created mint at the same address w/ different extensions and space
-    let mint_extensions = vec![ExtensionType::TransferFeeConfig];
+    let mint_extensions = vec![TransferFeeConfig];
     let mint_space = ExtensionType::try_calculate_account_len::<Mint>(&mint_extensions).unwrap();
     let create_mint_account_ix = solana_system_interface::instruction::create_account(
         &payer,
@@ -498,7 +482,7 @@ fn test_end_to_end_close_mint_case() {
         .mint(unwrapped_mint.clone())
         .owner(payer)
         .amount(wrap_amount)
-        .with_extension(TransferFeeAmountExtension::new(0))
+        .with_extension(TransferFeeConfig)
         .build()
         .account;
 

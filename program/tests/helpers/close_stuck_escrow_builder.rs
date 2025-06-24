@@ -101,7 +101,6 @@ impl<'a> CloseStuckEscrowBuilder<'a> {
         let unwrapped_mint = self.unwrapped_mint.unwrap_or_else(|| {
             MintBuilder::new()
                 .token_program(unwrapped_token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(Pubkey::new_unique())
                 .build()
         });
@@ -110,7 +109,6 @@ impl<'a> CloseStuckEscrowBuilder<'a> {
             let key = get_wrapped_mint_address(&unwrapped_mint.key, &wrapped_token_program.id());
             MintBuilder::new()
                 .token_program(wrapped_token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_key(key)
                 .mint_authority(Pubkey::new_unique())
                 .build()

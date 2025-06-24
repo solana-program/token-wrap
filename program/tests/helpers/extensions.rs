@@ -4,6 +4,7 @@ use {
     spl_token_2022::{
         extension::{
             immutable_owner::ImmutableOwner,
+            mint_close_authority::MintCloseAuthority,
             transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
             transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
@@ -12,19 +13,36 @@ use {
     },
 };
 
+#[derive(Clone, Debug)]
+pub enum MintExtension {
+    TransferHook,
+    TransferFeeConfig,
+    MintCloseAuthority(Pubkey),
+}
+
+impl MintExtension {
+    pub fn extension_type(&self) -> ExtensionType {
+        match self {
+            MintExtension::TransferHook => ExtensionType::TransferHook,
+            MintExtension::TransferFeeConfig => ExtensionType::TransferFeeConfig,
+            MintExtension::MintCloseAuthority(_) => ExtensionType::MintCloseAuthority,
+        }
+    }
+}
+
 /// Initialize extensions for a mint account
 pub fn init_mint_extensions(
     state: &mut PodStateWithExtensionsMut<PodMint>,
-    extensions: &[ExtensionType],
+    extensions: &[MintExtension],
 ) {
     for extension in extensions {
         match extension {
-            ExtensionType::TransferHook => {
+            MintExtension::TransferHook => {
                 let extension = state.init_extension::<TransferHook>(false).unwrap();
                 extension.program_id =
                     OptionalNonZeroPubkey::try_from(Some(test_transfer_hook::id())).unwrap();
             }
-            ExtensionType::TransferFeeConfig => {
+            MintExtension::TransferFeeConfig => {
                 let extension = state.init_extension::<TransferFeeConfig>(false).unwrap();
                 *extension = TransferFeeConfig {
                     transfer_fee_config_authority: OptionalNonZeroPubkey::try_from(Some(
@@ -48,7 +66,11 @@ pub fn init_mint_extensions(
                     },
                 };
             }
-            _ => unimplemented!(),
+            MintExtension::MintCloseAuthority(authority) => {
+                let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
+                extension.close_authority =
+                    OptionalNonZeroPubkey::try_from(Some(*authority)).unwrap();
+            }
         }
     }
 }
