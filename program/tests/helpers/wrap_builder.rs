@@ -3,12 +3,12 @@ use {
         common::{init_mollusk, KeyedAccount, TokenProgram, TransferAuthority},
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
-        token_account_extensions::ImmutableOwnerExtension,
     },
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
     solana_instruction::AccountMeta,
     solana_pubkey::Pubkey,
+    spl_token_2022::extension::ExtensionType::ImmutableOwner,
     spl_token_wrap::{
         get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
     },
@@ -146,7 +146,6 @@ impl<'a> WrapBuilder<'a> {
             key: wrapped_mint_addr,
             account: MintBuilder::new()
                 .token_program(token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(mint_authority)
                 .build()
                 .account,
@@ -164,7 +163,6 @@ impl<'a> WrapBuilder<'a> {
             key: Pubkey::new_unique(),
             account: MintBuilder::new()
                 .token_program(unwrapped_token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(Pubkey::new_unique())
                 .build()
                 .account,
@@ -207,7 +205,7 @@ impl<'a> WrapBuilder<'a> {
 
             // Only add ImmutableOwner for SPL Token 2022
             if unwrapped_token_program == TokenProgram::SplToken2022 {
-                builder = builder.with_extension(ImmutableOwnerExtension);
+                builder = builder.with_extension(ImmutableOwner);
             }
 
             builder.build().account

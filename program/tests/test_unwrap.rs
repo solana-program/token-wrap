@@ -6,9 +6,7 @@ use {
         },
         create_mint_builder::CreateMintBuilder,
         mint_builder::MintBuilder,
-        mint_extensions::{TransferFeeConfigBuilder, TransferFeeConfigInit, TransferHookInit},
         token_account_builder::TokenAccountBuilder,
-        token_account_extensions::{ImmutableOwnerExtension, TransferHookAccountExtension},
         unwrap_builder::{UnwrapBuilder, UnwrapResult},
     },
     helpers::common::TransferAuthority,
@@ -18,7 +16,12 @@ use {
         error::TokenError,
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
-            BaseStateWithExtensions, PodStateWithExtensions,
+            BaseStateWithExtensions,
+            ExtensionType::{
+                ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
+                TransferHookAccount,
+            },
+            PodStateWithExtensions,
         },
         pod::{PodAccount, PodMint},
     },
@@ -278,9 +281,7 @@ fn test_unwrap_with_transfer_hook() {
     let counter = setup_counter(hook_program_id);
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .with_extension(TransferHookInit {
-            program_id: hook_program_id,
-        })
+        .with_extension(TransferHook)
         .build();
 
     let source_starting_amount = 50_000;
@@ -298,7 +299,7 @@ fn test_unwrap_with_transfer_hook() {
         .mint(unwrapped_mint.clone())
         .owner(transfer_authority.keyed_account.key)
         .amount(recipient_starting_amount)
-        .with_extension(TransferHookAccountExtension::new(false))
+        .with_extension(TransferHookAccount)
         .build()
         .account;
 
@@ -317,8 +318,8 @@ fn test_unwrap_with_transfer_hook() {
                 .mint(unwrapped_mint.clone())
                 .owner(mint_authority)
                 .amount(escrow_starting_amount)
-                .with_extension(TransferHookAccountExtension::new(false))
-                .with_extension(ImmutableOwnerExtension)
+                .with_extension(TransferHookAccount)
+                .with_extension(ImmutableOwner)
                 .build()
                 .account,
         }
@@ -417,12 +418,7 @@ fn unwrap_with_transfer_fee() {
     let unwrap_amount = 500_000;
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .with_extension(TransferFeeConfigInit {
-            config: TransferFeeConfigBuilder::new()
-                .basis_points(100)
-                .maximum_fee(50_000)
-                .build(),
-        })
+        .with_extension(TransferFeeConfigExt)
         .build();
 
     let mint = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint.account.data).unwrap();

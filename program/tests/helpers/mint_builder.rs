@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS, DEFAULT_MINT_SUPPLY},
-        extension_initializer::ExtensionInitializer,
+        extensions::init_mint_extensions,
     },
     solana_account::Account,
     solana_pubkey::Pubkey,
@@ -19,10 +19,9 @@ pub struct MintBuilder {
     freeze_authority: Option<Pubkey>,
     supply: u64,
     decimals: u8,
-    rent: Option<Rent>,
     mint_key: Option<Pubkey>,
     lamports: Option<u64>,
-    extensions: Vec<Box<dyn ExtensionInitializer<PodMint>>>,
+    extensions: Vec<ExtensionType>,
 }
 
 impl Default for MintBuilder {
@@ -33,7 +32,6 @@ impl Default for MintBuilder {
             freeze_authority: None,
             supply: DEFAULT_MINT_SUPPLY,
             decimals: DEFAULT_MINT_DECIMALS,
-            rent: None,
             mint_key: None,
             lamports: None,
             extensions: Vec::new(),
@@ -71,11 +69,6 @@ impl MintBuilder {
         self
     }
 
-    pub fn rent(mut self, rent: Rent) -> Self {
-        self.rent = Some(rent);
-        self
-    }
-
     pub fn mint_key(mut self, key: Pubkey) -> Self {
         self.mint_key = Some(key);
         self
@@ -86,21 +79,14 @@ impl MintBuilder {
         self
     }
 
-    pub fn with_extension<T: ExtensionInitializer<PodMint> + 'static>(
-        mut self,
-        extension: T,
-    ) -> Self {
-        self.extensions.push(Box::new(extension));
+    pub fn with_extension(mut self, extension: ExtensionType) -> Self {
+        self.extensions.push(extension);
         self
     }
 
     pub fn build(self) -> KeyedAccount {
         let extension_types = match self.token_program {
-            TokenProgram::SplToken2022 => self
-                .extensions
-                .iter()
-                .map(|ext| ext.extension_type())
-                .collect(),
+            TokenProgram::SplToken2022 => self.extensions.clone(),
             TokenProgram::SplToken => {
                 if self.extensions.is_empty() {
                     vec![]
@@ -131,14 +117,12 @@ impl MintBuilder {
 
         // Initialize extensions (only for token 2022)
         if self.token_program == TokenProgram::SplToken2022 {
-            for extension in &self.extensions {
-                extension.initialize(&mut state).unwrap();
-            }
+            init_mint_extensions(&mut state, &self.extensions);
         }
 
         let lamports = self
             .lamports
-            .unwrap_or_else(|| self.rent.unwrap_or_default().minimum_balance(buffer.len()));
+            .unwrap_or_else(|| Rent::default().minimum_balance(buffer.len()));
 
         KeyedAccount {
             key: self.mint_key.unwrap_or_else(Pubkey::new_unique),

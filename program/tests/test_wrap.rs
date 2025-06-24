@@ -6,11 +6,7 @@ use {
         },
         create_mint_builder::CreateMintBuilder,
         mint_builder::MintBuilder,
-        mint_extensions::{TransferFeeConfigBuilder, TransferFeeConfigInit, TransferHookInit},
         token_account_builder::TokenAccountBuilder,
-        token_account_extensions::{
-            ImmutableOwnerExtension, TransferFeeAmountExtension, TransferHookAccountExtension,
-        },
         wrap_builder::{WrapBuilder, WrapResult},
     },
     helpers::common::TransferAuthority,
@@ -22,7 +18,12 @@ use {
     spl_token_2022::{
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
-            BaseStateWithExtensions, PodStateWithExtensions,
+            BaseStateWithExtensions,
+            ExtensionType::{
+                ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt, TransferHook,
+                TransferHookAccount,
+            },
+            PodStateWithExtensions,
         },
         pod::{PodAccount, PodMint},
     },
@@ -228,9 +229,7 @@ fn test_wrap_with_transfer_hook() {
     let counter = setup_counter(hook_program_id);
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .with_extension(TransferHookInit {
-            program_id: hook_program_id,
-        })
+        .with_extension(TransferHook)
         .build();
 
     // Escrow & unwrapped token account need to have TransferHook extension as well
@@ -244,7 +243,7 @@ fn test_wrap_with_transfer_hook() {
         .mint(unwrapped_mint.clone())
         .owner(transfer_authority.keyed_account.key)
         .amount(wrap_amount)
-        .with_extension(TransferHookAccountExtension::new(false))
+        .with_extension(TransferHookAccount)
         .build();
 
     let escrow_account = {
@@ -256,8 +255,8 @@ fn test_wrap_with_transfer_hook() {
             .mint(unwrapped_mint.clone())
             .owner(mint_authority)
             .amount(0)
-            .with_extension(TransferHookAccountExtension::new(false))
-            .with_extension(ImmutableOwnerExtension)
+            .with_extension(TransferHookAccount)
+            .with_extension(ImmutableOwner)
             .build()
             .account
     };
@@ -336,12 +335,7 @@ fn wrap_with_transfer_fee() {
     let wrap_amount = 500_000;
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .with_extension(TransferFeeConfigInit {
-            config: TransferFeeConfigBuilder::new()
-                .basis_points(100)
-                .maximum_fee(50_000)
-                .build(),
-        })
+        .with_extension(TransferFeeConfigExt)
         .build();
     let transfer_authority = KeyedAccount::default();
     let unwrapped_token_account = TokenAccountBuilder::new()
@@ -349,7 +343,7 @@ fn wrap_with_transfer_fee() {
         .mint(unwrapped_mint.clone())
         .owner(transfer_authority.key)
         .amount(wrap_amount)
-        .with_extension(TransferFeeAmountExtension::new(0))
+        .with_extension(TransferFeeConfigExt)
         .build();
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
     let wrapped_mint_authority_pda = get_wrapped_mint_authority(&wrapped_mint_address);
@@ -358,8 +352,8 @@ fn wrap_with_transfer_fee() {
         .mint(unwrapped_mint.clone())
         .owner(wrapped_mint_authority_pda)
         .amount(0) // escrow is empty before wrap
-        .with_extension(TransferFeeAmountExtension::new(0))
-        .with_extension(ImmutableOwnerExtension)
+        .with_extension(TransferFeeConfigExt)
+        .with_extension(ImmutableOwner)
         .build()
         .account;
 

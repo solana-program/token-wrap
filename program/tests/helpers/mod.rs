@@ -1,9 +1,7 @@
 pub mod common;
 pub mod create_mint_builder;
-pub mod extension_initializer;
+pub mod extensions;
 pub mod mint_builder;
-pub mod mint_extensions;
 pub mod token_account_builder;
-pub mod token_account_extensions;
 pub mod unwrap_builder;
 pub mod wrap_builder;

@@ -3,7 +3,6 @@ use {
         common::{init_mollusk, KeyedAccount, TokenProgram, TransferAuthority},
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
-        token_account_extensions::{ImmutableOwnerExtension, TransferFeeAmountExtension},
     },
     mollusk_svm::{result::Check, Mollusk},
     solana_account::Account,
@@ -11,7 +10,10 @@ use {
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
-            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, PodStateWithExtensions,
+            transfer_fee::TransferFeeConfig,
+            BaseStateWithExtensions,
+            ExtensionType::{ImmutableOwner, TransferFeeConfig as TransferFeeConfigExt},
+            PodStateWithExtensions,
         },
         pod::PodMint,
     },
@@ -162,7 +164,6 @@ impl<'a> UnwrapBuilder<'a> {
             key: wrapped_mint_addr,
             account: MintBuilder::new()
                 .token_program(token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(mint_authority)
                 .build()
                 .account,
@@ -181,7 +182,6 @@ impl<'a> UnwrapBuilder<'a> {
             key: Pubkey::new_unique(),
             account: MintBuilder::new()
                 .token_program(unwrapped_token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(Pubkey::new_unique())
                 .build()
                 .account,
@@ -227,11 +227,11 @@ impl<'a> UnwrapBuilder<'a> {
 
             // Only add extensions for SPL Token 2022
             if unwrapped_token_program == TokenProgram::SplToken2022 {
-                builder = builder.with_extension(ImmutableOwnerExtension);
+                builder = builder.with_extension(ImmutableOwner);
 
                 // Add TransferFeeAmount extension if the mint has transfer fees
                 if self.mint_has_transfer_fees(&unwrapped_mint) {
-                    builder = builder.with_extension(TransferFeeAmountExtension::new(0));
+                    builder = builder.with_extension(TransferFeeConfigExt);
                 }
             }
 
@@ -251,7 +251,7 @@ impl<'a> UnwrapBuilder<'a> {
             if unwrapped_token_program == TokenProgram::SplToken2022
                 && self.mint_has_transfer_fees(&unwrapped_mint)
             {
-                builder = builder.with_extension(TransferFeeAmountExtension::new(0));
+                builder = builder.with_extension(TransferFeeConfigExt);
             }
 
             builder.build()

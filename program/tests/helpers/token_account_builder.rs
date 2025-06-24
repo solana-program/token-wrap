@@ -1,7 +1,7 @@
 use {
     crate::helpers::{
         common::{KeyedAccount, TokenProgram},
-        extension_initializer::ExtensionInitializer,
+        extensions::init_token_account_extensions,
     },
     solana_account::Account,
     solana_pubkey::Pubkey,
@@ -19,14 +19,13 @@ pub struct TokenAccountBuilder {
     owner: Option<Pubkey>,
     amount: u64,
     account_key: Option<Pubkey>,
-    rent: Option<Rent>,
     lamports: Option<u64>,
     delegate: Option<Pubkey>,
     delegated_amount: u64,
     close_authority: Option<Pubkey>,
     state: AccountState,
     is_native: Option<u64>,
-    extensions: Vec<Box<dyn ExtensionInitializer<PodAccount>>>,
+    extensions: Vec<ExtensionType>,
 }
 
 impl Default for TokenAccountBuilder {
@@ -37,7 +36,6 @@ impl Default for TokenAccountBuilder {
             owner: None,
             amount: 0,
             account_key: None,
-            rent: None,
             lamports: None,
             delegate: None,
             delegated_amount: 0,
@@ -79,11 +77,6 @@ impl TokenAccountBuilder {
         self
     }
 
-    pub fn rent(mut self, rent: Rent) -> Self {
-        self.rent = Some(rent);
-        self
-    }
-
     pub fn lamports(mut self, lamports: u64) -> Self {
         self.lamports = Some(lamports);
         self
@@ -114,11 +107,8 @@ impl TokenAccountBuilder {
         self
     }
 
-    pub fn with_extension<T: ExtensionInitializer<PodAccount> + 'static>(
-        mut self,
-        extension: T,
-    ) -> Self {
-        self.extensions.push(Box::new(extension));
+    pub fn with_extension(mut self, extension: ExtensionType) -> Self {
+        self.extensions.push(extension);
         self
     }
 
@@ -126,15 +116,10 @@ impl TokenAccountBuilder {
         let mint = self.mint.expect("Mint is required for token account");
         let owner = self.owner.unwrap_or_else(Pubkey::new_unique);
         let account_key = self.account_key.unwrap_or_else(Pubkey::new_unique);
-        let rent = self.rent.unwrap_or_default();
         let account_owner = self.token_program.id();
 
         let extension_types = match self.token_program {
-            TokenProgram::SplToken2022 => self
-                .extensions
-                .iter()
-                .map(|ext| ext.extension_type())
-                .collect(),
+            TokenProgram::SplToken2022 => self.extensions.clone(),
             TokenProgram::SplToken => {
                 if self.extensions.is_empty() {
                     vec![]
@@ -174,13 +159,11 @@ impl TokenAccountBuilder {
 
         // Initialize extensions (only for token 2022)
         if self.token_program == TokenProgram::SplToken2022 {
-            for extension in &self.extensions {
-                extension.initialize(&mut state).unwrap();
-            }
+            init_token_account_extensions(&mut state, &self.extensions);
         }
 
         let lamports = self.lamports.unwrap_or_else(|| {
-            let base_lamports = rent.minimum_balance(account_data.len());
+            let base_lamports = Rent::default().minimum_balance(account_data.len());
             if let Some(native_balance) = self.is_native {
                 base_lamports.checked_add(native_balance).unwrap()
             } else {

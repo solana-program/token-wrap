@@ -122,7 +122,6 @@ impl<'a> CreateMintBuilder<'a> {
         let unwrapped_mint_account = self.unwrapped_mint_account.clone().unwrap_or_else(|| {
             let mut mint_builder = MintBuilder::new()
                 .token_program(self.unwrapped_token_program)
-                .rent(self.mollusk.sysvars.rent.clone())
                 .mint_authority(Pubkey::new_unique());
 
             if let Some(freeze_auth) = self.freeze_authority {
