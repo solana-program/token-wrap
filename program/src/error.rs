@@ -2,10 +2,10 @@
 
 use {
     num_derive::FromPrimitive,
-    solana_decode_error::DecodeError,
+    num_traits::FromPrimitive,
     solana_msg::msg,
-    solana_program_error::{PrintProgramError, ProgramError},
-    std::error::Error,
+    solana_program_error::{ProgramError, ToStr},
+    std::convert::TryFrom,
     thiserror::Error,
 };
 
@@ -50,17 +50,34 @@ impl From<TokenWrapError> for ProgramError {
     }
 }
 
-impl<T> DecodeError<T> for TokenWrapError {
-    fn type_of() -> &'static str {
-        "TokenWrapError"
+impl TryFrom<u32> for TokenWrapError {
+    type Error = ();
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        TokenWrapError::from_u32(value).ok_or(())
     }
 }
 
-impl PrintProgramError for TokenWrapError {
-    fn print<E>(&self)
+impl ToStr for TokenWrapError {
+    fn to_str<E>(&self) -> &'static str
     where
-        E: 'static + Error + DecodeError<E> + PrintProgramError + num_traits::FromPrimitive,
+        E: 'static + ToStr + TryFrom<u32>,
     {
-        msg!(&self.to_string());
+        match self {
+            TokenWrapError::WrappedMintMismatch => "Error: WrappedMintMismatch",
+            TokenWrapError::BackpointerMismatch => "Error: BackpointerMismatch",
+            TokenWrapError::ZeroWrapAmount => "Error: ZeroWrapAmount",
+            TokenWrapError::MintAuthorityMismatch => "Error: MintAuthorityMismatch",
+            TokenWrapError::EscrowOwnerMismatch => "Error: EscrowOwnerMismatch",
+            TokenWrapError::InvalidWrappedMintOwner => "Error: InvalidWrappedMintOwner",
+            TokenWrapError::InvalidBackpointerOwner => "Error: InvalidBackpointerOwner",
+            TokenWrapError::EscrowMismatch => "Error: EscrowMismatch",
+            TokenWrapError::EscrowInGoodState => "Error: EscrowInGoodState",
+        }
     }
+}
+
+/// Logs program errors
+pub fn log_error(err: &ProgramError) {
+    msg!("{}", err.to_str::<TokenWrapError>());
 }
