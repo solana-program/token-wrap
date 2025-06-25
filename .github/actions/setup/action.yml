@@ -86,15 +86,6 @@ runs:
         version: ${{ env.SOLANA_VERSION }}
         cache: true
 
-    - name: Cache APT packages for CLI dependencies
-      if: ${{ inputs.cli == 'true' }}
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-cache-${{ hashFiles('.github/actions/setup/action.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-cache-
-
     - name: Install CLI dependencies
       if: ${{ inputs.cli == 'true' }}
       shell: bash

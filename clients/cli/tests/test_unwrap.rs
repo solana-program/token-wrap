@@ -164,7 +164,7 @@ async fn assert_unwrap_result(
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_single_signer_with_defaults() {
     let env = setup_test_env().await;
@@ -201,7 +201,7 @@ async fn test_unwrap_single_signer_with_defaults() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_single_signer_with_optional_flags() {
     let env = setup_test_env().await;
@@ -264,7 +264,7 @@ async fn test_unwrap_single_signer_with_optional_flags() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_fail_invalid_wrapped_token_program() {
     let env = setup_test_env().await;
@@ -301,7 +301,7 @@ async fn test_unwrap_fail_invalid_wrapped_token_program() {
     )));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_fail_mismatched_unwrapped_mint() {
     let env = setup_test_env().await;
@@ -338,7 +338,7 @@ async fn test_unwrap_fail_mismatched_unwrapped_mint() {
     )));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_fail_invalid_unwrapped_token_program() {
     let env = setup_test_env().await;
@@ -376,7 +376,7 @@ async fn test_unwrap_fail_invalid_unwrapped_token_program() {
     )));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_unwrap_with_multisig() {
     let mut env = setup_test_env().await;

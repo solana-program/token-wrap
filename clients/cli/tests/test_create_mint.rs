@@ -11,7 +11,7 @@ use {
 
 mod helpers;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_mint() {
     let env = setup_test_env().await;

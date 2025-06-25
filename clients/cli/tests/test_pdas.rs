@@ -10,7 +10,7 @@ use {
 
 pub mod helpers;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_pdas() {
     let env = setup_test_env().await;

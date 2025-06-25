@@ -17,7 +17,7 @@ use {
 
 mod helpers;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_wrap_single_signer_with_defaults() {
     let env = setup_test_env().await;
@@ -93,7 +93,7 @@ async fn test_wrap_single_signer_with_defaults() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_wrap_single_signer_with_optional_flags() {
     let env = setup_test_env().await;
@@ -222,7 +222,7 @@ async fn assert_result(
     assert_eq!(u64::from(wrapped_token_state.base.amount), wrap_amount);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_wrap_with_multisig() {
     let mut env = setup_test_env().await;

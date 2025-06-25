@@ -59,7 +59,7 @@ async fn assert_escrow_creation(
     assert_eq!(account_state.base.amount, 0.into());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_ata_escrow_account_for_spl_token_mint() {
     let env = setup_test_env().await;
@@ -99,7 +99,7 @@ async fn test_create_ata_escrow_account_for_spl_token_mint() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_ata_escrow_account_for_token2022_mint() {
     let env = setup_test_env().await;
@@ -139,7 +139,7 @@ async fn test_create_ata_escrow_account_for_token2022_mint() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_escrow_account_with_signer() {
     let env = setup_test_env().await;
@@ -192,7 +192,7 @@ async fn test_create_escrow_account_with_signer() {
     .await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_escrow_account_signer_idempotent() {
     let env = setup_test_env().await;
@@ -241,7 +241,7 @@ async fn test_create_escrow_account_signer_idempotent() {
         .contains(format!("Escrow account {} already exists", derived_escrow_address).as_str()));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_escrow_account_ata_idempotent() {
     let env = setup_test_env().await;
@@ -284,7 +284,7 @@ async fn test_create_escrow_account_ata_idempotent() {
     assert!(stderr_c.contains("already exists"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_escrow_account_with_wrong_mint_owner() {
     let env = setup_test_env().await;
@@ -310,7 +310,7 @@ async fn test_create_escrow_account_with_wrong_mint_owner() {
     assert!(stderr.contains("is not owned by a token program"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_escrow_account_with_wrong_account_type() {
     let env = setup_test_env().await;
