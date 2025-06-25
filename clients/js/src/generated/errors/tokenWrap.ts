@@ -30,8 +30,11 @@ export const TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER = 0x6; // 6
 
 export const TOKEN_WRAP_ERROR__ESCROW_MISMATCH = 0x7; // 7
 
+export const TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE = 0x8; // 8
+
 export type TokenWrapError =
   | typeof TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH
+  | typeof TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE
   | typeof TOKEN_WRAP_ERROR__ESCROW_MISMATCH
   | typeof TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH
   | typeof TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER
@@ -44,6 +47,7 @@ let tokenWrapErrorMessages: Record<TokenWrapError, string> | undefined;
 if (process.env.NODE_ENV !== 'production') {
   tokenWrapErrorMessages = {
     [TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH]: `Wrapped backpointer account address does not match expected PDA`,
+    [TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE]: `The escrow account is in a good state and cannot be recreated`,
     [TOKEN_WRAP_ERROR__ESCROW_MISMATCH]: `Escrow account address does not match expected ATA`,
     [TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH]: `Unwrapped escrow token owner is not set to expected PDA`,
     [TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER]: `Wrapped backpointer account owner is not the expected token wrap program`,

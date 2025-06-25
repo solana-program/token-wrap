@@ -1,7 +1,7 @@
 {
   "kind": "rootNode",
   "standard": "codama",
-  "version": "1.2.13",
+  "version": "1.3.0",
   "program": {
     "kind": "programNode",
     "name": "tokenWrap",
@@ -458,6 +458,112 @@
             "offset": 0
           }
         ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "closeStuckEscrow",
+        "docs": [
+          "Closes a stuck escrow ATA. This is for the edge case where an",
+          "unwrapped mint with a close authority is closed and then a new mint",
+          "is created at the same address but with a different size, leaving",
+          "the escrow ATA in a bad state.",
+          "",
+          "This instruction will close the old escrow ATA, returning the lamports",
+          "to the destination account. It will only work if the current escrow has",
+          "different extensions than the mint. The client is then responsible",
+          "for calling create_associated_token_account to recreate it."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "escrow",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Escrow account to close (ATA)"
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "destination",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Destination for lamports from closed account"
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "unwrappedMint",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Unwrapped mint"
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "wrappedMint",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Wrapped mint"
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "wrappedMintAuthority",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Wrapped mint authority (PDA)"
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "token2022Program",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": true,
+            "docs": [
+              "Token-2022 program"
+            ],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u8",
+              "endian": "le"
+            },
+            "defaultValue": {
+              "kind": "numberValueNode",
+              "number": 3
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
       }
     ],
     "definedTypes": [],
@@ -604,6 +710,13 @@
         "name": "escrowMismatch",
         "code": 7,
         "message": "Escrow account address does not match expected ATA",
+        "docs": []
+      },
+      {
+        "kind": "errorNode",
+        "name": "escrowInGoodState",
+        "code": 8,
+        "message": "The escrow account is in a good state and cannot be recreated",
         "docs": []
       }
     ]

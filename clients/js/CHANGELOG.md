@@ -1,5 +1,11 @@
 # @solana-program/token-wrap
 
+## 2.1.0
+
+### Minor Changes
+
+- Generated methods for CloseStuckEscrow
+
 ## 2.0.0
 
 ### Major Changes
@@ -11,7 +17,6 @@
 ### Major Changes
 
 - First stable release
-
   - expose createMintTx, singleSignerWrapTx, singleSignerUnwrapTx
   - provide multisig-helper builders and utilities (combinedMultisigTx, escrow creation, token-account helpers)
   - ship generated TypeScript types, codecs, PDA finders and error maps

@@ -18,7 +18,7 @@ advantage of some of the latest features of a specific token program, this might
 
 ## How It Works
 
-It supports three primary operations:
+It supports four primary operations:
 
 1. **`CreateMint`:** This operation initializes a new wrapped token mint and its associated backpointer account. Note,
    the caller must pre-fund this account with lamports. This is to avoid requiring writer+signer privileges on this
@@ -43,6 +43,17 @@ It supports three primary operations:
     * Wrapped tokens are burned from the user's wrapped token account.
     * An equivalent amount of unwrapped tokens is transferred from the escrow account to the user's unwrapped token
       account.
+
+4. **`CloseStuckEscrow`:** This operation handles an edge case with re-creating a mint with the MintCloseAuthority
+   extension.
+
+    * The escrow ATA can get "stuck" when an unwrapped mint with a close authority is closed and then a new mint is
+      created at the same address but with different extensions, leaving the escrow ATA (Associated Token Account) in an
+      incompatible state.
+    * The instruction closes the old escrow ATA and returns the lamports to a specified destination account.
+    * This operation will only succeed if the current escrow has zero balance and has different extensions than the
+      mint.
+    * After closing the stuck escrow, the client is responsible for recreating the ATA with the correct extensions.
 
 The 1:1 relationship between wrapped and unwrapped tokens is maintained through the escrow mechanism, ensuring that
 wrapped tokens are always fully backed by their unwrapped counterparts.
