@@ -1,0 +1,29 @@
+name: Release Rust Crates
+
+# Will run if 'Main' workflow was successful on main branch
+on:
+  workflow_run:
+    workflows: [ "Main" ]
+    types: [ completed ]
+    branches: [ main ]
+
+jobs:
+  publish_rust:
+    name: Publish Rust Crates
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Publish All Crates in Workspace
+        uses: katyo/publish-crates@v2
+        with:
+          path: .
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          ignore-unpublished-changes: true
