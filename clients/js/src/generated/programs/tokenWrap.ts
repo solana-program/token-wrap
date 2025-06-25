@@ -13,6 +13,7 @@ import {
   type ReadonlyUint8Array,
 } from '@solana/kit';
 import {
+  type ParsedCloseStuckEscrowInstruction,
   type ParsedCreateMintInstruction,
   type ParsedUnwrapInstruction,
   type ParsedWrapInstruction,
@@ -29,6 +30,7 @@ export enum TokenWrapInstruction {
   CreateMint,
   Wrap,
   Unwrap,
+  CloseStuckEscrow,
 }
 
 export function identifyTokenWrapInstruction(
@@ -43,6 +45,9 @@ export function identifyTokenWrapInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(2), 0)) {
     return TokenWrapInstruction.Unwrap;
+  }
+  if (containsBytes(data, getU8Encoder().encode(3), 0)) {
+    return TokenWrapInstruction.CloseStuckEscrow;
   }
   throw new Error(
     'The provided instruction could not be identified as a tokenWrap instruction.'
@@ -60,4 +65,7 @@ export type ParsedTokenWrapInstruction<
     } & ParsedWrapInstruction<TProgram>)
   | ({
       instructionType: TokenWrapInstruction.Unwrap;
-    } & ParsedUnwrapInstruction<TProgram>);
+    } & ParsedUnwrapInstruction<TProgram>)
+  | ({
+      instructionType: TokenWrapInstruction.CloseStuckEscrow;
+    } & ParsedCloseStuckEscrowInstruction<TProgram>);

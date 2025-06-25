@@ -6,6 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from './closeStuckEscrow';
 export * from './createMint';
 export * from './unwrap';
 export * from './wrap';

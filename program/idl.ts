@@ -299,6 +299,70 @@ const codama = createFromRoot(
             }),
           ],
         }),
+        instructionNode({
+          name: "closeStuckEscrow",
+          docs: [
+            "Closes a stuck escrow `ATA`. This is for the edge case where an",
+            "unwrapped mint with a close authority is closed and then a new mint",
+            "is created at the same address but with a different size, leaving",
+            "the escrow `ATA` in a bad state.",
+            "This instruction will close the old escrow `ATA`, returning the lamports",
+            "to the destination account. It will only work if the current escrow has",
+            "different extensions than the mint. The client is then responsible",
+            "for calling `create_associated_token_account` to recreate it.",
+          ],
+          accounts: [
+            instructionAccountNode({
+              name: "escrow",
+              docs: "Escrow account to close (ATA)",
+              isSigner: false,
+              isWritable: true,
+            }),
+            instructionAccountNode({
+              name: "destination",
+              docs: "Destination for lamports from closed account",
+              isSigner: false,
+              isWritable: true,
+            }),
+            instructionAccountNode({
+              name: "unwrappedMint",
+              docs: "Unwrapped mint",
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "wrappedMint",
+              docs: "Wrapped mint",
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "wrappedMintAuthority",
+              docs: "Wrapped mint authority (PDA)",
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "token2022Program",
+              docs: "Token-2022 program",
+              isSigner: false,
+              isWritable: false,
+              isOptional: true,
+              defaultValue: publicKeyValueNode(
+                "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+              ),
+            }),
+          ],
+          discriminators: [fieldDiscriminatorNode("discriminator", 0)],
+          arguments: [
+            instructionArgumentNode({
+              name: "discriminator",
+              type: numberTypeNode("u8"),
+              defaultValue: numberValueNode(3),
+              defaultValueStrategy: "omitted",
+            }),
+          ],
+        }),
       ],
       pdas: [
         pdaNode({
@@ -367,6 +431,12 @@ const codama = createFromRoot(
           name: "EscrowMismatch",
           code: 7,
           message: "Escrow account address does not match expected ATA",
+        }),
+        errorNode({
+          name: "EscrowInGoodState",
+          code: 8,
+          message:
+            "The escrow account is in a good state and cannot be recreated",
         }),
       ],
     }),
