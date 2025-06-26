@@ -1,6 +1,9 @@
+# Will run if 'Main' workflow was successful on main branch.
+# Upon detecting a version bump in any of the workspace's crates (checks against crates.io),
+# it will publish the new version.
+
 name: Release Rust Crates
 
-# Will run if 'Main' workflow was successful on main branch
 on:
   workflow_run:
     workflows: [ "Main" ]
