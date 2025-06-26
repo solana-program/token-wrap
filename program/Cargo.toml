@@ -1,6 +1,6 @@
 [package]
 name = "spl-token-wrap"
-version = "0.1.0"
+version = "1.0.0"
 description = "Solana Program Library Token Wrap"
 authors = { workspace = true }
 repository = { workspace = true }
