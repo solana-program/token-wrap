@@ -9706,7 +9706,6 @@ dependencies = [
  "solana-account",
  "solana-account-info",
  "solana-cpi",
- "solana-decode-error",
  "solana-instruction",
  "solana-msg",
  "solana-program-entrypoint",
