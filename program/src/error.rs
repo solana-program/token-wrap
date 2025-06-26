@@ -51,10 +51,10 @@ impl From<TokenWrapError> for ProgramError {
 }
 
 impl TryFrom<u32> for TokenWrapError {
-    type Error = ();
+    type Error = ProgramError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        TokenWrapError::from_u32(value).ok_or(())
+        TokenWrapError::from_u32(value).ok_or(ProgramError::InvalidArgument)
     }
 }
 
@@ -79,5 +79,5 @@ impl ToStr for TokenWrapError {
 
 /// Logs program errors
 pub fn log_error(err: &ProgramError) {
-    msg!("{}", err.to_str::<TokenWrapError>());
+    msg!(err.to_str::<TokenWrapError>());
 }
