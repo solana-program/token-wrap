@@ -19,7 +19,7 @@ use {
 
 mod helpers;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_only_token_2022_allowed() {
     let env = setup_test_env().await;
@@ -46,7 +46,7 @@ async fn test_only_token_2022_allowed() {
     assert!(stderr.contains("CloseStuckEscrow only works with spl-token-2022 unwrapped mints"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_create_mint_close_stuck_escrow_fails() {
     let env = setup_test_env().await;
@@ -86,7 +86,7 @@ async fn test_create_mint_close_stuck_escrow_fails() {
     assert!(!output.status.success());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_successful_close() {
     let env = setup_test_env().await;

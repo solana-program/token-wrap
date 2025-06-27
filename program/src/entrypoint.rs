@@ -3,9 +3,7 @@
 #![cfg(all(target_os = "solana", not(feature = "no-entrypoint")))]
 
 use {
-    crate::error::TokenWrapError,
-    solana_account_info::AccountInfo,
-    solana_program_error::{PrintProgramError, ProgramResult},
+    crate::error::log_error, solana_account_info::AccountInfo, solana_program_error::ProgramResult,
     solana_pubkey::Pubkey,
 };
 
@@ -17,5 +15,5 @@ fn process_instruction(
     instruction_data: &[u8],
 ) -> ProgramResult {
     crate::processor::process_instruction(program_id, accounts, instruction_data)
-        .inspect_err(PrintProgramError::print::<TokenWrapError>)
+        .inspect_err(log_error)
 }
