@@ -2,7 +2,7 @@ use {
     crate::helpers::{
         common::{TokenProgram, DEFAULT_MINT_DECIMALS},
         create_mint_builder::CreateMintBuilder,
-        extensions::MintExtension::ConfidentialTransfer,
+        extensions::MintExtension,
         mint_builder::MintBuilder,
     },
     mollusk_svm::result::Check,
@@ -22,6 +22,7 @@ use {
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
         state::Backpointer,
     },
+    test_case::test_case,
 };
 
 pub mod helpers;
@@ -278,11 +279,14 @@ fn test_successful_spl_token_2022_to_spl_token() {
     assert_eq!(backpointer.unwrapped_mint, unwrapped_mint_address);
 }
 
-#[test]
-fn test_create_mint_with_confidential_transfer() {
+#[test_case(MintExtension::ConfidentialTransfer)]
+#[test_case(MintExtension::TransferHook)]
+#[test_case(MintExtension::TransferFeeConfig)]
+#[test_case(MintExtension::MintCloseAuthority(Pubkey::new_unique()))]
+fn test_create_mint_from_extended_mint(extension: MintExtension) {
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .with_extension(ConfidentialTransfer)
+        .with_extension(extension)
         .build();
 
     let result = CreateMintBuilder::default()
