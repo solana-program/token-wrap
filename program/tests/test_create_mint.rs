@@ -2,6 +2,8 @@ use {
     crate::helpers::{
         common::{TokenProgram, DEFAULT_MINT_DECIMALS},
         create_mint_builder::CreateMintBuilder,
+        extensions::MintExtension,
+        mint_builder::MintBuilder,
     },
     mollusk_svm::result::Check,
     solana_account::Account,
@@ -20,6 +22,7 @@ use {
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
         state::Backpointer,
     },
+    test_case::test_case,
 };
 
 pub mod helpers;
@@ -274,4 +277,49 @@ fn test_successful_spl_token_2022_to_spl_token() {
     let backpointer =
         bytemuck::from_bytes::<Backpointer>(&result.wrapped_backpointer.account.data[..]);
     assert_eq!(backpointer.unwrapped_mint, unwrapped_mint_address);
+}
+
+#[test_case(MintExtension::ConfidentialTransfer)]
+#[test_case(MintExtension::TransferHook)]
+#[test_case(MintExtension::TransferFeeConfig)]
+#[test_case(MintExtension::MintCloseAuthority(Pubkey::new_unique()))]
+fn test_create_mint_from_extended_mint(extension: MintExtension) {
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(extension)
+        .build();
+
+    let result = CreateMintBuilder::default()
+        .unwrapped_mint_account(unwrapped_mint.account)
+        .unwrapped_mint_addr(unwrapped_mint.key)
+        .unwrapped_token_program(TokenProgram::SplToken2022)
+        .wrapped_token_program(TokenProgram::SplToken)
+        .execute();
+
+    assert_eq!(result.wrapped_mint.account.owner, spl_token::id());
+    let wrapped_mint_data =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data)
+            .unwrap()
+            .base;
+
+    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
+    let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
+    assert_eq!(
+        wrapped_mint_data
+            .mint_authority
+            .ok_or(ProgramError::InvalidAccountData)
+            .unwrap(),
+        expected_mint_authority,
+    );
+    assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
+    assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
+    assert_eq!(wrapped_mint_data.freeze_authority, PodCOption::none());
+
+    assert_eq!(
+        result.wrapped_backpointer.account.owner,
+        spl_token_wrap::id()
+    );
+    let backpointer =
+        bytemuck::from_bytes::<Backpointer>(&result.wrapped_backpointer.account.data[..]);
+    assert_eq!(backpointer.unwrapped_mint, unwrapped_mint.key);
 }
