@@ -58,7 +58,7 @@
     "@types/node": "^24.0.4",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
-    "prettier": "^3.6.1",
+    "prettier": "^3.6.2",
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
     "typedoc": "^0.28.5",
