@@ -61,7 +61,7 @@
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
-    "typedoc": "^0.28.6",
+    "typedoc": "^0.28.7",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.35.0"
   },
