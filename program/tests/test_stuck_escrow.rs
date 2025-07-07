@@ -515,7 +515,12 @@ fn test_end_to_end_close_mint_case() {
         (
             wrapped_mint_address,
             Account {
-                lamports: mollusk.sysvars.rent.minimum_balance(Mint::get_packed_len()),
+                lamports: mollusk.sysvars.rent.minimum_balance(
+                    ExtensionType::try_calculate_account_len::<Mint>(&[
+                        ExtensionType::ConfidentialTransferMint,
+                    ])
+                    .unwrap(),
+                ),
                 ..Default::default()
             },
         ),
