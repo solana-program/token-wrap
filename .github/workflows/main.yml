@@ -194,6 +194,7 @@ jobs:
           cargo-cache-key: cargo-cli
           cli: true
           purge: true
+          solana: true
 
       - name: Restore Program Builds
         uses: actions/cache/restore@v4
