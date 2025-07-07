@@ -56,11 +56,8 @@ jobs:
         uses: ./.github/actions/setup
         with:
           cargo-cache-key: cargo-semver
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-semver-checks
+          cargo-release: true
+          cargo-semver-checks: true
 
       - name: Set Git Author (required for cargo-release)
         run: |
@@ -76,7 +73,9 @@ jobs:
           fi
           cargo release $LEVEL --manifest-path "${{ inputs.package_path }}/Cargo.toml" --no-tag --no-publish --no-push --no-confirm --execute
 
+      # only successfully runs if crate is library & is not first publish
       - name: Check semver
+        if: ${{ inputs.package_path != 'clients/cli' && inputs.level != 'release' }}
         run: pnpm rust:semver --manifest-path "${{ inputs.package_path }}/Cargo.toml"
 
   publish:
@@ -98,11 +97,7 @@ jobs:
           cli: true
           cargo-cache-key: cargo-publish-${{ inputs.package_path }}
           cargo-cache-fallback-key: cargo-publish
-
-      - name: Install cargo-release
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-release
+          cargo-release: true
 
       - name: Ensure CARGO_REGISTRY_TOKEN variable is set
         env:
