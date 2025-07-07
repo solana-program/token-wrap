@@ -15,6 +15,7 @@
     "template:upgrade": "zx ./scripts/upgrade-template.mjs",
     "rust:spellcheck": "cargo spellcheck --code 1",
     "rust:audit": "zx ./scripts/rust/audit.mjs",
+    "rust:publish": "zx ./scripts/rust/publish.mjs",
     "rust:semver": "cargo semver-checks",
     "clients:cli:test": "zx ./scripts/rust/test.mjs clients/cli",
     "clients:cli:format": "zx ./scripts/rust/format.mjs clients/cli",
