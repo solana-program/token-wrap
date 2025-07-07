@@ -444,7 +444,9 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
         ExtensionType::get_required_init_account_extensions(&mint_extensions);
 
     // ATAs always have the ImmutableOwner extension
-    required_account_extensions.push(ExtensionType::ImmutableOwner);
+    if !required_account_extensions.contains(&ExtensionType::ImmutableOwner) {
+        required_account_extensions.push(ExtensionType::ImmutableOwner);
+    }
 
     // If the token account already shares the same extensions as the mint,
     // it does not need to be re-created

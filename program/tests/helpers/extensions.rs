@@ -6,6 +6,7 @@ use {
             confidential_transfer::ConfidentialTransferMint,
             immutable_owner::ImmutableOwner,
             mint_close_authority::MintCloseAuthority,
+            non_transferable::{NonTransferable, NonTransferableAccount},
             transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
             transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
@@ -20,6 +21,7 @@ pub enum MintExtension {
     TransferHook,
     TransferFeeConfig,
     MintCloseAuthority(Pubkey),
+    NonTransferable,
 }
 
 impl MintExtension {
@@ -29,6 +31,7 @@ impl MintExtension {
             MintExtension::TransferFeeConfig => ExtensionType::TransferFeeConfig,
             MintExtension::MintCloseAuthority(_) => ExtensionType::MintCloseAuthority,
             MintExtension::ConfidentialTransfer => ExtensionType::ConfidentialTransferMint,
+            MintExtension::NonTransferable => ExtensionType::NonTransferable,
         }
     }
 }
@@ -79,6 +82,9 @@ pub fn init_mint_extensions(
                     .init_extension::<ConfidentialTransferMint>(false)
                     .unwrap();
             }
+            MintExtension::NonTransferable => {
+                state.init_extension::<NonTransferable>(false).unwrap();
+            }
         }
     }
 }
@@ -101,6 +107,11 @@ pub fn init_token_account_extensions(
             }
             ExtensionType::TransferHookAccount => {
                 state.init_extension::<TransferHookAccount>(true).unwrap();
+            }
+            ExtensionType::NonTransferableAccount => {
+                state
+                    .init_extension::<NonTransferableAccount>(true)
+                    .unwrap();
             }
             _ => unimplemented!(),
         }
