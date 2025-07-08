@@ -2,7 +2,7 @@ use {
     crate::helpers::{
         close_stuck_escrow_builder::CloseStuckEscrowBuilder,
         common::{init_mollusk, KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS},
-        extensions::MintExtension::{MintCloseAuthority, TransferHook},
+        extensions::MintExtension::{MintCloseAuthority, NonTransferable, TransferHook},
         mint_builder::MintBuilder,
         token_account_builder::TokenAccountBuilder,
     },
@@ -22,7 +22,10 @@ use {
         extension::{
             transfer_fee::instruction::initialize_transfer_fee_config,
             BaseStateWithExtensionsMut,
-            ExtensionType::{self, ImmutableOwner, TransferFeeConfig, TransferHookAccount},
+            ExtensionType::{
+                self, ImmutableOwner, NonTransferableAccount, TransferFeeConfig,
+                TransferHookAccount,
+            },
             PodStateWithExtensionsMut,
         },
         instruction::initialize_mint2,
@@ -252,6 +255,50 @@ fn test_close_stuck_escrow_fails_when_in_good_state() {
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint)
         .escrow_account(good_escrow_account)
+        .check(Check::err(TokenWrapError::EscrowInGoodState.into()))
+        .execute();
+}
+
+#[test]
+fn test_fails_for_ext_requiring_immutable_owner_and_in_good_state() {
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(NonTransferable)
+        .build();
+    let wrapped_token_program = TokenProgram::SplToken2022;
+
+    let wrapped_mint = MintBuilder::new()
+        .token_program(wrapped_token_program)
+        .mint_key(get_wrapped_mint_address(
+            &unwrapped_mint.key,
+            &wrapped_token_program.id(),
+        ))
+        .build();
+
+    let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint.key);
+
+    let escrow_address = get_escrow_address(
+        &unwrapped_mint.key,
+        &unwrapped_mint.account.owner,
+        &wrapped_token_program.id(),
+    );
+
+    let escrow_account = TokenAccountBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint(unwrapped_mint.clone())
+        .owner(wrapped_mint_authority)
+        .amount(0)
+        .with_extension(NonTransferableAccount)
+        .with_extension(ImmutableOwner)
+        .account_key(escrow_address)
+        .build();
+
+    // ImmutableOwner is required for NonTransferable ext (same as ATA). Ensures no
+    // issues with duplication of that requirement.
+    CloseStuckEscrowBuilder::default()
+        .unwrapped_mint(unwrapped_mint)
+        .wrapped_mint(wrapped_mint)
+        .escrow_account(escrow_account)
         .check(Check::err(TokenWrapError::EscrowInGoodState.into()))
         .execute();
 }
