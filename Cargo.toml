@@ -80,4 +80,4 @@ tempfile = "3.20.0"
 test-case = "3.3.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
 thiserror = "2.0.12"
-tokio = { version = "1.46.0", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"] }
