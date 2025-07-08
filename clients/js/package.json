@@ -63,7 +63,7 @@
     "tsx": "^4.20.3",
     "typedoc": "^0.28.7",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.35.1"
+    "typescript-eslint": "^8.36.0"
   },
   "packageManager": "pnpm@9.1.0"
 }
