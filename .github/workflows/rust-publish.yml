@@ -41,7 +41,7 @@ on:
         default: true
 
 jobs:
-  main_check:
+  main-check:
     name: Main check
     uses: ./.github/workflows/main.yml
 
@@ -81,7 +81,7 @@ jobs:
   publish:
     name: Publish Rust Crate
     runs-on: ubuntu-latest
-    needs: [ main_check, semver ]
+    needs: [ main-check, semver ]
     permissions:
       contents: write
     steps:
