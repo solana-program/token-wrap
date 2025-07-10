@@ -22,6 +22,18 @@ inputs:
   cli:
     description: Install CLI dependencies if `true`. Defaults to `false`.
     required: false
+  cargo-release:
+    description: Install cargo-release if `true`. Defaults to `false`.
+    required: false
+  cargo-semver-checks:
+    description: Install cargo-semver-checks if `true`. Defaults to `false`.
+    required: false
+  cargo-audit:
+    description: Install cargo-audit if `true`. Defaults to `false`.
+    required: false
+  cargo-spellcheck:
+    description: Install cargo-spellcheck if `true`. Defaults to `false`.
+    required: false
   purge:
     description: Purge unused directories if `true`. Defaults to `false`.
     required: false
@@ -92,6 +104,30 @@ runs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libudev-dev protobuf-compiler clang libclang-dev
+
+    - name: Install cargo-release
+      if: ${{ inputs.cargo-release == 'true' }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-release
+
+    - name: Install cargo-semver-checks
+      if: ${{ inputs.cargo-semver-checks == 'true' }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-semver-checks
+
+    - name: Install cargo-audit
+      if: ${{ inputs.cargo-audit == 'true' }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-audit
+
+    - name: Install cargo-spellcheck
+      if: ${{ inputs.cargo-spellcheck == 'true' }}
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-spellcheck
 
     - name: Cache Cargo Dependencies
       if: ${{ inputs.cargo-cache-key && !inputs.cargo-cache-fallback-key }}
