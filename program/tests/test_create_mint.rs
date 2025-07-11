@@ -8,13 +8,15 @@ use {
     mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,
-    solana_program_option::COption,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{
-        extension::PodStateWithExtensions,
+        extension::{
+            confidential_transfer::ConfidentialTransferMint, BaseStateWithExtensions,
+            PodStateWithExtensions,
+        },
         pod::{PodCOption, PodMint},
         state::Mint,
     },
@@ -201,19 +203,30 @@ fn test_successful_spl_token_to_spl_token_2022() {
     // Assert state of resulting wrapped mint account
 
     assert_eq!(result.wrapped_mint.account.owner, spl_token_2022::id());
-    let wrapped_mint_data = Mint::unpack(&result.wrapped_mint.account.data).unwrap();
-    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
+    let wrapped_mint_state =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
+
+    assert_eq!(wrapped_mint_state.base.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
     assert_eq!(
-        wrapped_mint_data.mint_authority.unwrap(),
-        expected_mint_authority,
+        wrapped_mint_state.base.mint_authority,
+        PodCOption::some(expected_mint_authority),
     );
-    assert_eq!(wrapped_mint_data.supply, 0);
-    assert!(wrapped_mint_data.is_initialized);
+    assert_eq!(wrapped_mint_state.base.supply, PodU64::from(0));
     assert_eq!(
-        wrapped_mint_data.freeze_authority,
-        COption::Some(freeze_authority)
+        wrapped_mint_state.base.is_initialized,
+        PodBool::from_bool(true)
     );
+    assert_eq!(
+        wrapped_mint_state.base.freeze_authority,
+        PodCOption::some(freeze_authority)
+    );
+
+    // Verify confidential transfer extension is present and is the only extension
+    assert!(wrapped_mint_state
+        .get_extension::<ConfidentialTransferMint>()
+        .is_ok());
+    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 1);
 
     // Assert state of resulting backpointer account
 
