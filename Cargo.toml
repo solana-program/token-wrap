@@ -3,7 +3,7 @@ resolver = "2"
 members = ["clients/cli", "program", "program/tests/programs/test-transfer-hook"]
 
 [workspace.metadata.cli]
-solana = "2.2.0"
+solana = "2.3.4"
 
 # Specify Rust toolchains for rustfmt, clippy, and build.
 # Any unprovided toolchains default to stable.
@@ -32,8 +32,8 @@ edition = "2021"
 anyhow = "1.0.98"
 bytemuck = { version = "1.23.1", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
-mollusk-svm = "0.3.0"
-mollusk-svm-programs-token = "0.3.0"
+mollusk-svm = "0.4.0"
+mollusk-svm-programs-token = "0.4.0"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 serde = "1.0.219"
