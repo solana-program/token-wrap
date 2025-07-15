@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "programs:build": "cargo-build-sbf",
+    "programs:build": "cargo-build-sbf --manifest-path program/Cargo.toml && cargo-build-sbf --manifest-path program/tests/programs/test-transfer-hook/Cargo.toml",
     "programs:test": "zx ./scripts/rust/test-sbf.mjs program",
     "programs:format": "zx ./scripts/rust/format.mjs program",
     "programs:lint": "zx ./scripts/rust/lint.mjs program",
