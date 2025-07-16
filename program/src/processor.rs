@@ -12,7 +12,6 @@ use {
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
     solana_program_error::{ProgramError, ProgramResult},
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
@@ -20,6 +19,7 @@ use {
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
         extension::{
+            confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
             transfer_fee::TransferFeeConfig, BaseStateWithExtensions, ExtensionType,
             PodStateWithExtensions,
         },
@@ -28,7 +28,7 @@ use {
             extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
         },
         pod::{PodAccount, PodMint},
-        state::AccountState,
+        state::{AccountState, Mint},
     },
 };
 
@@ -95,7 +95,16 @@ pub fn process_create_mint(
         wrapped_token_program_account.key,
         &bump_seed,
     );
-    let space = spl_token_2022::state::Mint::get_packed_len();
+
+    // ConfidentialTransferMint extension added by default for Token-2022 wrapped
+    // mints. Existing extensions from the unwrapped mint are not preserved.
+    let is_token_2022 = wrapped_token_program_account.key == &spl_token_2022::id();
+    let extensions = if is_token_2022 {
+        vec![ExtensionType::ConfidentialTransferMint]
+    } else {
+        vec![]
+    };
+    let space = ExtensionType::try_calculate_account_len::<Mint>(&extensions)?;
 
     let rent = Rent::get()?;
     let mint_rent_required = rent.minimum_balance(space);
@@ -131,6 +140,20 @@ pub fn process_create_mint(
         .ok();
 
     let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
+
+    // Initialize confidential transfer extension if this is a token-2022 mint
+    if is_token_2022 {
+        invoke(
+            &initialize_confidential_transfer_mint(
+                wrapped_token_program_account.key,
+                wrapped_mint_account.key,
+                None, // Immutable. No one can later change privacy settings.
+                true, // No approvals necessary to use.
+                None, // No auditor can decrypt transaction amounts.
+            )?,
+            &[wrapped_mint_account.clone()],
+        )?;
+    }
 
     invoke(
         &initialize_mint2(
