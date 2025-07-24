@@ -2,17 +2,19 @@
 
 use {
     crate::{
-        error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
-        get_wrapped_mint_authority, get_wrapped_mint_authority_signer_seeds,
-        get_wrapped_mint_authority_with_seed, get_wrapped_mint_backpointer_address_signer_seeds,
+        error::TokenWrapError,
+        get_wrapped_mint_address, get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
+        get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
+        get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
-        instruction::TokenWrapInstruction, state::Backpointer,
+        instruction::TokenWrapInstruction,
+        mint_customizer::{interface::MintCustomizer, no_extensions::NoExtensionCustomizer},
+        state::Backpointer,
     },
     solana_account_info::{next_account_info, AccountInfo},
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
     solana_program_error::{ProgramError, ProgramResult},
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
@@ -28,15 +30,16 @@ use {
             extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
         },
         pod::{PodAccount, PodMint},
-        state::AccountState,
+        state::{AccountState, Mint},
     },
 };
 
 /// Processes [`CreateMint`](enum.TokenWrapInstruction.html) instruction.
-pub fn process_create_mint(
+pub fn process_create_mint<M: MintCustomizer>(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     idempotent: bool,
+    mint_customizer: M,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
@@ -95,7 +98,13 @@ pub fn process_create_mint(
         wrapped_token_program_account.key,
         &bump_seed,
     );
-    let space = spl_token_2022::state::Mint::get_packed_len();
+
+    let extensions = if *wrapped_token_program_account.key == spl_token_2022::id() {
+        mint_customizer.get_extension_types()
+    } else {
+        vec![]
+    };
+    let space = ExtensionType::try_calculate_account_len::<Mint>(&extensions)?;
 
     let rent = Rent::get()?;
     let mint_rent_required = rent.minimum_balance(space);
@@ -120,17 +129,20 @@ pub fn process_create_mint(
         &[&signer_seeds],
     )?;
 
-    // New wrapped mint matches decimals & freeze authority of unwrapped mint
-    let unwrapped_mint_data = unwrapped_mint_account.try_borrow_data()?;
-    let unpacked_unwrapped_mint =
-        PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?.base;
-    let decimals = unpacked_unwrapped_mint.decimals;
-    let freeze_authority = unpacked_unwrapped_mint
-        .freeze_authority
-        .ok_or(ProgramError::InvalidArgument)
-        .ok();
-
     let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
+
+    // If wrapping into a token-2022 initialize extensions
+    if *wrapped_token_program_account.key == spl_token_2022::id() {
+        mint_customizer.initialize_extensions(
+            wrapped_mint_account,
+            unwrapped_mint_account,
+            wrapped_token_program_account,
+            accounts,
+        )?;
+    }
+
+    let (freeze_authority, decimals) =
+        mint_customizer.get_freeze_auth_and_decimals(unwrapped_mint_account, accounts)?;
 
     invoke(
         &initialize_mint2(
@@ -490,8 +502,10 @@ pub fn process_instruction(
 ) -> ProgramResult {
     match TokenWrapInstruction::unpack(input)? {
         TokenWrapInstruction::CreateMint { idempotent } => {
+            // === DEVELOPER CUSTOMIZATION POINT ===
+            // To use custom mint creation logic, update the mint customizer argument
             msg!("Instruction: CreateMint");
-            process_create_mint(program_id, accounts, idempotent)
+            process_create_mint(program_id, accounts, idempotent, NoExtensionCustomizer)
         }
         TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");

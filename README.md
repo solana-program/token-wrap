@@ -10,8 +10,10 @@ advantage of some of the latest features of a specific token program, this might
 
 * **Bidirectional Wrapping:** Convert tokens between SPL Token and SPL Token 2022 standards in either direction,
   including conversions between different SPL Token 2022 mints.
-* **SPL Token 2022 Extension Support:** Preserve or add SPL Token 2022 extensions (like transfer fees, confidential
-  transfers, etc.) during the wrapping process. Note: this requires forking and updating the `CreateMint` instruction.
+* **Extensible Mint Creation:** The `CreateMint` instruction is designed to be extensible through the `MintCustomizer`
+  trait. By forking the program and implementing this trait, developers can add custom logic to:
+    * Include any SPL Token 2022 extensions on the new wrapped mint.
+    * Modify default properties like the `freeze_authority` and `decimals`.
 * **Transfer Hook Compatibility:**  Integrates with tokens that implement the SPL Transfer Hook interface,
   enabling custom logic on token transfers.
 * **Multisignature Support:** Compatible with multisig signers for both wrapping and unwrapping operations.
