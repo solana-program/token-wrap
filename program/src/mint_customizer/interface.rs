@@ -2,14 +2,17 @@ use {
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
-    spl_token_2022::extension::ExtensionType,
 };
 
 /// The interface for customizing attributes of the new wrapped mint.
 pub trait MintCustomizer {
-    /// Returns the extensions to be included in the new wrapped mint
-    /// (only relevant if creating spl-token-2022 mint)
-    fn get_extension_types(&self) -> Vec<ExtensionType>;
+    /// Calculates the total space required for a new spl-token-2022 mint
+    /// account, including any custom extensions
+    fn get_token_2022_mint_space(
+        &self,
+        unwrapped_mint_account: &AccountInfo,
+        all_accounts: &[AccountInfo],
+    ) -> Result<usize, ProgramError>;
 
     /// Customizes initialization for the extensions for the wrapped mint
     /// (only relevant if creating spl-token-2022 mint)

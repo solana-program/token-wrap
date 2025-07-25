@@ -15,6 +15,7 @@ use {
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
     solana_program_error::{ProgramError, ProgramResult},
+    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
@@ -30,7 +31,7 @@ use {
             extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
         },
         pod::{PodAccount, PodMint},
-        state::{AccountState, Mint},
+        state::AccountState,
     },
 };
 
@@ -99,12 +100,11 @@ pub fn process_create_mint<M: MintCustomizer>(
         &bump_seed,
     );
 
-    let extensions = if *wrapped_token_program_account.key == spl_token_2022::id() {
-        mint_customizer.get_extension_types()
+    let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
+        mint_customizer.get_token_2022_mint_space(unwrapped_mint_account, accounts)?
     } else {
-        vec![]
+        spl_token::state::Mint::get_packed_len()
     };
-    let space = ExtensionType::try_calculate_account_len::<Mint>(&extensions)?;
 
     let rent = Rent::get()?;
     let mint_rent_required = rent.minimum_balance(space);

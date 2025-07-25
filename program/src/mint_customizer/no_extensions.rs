@@ -6,6 +6,7 @@ use {
     spl_token_2022::{
         extension::{ExtensionType, PodStateWithExtensions},
         pod::PodMint,
+        state::Mint,
     },
 };
 
@@ -13,8 +14,13 @@ use {
 pub struct NoExtensionCustomizer;
 
 impl MintCustomizer for NoExtensionCustomizer {
-    fn get_extension_types(&self) -> Vec<ExtensionType> {
-        vec![]
+    fn get_token_2022_mint_space(
+        &self,
+        _unwrapped_mint_account: &AccountInfo,
+        _all_accounts: &[AccountInfo],
+    ) -> Result<usize, ProgramError> {
+        let extensions = vec![];
+        ExtensionType::try_calculate_account_len::<Mint>(&extensions)
     }
 
     fn initialize_extensions(
