@@ -8,14 +8,13 @@ use {
     mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,
-    solana_program_option::COption,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{
-        extension::PodStateWithExtensions,
-        pod::{PodCOption, PodMint},
+        extension::{BaseStateWithExtensions, PodStateWithExtensions},
+        pod::PodMint,
         state::Mint,
     },
     spl_token_wrap::{
@@ -202,7 +201,6 @@ fn test_successful_spl_token_to_spl_token_2022() {
 
     assert_eq!(result.wrapped_mint.account.owner, spl_token_2022::id());
     let wrapped_mint_data = Mint::unpack(&result.wrapped_mint.account.data).unwrap();
-    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
     assert_eq!(
         wrapped_mint_data.mint_authority.unwrap(),
@@ -210,13 +208,6 @@ fn test_successful_spl_token_to_spl_token_2022() {
     );
     assert_eq!(wrapped_mint_data.supply, 0);
     assert!(wrapped_mint_data.is_initialized);
-    assert_eq!(
-        wrapped_mint_data.freeze_authority,
-        COption::Some(freeze_authority)
-    );
-
-    // Assert state of resulting backpointer account
-
     assert_eq!(
         result.wrapped_backpointer.account.owner,
         spl_token_wrap::id()
@@ -251,7 +242,6 @@ fn test_successful_spl_token_2022_to_spl_token() {
             .unwrap()
             .base;
 
-    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     assert_eq!(
         wrapped_mint_data
@@ -262,10 +252,6 @@ fn test_successful_spl_token_2022_to_spl_token() {
     );
     assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
     assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
-    assert_eq!(
-        wrapped_mint_data.freeze_authority,
-        PodCOption::some(freeze_authority)
-    );
 
     // Assert state of resulting backpointer account
 
@@ -302,7 +288,6 @@ fn test_create_mint_from_extended_mint(extension: MintExtension) {
             .unwrap()
             .base;
 
-    assert_eq!(wrapped_mint_data.decimals, DEFAULT_MINT_DECIMALS);
     let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
     assert_eq!(
         wrapped_mint_data
@@ -313,7 +298,6 @@ fn test_create_mint_from_extended_mint(extension: MintExtension) {
     );
     assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
     assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
-    assert_eq!(wrapped_mint_data.freeze_authority, PodCOption::none());
 
     assert_eq!(
         result.wrapped_backpointer.account.owner,
@@ -322,4 +306,47 @@ fn test_create_mint_from_extended_mint(extension: MintExtension) {
     let backpointer =
         bytemuck::from_bytes::<Backpointer>(&result.wrapped_backpointer.account.data[..]);
     assert_eq!(backpointer.unwrapped_mint, unwrapped_mint.key);
+}
+
+// ============= Mint Customizer Tests =============
+// If you are forking this program and adding your own mint customizer,
+// you should modify/add tests in this section to validate your custom
+// implementation.
+
+#[test_case(TokenProgram::SplToken, TokenProgram::SplToken)]
+#[test_case(TokenProgram::SplToken, TokenProgram::SplToken2022)]
+#[test_case(TokenProgram::SplToken2022, TokenProgram::SplToken)]
+#[test_case(TokenProgram::SplToken2022, TokenProgram::SplToken2022)]
+fn test_mint_customizer_copies_decimals_and_freeze_authority(from: TokenProgram, to: TokenProgram) {
+    let freeze_authority = Pubkey::new_unique();
+    let result = CreateMintBuilder::default()
+        .unwrapped_token_program(from)
+        .wrapped_token_program(to)
+        .freeze_authority(freeze_authority)
+        .execute();
+
+    let wrapped_mint_data =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
+
+    assert_eq!(
+        wrapped_mint_data.base.freeze_authority.ok_or(()).unwrap(),
+        freeze_authority
+    );
+    assert_eq!(wrapped_mint_data.base.decimals, DEFAULT_MINT_DECIMALS);
+}
+
+#[test]
+fn test_customizer_does_not_apply_extensions() {
+    let result = CreateMintBuilder::default()
+        .wrapped_token_program(TokenProgram::SplToken2022)
+        .execute();
+
+    let extensions_on_mint =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data)
+            .unwrap()
+            .get_extension_types()
+            .unwrap()
+            .len();
+
+    assert_eq!(0, extensions_on_mint);
 }
