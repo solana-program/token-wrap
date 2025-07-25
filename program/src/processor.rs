@@ -8,7 +8,9 @@ use {
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
-        mint_customizer::{interface::MintCustomizer, no_extensions::NoExtensionCustomizer},
+        mint_customizer::{
+            confidential_transfers::ConfidentialTransferCustomizer, interface::MintCustomizer,
+        },
         state::Backpointer,
     },
     solana_account_info::{next_account_info, AccountInfo},
@@ -505,7 +507,12 @@ pub fn process_instruction(
             // === DEVELOPER CUSTOMIZATION POINT ===
             // To use custom mint creation logic, update the mint customizer argument
             msg!("Instruction: CreateMint");
-            process_create_mint(program_id, accounts, idempotent, NoExtensionCustomizer)
+            process_create_mint(
+                program_id,
+                accounts,
+                idempotent,
+                ConfidentialTransferCustomizer,
+            )
         }
         TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");

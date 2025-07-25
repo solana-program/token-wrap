@@ -10,11 +10,11 @@ use {
     serde_with::{serde_as, DisplayFromStr},
     solana_cli_output::{display::writeln_name_value, QuietDisplay, VerboseDisplay},
     solana_instruction::Instruction,
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
+    spl_token_2022::{extension::ExtensionType, state::Mint},
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
         instruction::create_mint,
@@ -118,8 +118,15 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         Err(_) => 0,
     };
 
+    // For token-2022, confidential transfers extension added by default
+    let extensions = if args.wrapped_token_program == spl_token_2022::id() {
+        vec![ExtensionType::ConfidentialTransferMint]
+    } else {
+        vec![]
+    };
+    let mint_size = ExtensionType::try_calculate_account_len::<Mint>(&extensions)?;
     let mint_rent = rpc_client
-        .get_minimum_balance_for_rent_exemption(spl_token_2022::state::Mint::LEN)
+        .get_minimum_balance_for_rent_exemption(mint_size)
         .await?;
 
     let funded_wrapped_mint_lamports = mint_rent.saturating_sub(wrapped_mint_lamports);
