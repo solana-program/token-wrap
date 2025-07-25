@@ -13,7 +13,10 @@ use {
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{
-        extension::{BaseStateWithExtensions, PodStateWithExtensions},
+        extension::{
+            confidential_transfer::ConfidentialTransferMint, BaseStateWithExtensions,
+            PodStateWithExtensions,
+        },
         pod::PodMint,
         state::Mint,
     },
@@ -200,14 +203,20 @@ fn test_successful_spl_token_to_spl_token_2022() {
     // Assert state of resulting wrapped mint account
 
     assert_eq!(result.wrapped_mint.account.owner, spl_token_2022::id());
-    let wrapped_mint_data = Mint::unpack(&result.wrapped_mint.account.data).unwrap();
+    let wrapped_mint_data =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data)
+            .unwrap()
+            .base;
     let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
     assert_eq!(
-        wrapped_mint_data.mint_authority.unwrap(),
+        wrapped_mint_data
+            .mint_authority
+            .ok_or(ProgramError::InvalidAccountData)
+            .unwrap(),
         expected_mint_authority,
     );
-    assert_eq!(wrapped_mint_data.supply, 0);
-    assert!(wrapped_mint_data.is_initialized);
+    assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
+    assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
     assert_eq!(
         result.wrapped_backpointer.account.owner,
         spl_token_wrap::id()
@@ -336,17 +345,17 @@ fn test_mint_customizer_copies_decimals_and_freeze_authority(from: TokenProgram,
 }
 
 #[test]
-fn test_customizer_does_not_apply_extensions() {
+fn test_customizer_applies_confidential_transfer_extension() {
     let result = CreateMintBuilder::default()
         .wrapped_token_program(TokenProgram::SplToken2022)
         .execute();
 
-    let extensions_on_mint =
-        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data)
-            .unwrap()
-            .get_extension_types()
-            .unwrap()
-            .len();
+    let wrapped_mint_state =
+        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
 
-    assert_eq!(0, extensions_on_mint);
+    // Verify confidential transfer extension is present and is the only extension
+    assert!(wrapped_mint_state
+        .get_extension::<ConfidentialTransferMint>()
+        .is_ok());
+    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 1);
 }
