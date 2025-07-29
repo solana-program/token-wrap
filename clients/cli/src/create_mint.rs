@@ -14,10 +14,12 @@ use {
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
-    spl_token_2022::{extension::ExtensionType, state::Mint},
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
         instruction::create_mint,
+        mint_customizer::{
+            default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
+        },
     },
     std::fmt::{Display, Formatter},
 };
@@ -118,13 +120,7 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         Err(_) => 0,
     };
 
-    // For token-2022, confidential transfers extension added by default
-    let extensions = if args.wrapped_token_program == spl_token_2022::id() {
-        vec![ExtensionType::ConfidentialTransferMint]
-    } else {
-        vec![]
-    };
-    let mint_size = ExtensionType::try_calculate_account_len::<Mint>(&extensions)?;
+    let mint_size = DefaultToken2022Customizer::get_token_2022_mint_space()?;
     let mint_rent = rpc_client
         .get_minimum_balance_for_rent_exemption(mint_size)
         .await?;

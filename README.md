@@ -95,7 +95,7 @@ If the current wrapped mint config does not suit your needs, please fork! A few 
 - Replace the current one in use within the processor: `program/src/processor.rs`
 - Re-run tests (see `package.json`) and update/remove assertions to accommodate new config
 - If wanting to make use of clients:
-    - CLI: Update mint size in `clients/cli/src/create_mint.rs`
+    - CLI: Update mint customizer type in `clients/cli/src/create_mint.rs`
     - JS: Update mint size in `clients/js/src/create-mint.ts`
 
 ## Audits

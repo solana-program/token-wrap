@@ -19,17 +19,12 @@ use {
 pub struct DefaultToken2022Customizer;
 
 impl MintCustomizer for DefaultToken2022Customizer {
-    fn get_token_2022_mint_space(
-        &self,
-        _unwrapped_mint_account: &AccountInfo,
-        _all_accounts: &[AccountInfo],
-    ) -> Result<usize, ProgramError> {
+    fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
         let extensions = vec![ExtensionType::ConfidentialTransferMint];
         ExtensionType::try_calculate_account_len::<Mint>(&extensions)
     }
 
     fn initialize_extensions(
-        &self,
         wrapped_mint_account: &AccountInfo,
         _unwrapped_mint_account: &AccountInfo,
         wrapped_token_program_account: &AccountInfo,
@@ -48,7 +43,6 @@ impl MintCustomizer for DefaultToken2022Customizer {
     }
 
     fn get_freeze_auth_and_decimals(
-        &self,
         unwrapped_mint_account: &AccountInfo,
         _all_accounts: &[AccountInfo],
     ) -> Result<(Option<Pubkey>, u8), ProgramError> {
