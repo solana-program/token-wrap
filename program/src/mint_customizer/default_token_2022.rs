@@ -16,9 +16,9 @@ use {
 
 /// This implementation adds the `ConfidentialTransferMint` extension by
 /// default.
-pub struct ConfidentialTransferCustomizer;
+pub struct DefaultToken2022Customizer;
 
-impl MintCustomizer for ConfidentialTransferCustomizer {
+impl MintCustomizer for DefaultToken2022Customizer {
     fn get_token_2022_mint_space(
         &self,
         _unwrapped_mint_account: &AccountInfo,

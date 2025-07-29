@@ -9,7 +9,7 @@ use {
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
         mint_customizer::{
-            confidential_transfers::ConfidentialTransferCustomizer, interface::MintCustomizer,
+            default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
         },
         state::Backpointer,
     },
@@ -507,12 +507,7 @@ pub fn process_instruction(
             // === DEVELOPER CUSTOMIZATION POINT ===
             // To use custom mint creation logic, update the mint customizer argument
             msg!("Instruction: CreateMint");
-            process_create_mint(
-                program_id,
-                accounts,
-                idempotent,
-                ConfidentialTransferCustomizer,
-            )
+            process_create_mint(program_id, accounts, idempotent, DefaultToken2022Customizer)
         }
         TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");
