@@ -10,18 +10,26 @@ pub trait MintCustomizer {
     /// account, including any custom extensions
     fn get_token_2022_mint_space() -> Result<usize, ProgramError>;
 
-    /// Customizes initialization for the extensions for the wrapped mint
-    /// (only relevant if creating spl-token-2022 mint)
-    fn initialize_extensions(
-        wrapped_mint_account: &AccountInfo,
-        unwrapped_mint_account: &AccountInfo,
-        wrapped_token_program_account: &AccountInfo,
-        all_accounts: &[AccountInfo],
+    /// Customizes extensions for the wrapped mint *before* the base mint is
+    /// initialized. This is for extensions that must be initialized on an
+    /// uninitialized mint account, like `ConfidentialTransferMint`.
+    fn pre_initialize_extensions<'a>(
+        wrapped_mint_account: &'a AccountInfo<'a>,
+        wrapped_token_program_account: &'a AccountInfo<'a>,
+    ) -> ProgramResult;
+
+    /// Customizes extensions for the wrapped mint *after* the base mint is
+    /// initialized. This is for extensions that require the mint to be
+    /// initialized, like `TokenMetadata`.
+    fn post_initialize_extensions<'a>(
+        wrapped_mint_account: &'a AccountInfo<'a>,
+        wrapped_token_program_account: &'a AccountInfo<'a>,
+        wrapped_mint_authority_account: &'a AccountInfo<'a>,
+        mint_authority_signer_seeds: &[&[u8]],
     ) -> ProgramResult;
 
     /// Customize the freeze authority and decimals for the wrapped mint
     fn get_freeze_auth_and_decimals(
         unwrapped_mint_account: &AccountInfo,
-        all_accounts: &[AccountInfo],
     ) -> Result<(Option<Pubkey>, u8), ProgramError>;
 }

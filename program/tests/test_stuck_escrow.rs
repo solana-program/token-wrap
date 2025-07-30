@@ -23,8 +23,8 @@ use {
             transfer_fee::instruction::initialize_transfer_fee_config,
             BaseStateWithExtensionsMut,
             ExtensionType::{
-                self, ImmutableOwner, NonTransferableAccount, TransferFeeConfig,
-                TransferHookAccount,
+                self, ConfidentialTransferMint, ImmutableOwner, MetadataPointer,
+                NonTransferableAccount, TransferFeeConfig, TransferHookAccount,
             },
             PodStateWithExtensionsMut,
         },
@@ -449,6 +449,7 @@ fn test_end_to_end_close_mint_case() {
         &wrapped_mint_address,
         &backpointer_address,
         &unwrapped_mint.key,
+        &wrapped_mint_authority,
         &spl_token_2022::id(),
         false,
     );
@@ -564,7 +565,8 @@ fn test_end_to_end_close_mint_case() {
             Account {
                 lamports: mollusk.sysvars.rent.minimum_balance(
                     ExtensionType::try_calculate_account_len::<Mint>(&[
-                        ExtensionType::ConfidentialTransferMint,
+                        ConfidentialTransferMint,
+                        MetadataPointer,
                     ])
                     .unwrap(),
                 ),

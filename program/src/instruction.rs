@@ -168,6 +168,7 @@ pub fn create_mint(
     wrapped_mint_address: &Pubkey,
     wrapped_backpointer_address: &Pubkey,
     unwrapped_mint_address: &Pubkey,
+    wrapped_mint_authority_address: &Pubkey,
     wrapped_token_program_id: &Pubkey,
     idempotent: bool,
 ) -> Instruction {
@@ -175,6 +176,7 @@ pub fn create_mint(
         AccountMeta::new(*wrapped_mint_address, false),
         AccountMeta::new(*wrapped_backpointer_address, false),
         AccountMeta::new_readonly(*unwrapped_mint_address, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
         AccountMeta::new_readonly(solana_system_interface::program::id(), false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
     ];

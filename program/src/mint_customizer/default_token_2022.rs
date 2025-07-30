@@ -1,35 +1,42 @@
 use {
-    crate::mint_customizer::interface::MintCustomizer,
+    crate::{get_wrapped_mint_authority, mint_customizer::interface::MintCustomizer},
     solana_account_info::AccountInfo,
-    solana_cpi::invoke,
+    solana_cpi::{invoke, invoke_signed},
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
             confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
-            ExtensionType, PodStateWithExtensions,
+            metadata_pointer::instruction::initialize as initialize_metadata_pointer,
+            ExtensionType::{self},
+            PodStateWithExtensions,
         },
         pod::PodMint,
         state::Mint,
     },
+    spl_token_metadata_interface::instruction::initialize as initialize_token_metadata,
 };
 
-/// This implementation adds the `ConfidentialTransferMint` extension by
-/// default.
+/// This implementation adds the `ConfidentialTransferMint` & `TokenMetadata`
+/// extensions by default.
 pub struct DefaultToken2022Customizer;
 
 impl MintCustomizer for DefaultToken2022Customizer {
     fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
-        let extensions = vec![ExtensionType::ConfidentialTransferMint];
-        ExtensionType::try_calculate_account_len::<Mint>(&extensions)
+        // Calculate space for all extensions that are initialized *before* the base
+        // mint. The TokenMetadata extension is initialized *after* and its
+        // `initialize` instruction handles its own reallocation.
+        ExtensionType::try_calculate_account_len::<Mint>(&[
+            ExtensionType::ConfidentialTransferMint,
+            ExtensionType::MetadataPointer,
+        ])
     }
 
-    fn initialize_extensions(
-        wrapped_mint_account: &AccountInfo,
-        _unwrapped_mint_account: &AccountInfo,
-        wrapped_token_program_account: &AccountInfo,
-        _all_accounts: &[AccountInfo],
+    fn pre_initialize_extensions<'a>(
+        wrapped_mint_account: &'a AccountInfo<'a>,
+        wrapped_token_program_account: &'a AccountInfo<'a>,
     ) -> ProgramResult {
+        // Initialize confidential transfer ext
         invoke(
             &initialize_confidential_transfer_mint(
                 wrapped_token_program_account.key,
@@ -39,12 +46,59 @@ impl MintCustomizer for DefaultToken2022Customizer {
                 None, // No auditor can decrypt transaction amounts.
             )?,
             &[wrapped_mint_account.clone()],
-        )
+        )?;
+
+        // Initialize metadata pointer
+        let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
+        invoke(
+            &initialize_metadata_pointer(
+                wrapped_token_program_account.key,
+                wrapped_mint_account.key,
+                Some(wrapped_mint_authority),
+                Some(*wrapped_mint_account.key),
+            )?,
+            &[wrapped_mint_account.clone()],
+        )?;
+
+        Ok(())
+    }
+
+    fn post_initialize_extensions<'a>(
+        wrapped_mint_account: &'a AccountInfo<'a>,
+        wrapped_token_program_account: &'a AccountInfo<'a>,
+        wrapped_mint_authority_account: &'a AccountInfo<'a>,
+        mint_authority_signer_seeds: &[&[u8]],
+    ) -> ProgramResult {
+        // Initialize metadata ext (must be done after mint initialization)
+        let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
+
+        let cpi_accounts = [
+            wrapped_mint_account.clone(),
+            wrapped_mint_authority_account.clone(),
+            wrapped_mint_account.clone(),
+            wrapped_mint_authority_account.clone(),
+        ];
+
+        invoke_signed(
+            &initialize_token_metadata(
+                wrapped_token_program_account.key,
+                wrapped_mint_account.key,
+                &wrapped_mint_authority,
+                wrapped_mint_account.key,
+                &wrapped_mint_authority,
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ),
+            &cpi_accounts,
+            &[mint_authority_signer_seeds],
+        )?;
+
+        Ok(())
     }
 
     fn get_freeze_auth_and_decimals(
         unwrapped_mint_account: &AccountInfo,
-        _all_accounts: &[AccountInfo],
     ) -> Result<(Option<Pubkey>, u8), ProgramError> {
         // Copy fields over from original mint
         let unwrapped_mint_data = unwrapped_mint_account.try_borrow_data()?;
