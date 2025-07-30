@@ -1,31 +1,45 @@
 use {
     crate::mint_customizer::interface::MintCustomizer,
     solana_account_info::AccountInfo,
+    solana_cpi::invoke,
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
     spl_token_2022::{
-        extension::{ExtensionType, PodStateWithExtensions},
+        extension::{
+            confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
+            ExtensionType, PodStateWithExtensions,
+        },
         pod::PodMint,
         state::Mint,
     },
 };
 
-/// This implementation does not add any extensions.
-pub struct NoExtensionCustomizer;
+/// This implementation adds the `ConfidentialTransferMint` extension by
+/// default.
+pub struct DefaultToken2022Customizer;
 
-impl MintCustomizer for NoExtensionCustomizer {
+impl MintCustomizer for DefaultToken2022Customizer {
     fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
-        let extensions = vec![];
+        let extensions = vec![ExtensionType::ConfidentialTransferMint];
         ExtensionType::try_calculate_account_len::<Mint>(&extensions)
     }
 
     fn initialize_extensions(
-        _wrapped_mint_account: &AccountInfo,
+        wrapped_mint_account: &AccountInfo,
         _unwrapped_mint_account: &AccountInfo,
-        _wrapped_token_program_account: &AccountInfo,
+        wrapped_token_program_account: &AccountInfo,
         _all_accounts: &[AccountInfo],
     ) -> ProgramResult {
-        Ok(())
+        invoke(
+            &initialize_confidential_transfer_mint(
+                wrapped_token_program_account.key,
+                wrapped_mint_account.key,
+                None, // Immutable. No one can later change privacy settings.
+                true, // No approvals necessary to use.
+                None, // No auditor can decrypt transaction amounts.
+            )?,
+            &[wrapped_mint_account.clone()],
+        )
     }
 
     fn get_freeze_auth_and_decimals(

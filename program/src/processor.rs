@@ -8,7 +8,9 @@ use {
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
-        mint_customizer::{interface::MintCustomizer, no_extensions::NoExtensionCustomizer},
+        mint_customizer::{
+            default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
+        },
         state::Backpointer,
     },
     solana_account_info::{next_account_info, AccountInfo},
@@ -40,7 +42,6 @@ pub fn process_create_mint<M: MintCustomizer>(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     idempotent: bool,
-    mint_customizer: M,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
@@ -101,7 +102,7 @@ pub fn process_create_mint<M: MintCustomizer>(
     );
 
     let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
-        mint_customizer.get_token_2022_mint_space(unwrapped_mint_account, accounts)?
+        M::get_token_2022_mint_space()?
     } else {
         spl_token::state::Mint::get_packed_len()
     };
@@ -133,7 +134,7 @@ pub fn process_create_mint<M: MintCustomizer>(
 
     // If wrapping into a token-2022 initialize extensions
     if *wrapped_token_program_account.key == spl_token_2022::id() {
-        mint_customizer.initialize_extensions(
+        M::initialize_extensions(
             wrapped_mint_account,
             unwrapped_mint_account,
             wrapped_token_program_account,
@@ -142,7 +143,7 @@ pub fn process_create_mint<M: MintCustomizer>(
     }
 
     let (freeze_authority, decimals) =
-        mint_customizer.get_freeze_auth_and_decimals(unwrapped_mint_account, accounts)?;
+        M::get_freeze_auth_and_decimals(unwrapped_mint_account, accounts)?;
 
     invoke(
         &initialize_mint2(
@@ -505,7 +506,7 @@ pub fn process_instruction(
             // === DEVELOPER CUSTOMIZATION POINT ===
             // To use custom mint creation logic, update the mint customizer argument
             msg!("Instruction: CreateMint");
-            process_create_mint(program_id, accounts, idempotent, NoExtensionCustomizer)
+            process_create_mint::<DefaultToken2022Customizer>(program_id, accounts, idempotent)
         }
         TokenWrapInstruction::Wrap { amount } => {
             msg!("Instruction: Wrap");

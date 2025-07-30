@@ -10,7 +10,6 @@ use {
     serde_with::{serde_as, DisplayFromStr},
     solana_cli_output::{display::writeln_name_value, QuietDisplay, VerboseDisplay},
     solana_instruction::Instruction,
-    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
@@ -18,6 +17,9 @@ use {
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
         instruction::create_mint,
+        mint_customizer::{
+            default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
+        },
     },
     std::fmt::{Display, Formatter},
 };
@@ -118,8 +120,9 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         Err(_) => 0,
     };
 
+    let mint_size = DefaultToken2022Customizer::get_token_2022_mint_space()?;
     let mint_rent = rpc_client
-        .get_minimum_balance_for_rent_exemption(spl_token_2022::state::Mint::LEN)
+        .get_minimum_balance_for_rent_exemption(mint_size)
         .await?;
 
     let funded_wrapped_mint_lamports = mint_rent.saturating_sub(wrapped_mint_lamports);
