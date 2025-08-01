@@ -2,16 +2,19 @@ use {
     crate::helpers::{create_unwrapped_mint, execute_create_mint, setup_test_env},
     serial_test::serial,
     solana_program_pack::Pack,
+    solana_pubkey::Pubkey,
     spl_token::{self, state::Mint as SplTokenMint},
     spl_token_2022::{
         extension::{
-            confidential_transfer::ConfidentialTransferMint, BaseStateWithExtensions,
-            PodStateWithExtensions,
+            confidential_transfer::ConfidentialTransferMint, metadata_pointer::MetadataPointer,
+            BaseStateWithExtensions, PodStateWithExtensions,
         },
         pod::PodMint,
     },
+    spl_token_metadata_interface::state::TokenMetadata,
     spl_token_wrap::{
-        self, get_wrapped_mint_address, get_wrapped_mint_backpointer_address, state::Backpointer,
+        self, get_wrapped_mint_address, get_wrapped_mint_authority,
+        get_wrapped_mint_backpointer_address, state::Backpointer,
     },
 };
 
@@ -57,13 +60,38 @@ async fn test_create_mint() {
         unwrapped_mint_data.decimals
     );
 
-    // Verify confidential transfer extension is present
-    assert!(wrapped_mint_state
-        .get_extension::<ConfidentialTransferMint>()
-        .is_ok());
-    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 1);
-
     // Verify backpointer data
     let backpointer = *bytemuck::from_bytes::<Backpointer>(&backpointer_account.data);
     assert_eq!(backpointer.unwrapped_mint, unwrapped_mint);
+
+    // Verify extension state
+    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 3);
+
+    assert!(wrapped_mint_state
+        .get_extension::<ConfidentialTransferMint>()
+        .is_ok());
+
+    // Verify MetadataPointer content
+    let pointer_ext = wrapped_mint_state
+        .get_extension::<MetadataPointer>()
+        .unwrap();
+    let expected_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+    assert_eq!(
+        Option::<Pubkey>::from(pointer_ext.authority).unwrap(),
+        expected_mint_authority
+    );
+    assert_eq!(
+        Option::<Pubkey>::from(pointer_ext.metadata_address).unwrap(),
+        wrapped_mint_address
+    );
+
+    // Verify TokenMetadata content
+    let metadata_ext = wrapped_mint_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .unwrap();
+    assert_eq!(
+        Option::<Pubkey>::from(metadata_ext.update_authority).unwrap(),
+        expected_mint_authority
+    );
+    assert_eq!(metadata_ext.mint, wrapped_mint_address);
 }

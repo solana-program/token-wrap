@@ -14,12 +14,19 @@ use {
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{
         extension::{
-            confidential_transfer::ConfidentialTransferMint, BaseStateWithExtensions,
+            confidential_transfer::ConfidentialTransferMint,
+            metadata_pointer::MetadataPointer,
+            BaseStateWithExtensions,
+            ExtensionType::{
+                ConfidentialTransferMint as ConfidentialTransferMintExt,
+                MetadataPointer as MetadataPointerExt, TokenMetadata as TokenMetadataExt,
+            },
             PodStateWithExtensions,
         },
         pod::PodMint,
         state::Mint,
     },
+    spl_token_metadata_interface::state::TokenMetadata,
     spl_token_wrap::{
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
         state::Backpointer,
@@ -172,6 +179,14 @@ fn test_improperly_derived_addresses_fail() {
     CreateMintBuilder::default()
         .token_program_addr(incorrect_token_program)
         .check(Check::err(ProgramError::IncorrectProgramId))
+        .execute();
+}
+
+#[test]
+fn test_fails_with_incorrect_wrapped_mint_authority() {
+    CreateMintBuilder::default()
+        .wrapped_mint_authority_addr(Pubkey::new_unique()) // wrong addr
+        .check(Check::err(TokenWrapError::MintAuthorityMismatch.into()))
         .execute();
 }
 
@@ -345,7 +360,7 @@ fn test_mint_customizer_copies_decimals_and_freeze_authority(from: TokenProgram,
 }
 
 #[test]
-fn test_customizer_applies_confidential_transfer_extension() {
+fn test_customizer_applies_all_default_extensions() {
     let result = CreateMintBuilder::default()
         .wrapped_token_program(TokenProgram::SplToken2022)
         .execute();
@@ -353,9 +368,37 @@ fn test_customizer_applies_confidential_transfer_extension() {
     let wrapped_mint_state =
         PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
 
-    // Verify confidential transfer extension is present and is the only extension
+    let extensions = wrapped_mint_state.get_extension_types().unwrap();
+    assert_eq!(extensions.len(), 3);
+    assert!(extensions.contains(&ConfidentialTransferMintExt));
+    assert!(extensions.contains(&MetadataPointerExt));
+    assert!(extensions.contains(&TokenMetadataExt));
+
     assert!(wrapped_mint_state
         .get_extension::<ConfidentialTransferMint>()
         .is_ok());
-    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 1);
+
+    // Verify MetadataPointer content
+    let pointer_ext = wrapped_mint_state
+        .get_extension::<MetadataPointer>()
+        .unwrap();
+    let expected_mint_authority = get_wrapped_mint_authority(&result.wrapped_mint.key);
+    assert_eq!(
+        Option::<Pubkey>::from(pointer_ext.authority).unwrap(),
+        expected_mint_authority
+    );
+    assert_eq!(
+        Option::<Pubkey>::from(pointer_ext.metadata_address).unwrap(),
+        result.wrapped_mint.key
+    );
+
+    // Verify TokenMetadata content
+    let metadata_ext = wrapped_mint_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .unwrap();
+    assert_eq!(
+        Option::<Pubkey>::from(metadata_ext.update_authority).unwrap(),
+        expected_mint_authority
+    );
+    assert_eq!(metadata_ext.mint, result.wrapped_mint.key);
 }

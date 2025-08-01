@@ -32,6 +32,7 @@ solana-system-interface = { workspace = true }
 solana-transaction = { workspace = true }
 spl-associated-token-account-client = { workspace = true }
 spl-token = { workspace = true }
+spl-token-metadata-interface = { workspace = true }
 spl-token-wrap = { workspace = true }
 spl-token-2022 = { workspace = true }
 tokio = { workspace = true }
