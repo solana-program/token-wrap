@@ -3,7 +3,7 @@
 use {
     crate::{
         error::TokenWrapError,
-        get_wrapped_mint_address, get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
+        get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
         get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
@@ -48,6 +48,7 @@ pub fn process_create_mint<M: MintCustomizer>(
     let wrapped_mint_account = next_account_info(account_info_iter)?;
     let wrapped_backpointer_account = next_account_info(account_info_iter)?;
     let unwrapped_mint_account = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority_account = next_account_info(account_info_iter)?;
     let _system_program_account = next_account_info(account_info_iter)?;
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
@@ -59,6 +60,9 @@ pub fn process_create_mint<M: MintCustomizer>(
     let (wrapped_backpointer_address, backpointer_bump) =
         get_wrapped_mint_backpointer_address_with_seed(wrapped_mint_account.key);
 
+    let (wrapped_mint_authority_address, authority_bump) =
+        get_wrapped_mint_authority_with_seed(wrapped_mint_account.key);
+
     // PDA derivation validation
 
     if *wrapped_mint_account.key != wrapped_mint_address {
@@ -67,6 +71,10 @@ pub fn process_create_mint<M: MintCustomizer>(
 
     if *wrapped_backpointer_account.key != wrapped_backpointer_address {
         Err(TokenWrapError::BackpointerMismatch)?
+    }
+
+    if *wrapped_mint_authority_account.key != wrapped_mint_authority_address {
+        Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
     // The *unwrapped mint* must itself be a real SPL‑Token mint
@@ -102,7 +110,7 @@ pub fn process_create_mint<M: MintCustomizer>(
     );
 
     let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
-        M::get_token_2022_mint_space()?
+        M::get_token_2022_mint_initialization_space()?
     } else {
         spl_token::state::Mint::get_packed_len()
     };
@@ -130,31 +138,34 @@ pub fn process_create_mint<M: MintCustomizer>(
         &[&signer_seeds],
     )?;
 
-    let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
-
-    // If wrapping into a token-2022 initialize extensions
     if *wrapped_token_program_account.key == spl_token_2022::id() {
-        M::initialize_extensions(
-            wrapped_mint_account,
-            unwrapped_mint_account,
-            wrapped_token_program_account,
-            accounts,
-        )?;
+        M::pre_initialize_extensions(wrapped_mint_account, wrapped_token_program_account)?;
     }
 
-    let (freeze_authority, decimals) =
-        M::get_freeze_auth_and_decimals(unwrapped_mint_account, accounts)?;
+    let (freeze_authority, decimals) = M::get_freeze_auth_and_decimals(unwrapped_mint_account)?;
 
     invoke(
         &initialize_mint2(
             wrapped_token_program_account.key,
             wrapped_mint_account.key,
-            &wrapped_mint_authority,
+            &wrapped_mint_authority_address,
             freeze_authority.as_ref(),
             decimals,
         )?,
         &[wrapped_mint_account.clone()],
     )?;
+
+    if *wrapped_token_program_account.key == spl_token_2022::id() {
+        let bump_seed = [authority_bump];
+        let wrapped_mint_auth_signer_seeds =
+            get_wrapped_mint_authority_signer_seeds(wrapped_mint_account.key, &bump_seed);
+        M::post_initialize_extensions(
+            wrapped_mint_account,
+            wrapped_token_program_account,
+            wrapped_mint_authority_account,
+            &wrapped_mint_auth_signer_seeds,
+        )?;
+    }
 
     // Initialize backpointer PDA
 

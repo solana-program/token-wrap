@@ -14,8 +14,10 @@ use {
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
+    spl_token::solana_program::program_pack::Pack,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, id,
+        get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
+        id,
         instruction::create_mint,
         mint_customizer::{
             default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
@@ -120,7 +122,11 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         Err(_) => 0,
     };
 
-    let mint_size = DefaultToken2022Customizer::get_token_2022_mint_space()?;
+    let mint_size = if args.wrapped_token_program == spl_token_2022::id() {
+        DefaultToken2022Customizer::get_token_2022_total_space()?
+    } else {
+        spl_token::state::Mint::LEN
+    };
     let mint_rent = rpc_client
         .get_minimum_balance_for_rent_exemption(mint_size)
         .await?;
@@ -171,11 +177,13 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
     }
 
     // Add the create_mint instruction
+    let wrapped_mint_authority_address = get_wrapped_mint_authority(&wrapped_mint_address);
     instructions.push(create_mint(
         &id(),
         &wrapped_mint_address,
         &wrapped_backpointer_address,
         &args.unwrapped_mint,
+        &wrapped_mint_authority_address,
         &args.wrapped_token_program,
         args.idempotent,
     ));

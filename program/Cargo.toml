@@ -30,6 +30,7 @@ solana-sysvar = { workspace = true }
 spl-associated-token-account-client = { workspace = true }
 spl-pod = { workspace = true }
 spl-token = { workspace = true }
+spl-token-metadata-interface = { workspace = true }
 spl-transfer-hook-interface = { workspace = true }
 thiserror = { workspace = true }
 
