@@ -14,8 +14,7 @@ use {
     solana_signature::Signature,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
-    spl_token::solana_program::{program_error::ProgramError, program_pack::Pack},
-    spl_token_metadata_interface::state::TokenMetadata,
+    spl_token::solana_program::program_pack::Pack,
     spl_token_wrap::{
         get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
         id,
@@ -124,13 +123,7 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
     };
 
     let mint_size = if args.wrapped_token_program == spl_token_2022::id() {
-        let base_size = DefaultToken2022Customizer::get_token_2022_mint_space()?;
-        // The TokenMetadata extension is initialized *after* and its
-        // `initialize` instruction handles its own reallocation.
-        let metadata_size = TokenMetadata::default().tlv_size_of()?;
-        base_size
-            .checked_add(metadata_size)
-            .ok_or(ProgramError::ArithmeticOverflow)?
+        DefaultToken2022Customizer::get_token_2022_total_space()?
     } else {
         spl_token::state::Mint::LEN
     };

@@ -14,7 +14,9 @@ use {
         pod::PodMint,
         state::Mint,
     },
-    spl_token_metadata_interface::instruction::initialize as initialize_token_metadata,
+    spl_token_metadata_interface::{
+        instruction::initialize as initialize_token_metadata, state::TokenMetadata,
+    },
 };
 
 /// This implementation adds the `ConfidentialTransferMint` & `TokenMetadata`
@@ -22,7 +24,7 @@ use {
 pub struct DefaultToken2022Customizer;
 
 impl MintCustomizer for DefaultToken2022Customizer {
-    fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
+    fn get_token_2022_mint_initialization_space() -> Result<usize, ProgramError> {
         // Calculate space for all extensions that are initialized *before* the base
         // mint. The TokenMetadata extension is initialized *after* and its
         // `initialize` instruction handles its own reallocation.
@@ -32,9 +34,17 @@ impl MintCustomizer for DefaultToken2022Customizer {
         ])
     }
 
-    fn pre_initialize_extensions<'a>(
-        wrapped_mint_account: &'a AccountInfo<'a>,
-        wrapped_token_program_account: &'a AccountInfo<'a>,
+    fn get_token_2022_total_space() -> Result<usize, ProgramError> {
+        let base_size = Self::get_token_2022_mint_initialization_space()?;
+        let metadata_size = TokenMetadata::default().tlv_size_of()?;
+        base_size
+            .checked_add(metadata_size)
+            .ok_or(ProgramError::ArithmeticOverflow)
+    }
+
+    fn pre_initialize_extensions(
+        wrapped_mint_account: &AccountInfo,
+        wrapped_token_program_account: &AccountInfo,
     ) -> ProgramResult {
         // Initialize confidential transfer ext
         invoke(
@@ -64,9 +74,9 @@ impl MintCustomizer for DefaultToken2022Customizer {
     }
 
     fn post_initialize_extensions<'a>(
-        wrapped_mint_account: &'a AccountInfo<'a>,
-        wrapped_token_program_account: &'a AccountInfo<'a>,
-        wrapped_mint_authority_account: &'a AccountInfo<'a>,
+        wrapped_mint_account: &AccountInfo<'a>,
+        wrapped_token_program_account: &AccountInfo,
+        wrapped_mint_authority_account: &AccountInfo<'a>,
         mint_authority_signer_seeds: &[&[u8]],
     ) -> ProgramResult {
         // Initialize metadata ext (must be done after mint initialization)
@@ -86,6 +96,8 @@ impl MintCustomizer for DefaultToken2022Customizer {
                 &wrapped_mint_authority,
                 wrapped_mint_account.key,
                 &wrapped_mint_authority,
+                // Initialized as empty, but separate instructions are available
+                // to update these fields
                 "".to_string(),
                 "".to_string(),
                 "".to_string(),

@@ -38,9 +38,9 @@ use {
 };
 
 /// Processes [`CreateMint`](enum.TokenWrapInstruction.html) instruction.
-pub fn process_create_mint<'a, M: MintCustomizer>(
+pub fn process_create_mint<M: MintCustomizer>(
     program_id: &Pubkey,
-    accounts: &'a [AccountInfo<'a>],
+    accounts: &[AccountInfo],
     idempotent: bool,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
@@ -110,7 +110,7 @@ pub fn process_create_mint<'a, M: MintCustomizer>(
     );
 
     let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
-        M::get_token_2022_mint_space()?
+        M::get_token_2022_mint_initialization_space()?
     } else {
         spl_token::state::Mint::get_packed_len()
     };
@@ -507,9 +507,9 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
 }
 
 /// Instruction processor
-pub fn process_instruction<'a>(
+pub fn process_instruction(
     program_id: &Pubkey,
-    accounts: &'a [AccountInfo<'a>],
+    accounts: &[AccountInfo],
     input: &[u8],
 ) -> ProgramResult {
     match TokenWrapInstruction::unpack(input)? {
