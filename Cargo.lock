@@ -9757,6 +9757,7 @@ dependencies = [
  "spl-token-2022 9.0.0",
  "spl-token-metadata-interface",
  "spl-transfer-hook-interface",
+ "spl-type-length-value",
  "test-case",
  "test-transfer-hook",
  "thiserror 2.0.12",

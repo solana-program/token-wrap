@@ -449,7 +449,6 @@ fn test_end_to_end_close_mint_case() {
         &wrapped_mint_address,
         &backpointer_address,
         &unwrapped_mint.key,
-        &wrapped_mint_authority,
         &spl_token_2022::id(),
         false,
     );

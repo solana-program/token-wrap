@@ -1,15 +1,17 @@
 use {
     crate::helpers::{
         common::{KeyedAccount, TokenProgram, DEFAULT_MINT_DECIMALS, DEFAULT_MINT_SUPPLY},
-        extensions::{init_mint_extensions, MintExtension},
+        extensions::{calc_mint_len, init_mint_extensions, MintExtension},
     },
     solana_account::Account,
+    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
     spl_pod::primitives::{PodBool, PodU64},
     spl_token_2022::{
-        extension::{BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut},
+        extension::{BaseStateWithExtensionsMut, PodStateWithExtensionsMut},
         pod::{PodCOption, PodMint},
+        state::Mint,
     },
 };
 
@@ -85,23 +87,17 @@ impl MintBuilder {
     }
 
     pub fn build(self) -> KeyedAccount {
-        let extension_types = match self.token_program {
-            TokenProgram::SplToken2022 => self
-                .extensions
-                .iter()
-                .map(|ext| ext.extension_type())
-                .collect(),
+        let mint_key = self.mint_key.unwrap_or_else(Pubkey::new_unique);
+        let mint_size = match self.token_program {
+            TokenProgram::SplToken2022 => calc_mint_len(&mint_key, &self.extensions),
             TokenProgram::SplToken => {
-                if self.extensions.is_empty() {
-                    vec![]
-                } else {
-                    panic!("SPL Token doesn't support extensions, but extensions were provided");
-                }
+                assert!(
+                    self.extensions.is_empty(),
+                    "SPL Token doesn't support extensions"
+                );
+                Mint::LEN
             }
         };
-
-        let mint_size =
-            ExtensionType::try_calculate_account_len::<PodMint>(&extension_types).unwrap();
         let mut buffer = vec![0; mint_size];
         let mut state =
             PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut buffer).unwrap();
@@ -121,7 +117,7 @@ impl MintBuilder {
 
         // Initialize extensions (only for token 2022)
         if self.token_program == TokenProgram::SplToken2022 {
-            init_mint_extensions(&mut state, &self.extensions);
+            init_mint_extensions(&mut state, &self.extensions, &mint_key);
         }
 
         let lamports = self
@@ -129,7 +125,7 @@ impl MintBuilder {
             .unwrap_or_else(|| Rent::default().minimum_balance(buffer.len()));
 
         KeyedAccount {
-            key: self.mint_key.unwrap_or_else(Pubkey::new_unique),
+            key: mint_key,
             account: Account {
                 lamports,
                 data: buffer,
