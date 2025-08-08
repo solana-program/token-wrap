@@ -30,7 +30,7 @@ edition = "2021"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
-bytemuck = { version = "1.23.1", features = ["derive"] }
+bytemuck = { version = "1.23.2", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
 mollusk-svm = "0.4.1"
 mollusk-svm-programs-token = "0.4.1"
