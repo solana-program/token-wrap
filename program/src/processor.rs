@@ -3,7 +3,7 @@
 use {
     crate::{
         error::TokenWrapError,
-        get_wrapped_mint_address, get_wrapped_mint_address_with_seed,
+        get_wrapped_mint_address, get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
         get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
@@ -35,6 +35,11 @@ use {
         pod::{PodAccount, PodMint},
         state::AccountState,
     },
+    spl_token_metadata_interface::{
+        instruction::{initialize as initialize_token_metadata, remove_key, update_field},
+        state::{Field, TokenMetadata},
+    },
+    std::collections::HashMap,
 };
 
 /// Processes [`CreateMint`](enum.TokenWrapInstruction.html) instruction.
@@ -48,7 +53,6 @@ pub fn process_create_mint<M: MintCustomizer>(
     let wrapped_mint_account = next_account_info(account_info_iter)?;
     let wrapped_backpointer_account = next_account_info(account_info_iter)?;
     let unwrapped_mint_account = next_account_info(account_info_iter)?;
-    let wrapped_mint_authority_account = next_account_info(account_info_iter)?;
     let _system_program_account = next_account_info(account_info_iter)?;
     let wrapped_token_program_account = next_account_info(account_info_iter)?;
 
@@ -60,9 +64,6 @@ pub fn process_create_mint<M: MintCustomizer>(
     let (wrapped_backpointer_address, backpointer_bump) =
         get_wrapped_mint_backpointer_address_with_seed(wrapped_mint_account.key);
 
-    let (wrapped_mint_authority_address, authority_bump) =
-        get_wrapped_mint_authority_with_seed(wrapped_mint_account.key);
-
     // PDA derivation validation
 
     if *wrapped_mint_account.key != wrapped_mint_address {
@@ -71,10 +72,6 @@ pub fn process_create_mint<M: MintCustomizer>(
 
     if *wrapped_backpointer_account.key != wrapped_backpointer_address {
         Err(TokenWrapError::BackpointerMismatch)?
-    }
-
-    if *wrapped_mint_authority_account.key != wrapped_mint_authority_address {
-        Err(TokenWrapError::MintAuthorityMismatch)?
     }
 
     // The *unwrapped mint* must itself be a real SPL‑Token mint
@@ -110,7 +107,7 @@ pub fn process_create_mint<M: MintCustomizer>(
     );
 
     let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
-        M::get_token_2022_mint_initialization_space()?
+        M::get_token_2022_mint_space()?
     } else {
         spl_token::state::Mint::get_packed_len()
     };
@@ -139,33 +136,22 @@ pub fn process_create_mint<M: MintCustomizer>(
     )?;
 
     if *wrapped_token_program_account.key == spl_token_2022::id() {
-        M::pre_initialize_extensions(wrapped_mint_account, wrapped_token_program_account)?;
+        M::initialize_extensions(wrapped_mint_account, wrapped_token_program_account)?;
     }
 
     let (freeze_authority, decimals) = M::get_freeze_auth_and_decimals(unwrapped_mint_account)?;
+    let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
 
     invoke(
         &initialize_mint2(
             wrapped_token_program_account.key,
             wrapped_mint_account.key,
-            &wrapped_mint_authority_address,
+            &wrapped_mint_authority,
             freeze_authority.as_ref(),
             decimals,
         )?,
         &[wrapped_mint_account.clone()],
     )?;
-
-    if *wrapped_token_program_account.key == spl_token_2022::id() {
-        let bump_seed = [authority_bump];
-        let wrapped_mint_auth_signer_seeds =
-            get_wrapped_mint_authority_signer_seeds(wrapped_mint_account.key, &bump_seed);
-        M::post_initialize_extensions(
-            wrapped_mint_account,
-            wrapped_token_program_account,
-            wrapped_mint_authority_account,
-            &wrapped_mint_auth_signer_seeds,
-        )?;
-    }
 
     // Initialize backpointer PDA
 
@@ -506,6 +492,183 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
     Ok(())
 }
 
+/// Processes [`SyncMetadataToToken2022`](enum.TokenWrapInstruction.html)
+/// instruction.
+pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let wrapped_mint_info = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority_info = next_account_info(account_info_iter)?;
+    let unwrapped_mint_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+
+    if *token_program_info.key != spl_token_2022::id() {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    // TODO: Temp until spl-token branch is added
+    if *unwrapped_mint_info.owner != spl_token_2022::id() {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    if *wrapped_mint_info.owner != spl_token_2022::id() {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    let (expected_wrapped_mint, _) =
+        get_wrapped_mint_address_with_seed(unwrapped_mint_info.key, &spl_token_2022::id());
+    if *wrapped_mint_info.key != expected_wrapped_mint {
+        return Err(TokenWrapError::WrappedMintMismatch.into());
+    }
+    let (expected_authority, authority_bump) =
+        get_wrapped_mint_authority_with_seed(wrapped_mint_info.key);
+    if *wrapped_mint_authority_info.key != expected_authority {
+        return Err(TokenWrapError::MintAuthorityMismatch.into());
+    }
+
+    // Get metadata from the token-2022 unwrapped mint
+    let unwrapped_mint_data = unwrapped_mint_info.try_borrow_data()?;
+    let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
+    let unwrapped_metadata = unwrapped_mint_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .map_err(|_| TokenWrapError::UnwrappedMintHasNoMetadata)?;
+
+    let authority_bump_seed = [authority_bump];
+    let authority_signer_seeds =
+        get_wrapped_mint_authority_signer_seeds(wrapped_mint_info.key, &authority_bump_seed);
+
+    let wrapped_mint_data = wrapped_mint_info.try_borrow_data()?;
+    let wrapped_mint_metadata = PodStateWithExtensions::<PodMint>::unpack(&wrapped_mint_data)?
+        .get_variable_len_extension::<TokenMetadata>()
+        .ok();
+    drop(wrapped_mint_data);
+
+    let cpi_accounts = [
+        wrapped_mint_info.clone(),
+        wrapped_mint_authority_info.clone(),
+    ];
+
+    if let Some(wrapped_metadata) = wrapped_mint_metadata {
+        // The metadata extension is initialized. Update the fields that have changed.
+        // Note that mint and update authority cannot change as that is governed by
+        // token-wrap.
+
+        // --- Sync base fields ---
+        if wrapped_metadata.name != unwrapped_metadata.name {
+            invoke_signed(
+                &update_field(
+                    token_program_info.key,
+                    wrapped_mint_info.key,
+                    wrapped_mint_authority_info.key,
+                    Field::Name,
+                    unwrapped_metadata.name.clone(),
+                ),
+                &cpi_accounts,
+                &[&authority_signer_seeds],
+            )?;
+        }
+
+        if wrapped_metadata.symbol != unwrapped_metadata.symbol {
+            invoke_signed(
+                &update_field(
+                    token_program_info.key,
+                    wrapped_mint_info.key,
+                    wrapped_mint_authority_info.key,
+                    Field::Symbol,
+                    unwrapped_metadata.symbol.clone(),
+                ),
+                &cpi_accounts,
+                &[&authority_signer_seeds],
+            )?;
+        }
+
+        if wrapped_metadata.uri != unwrapped_metadata.uri {
+            invoke_signed(
+                &update_field(
+                    token_program_info.key,
+                    wrapped_mint_info.key,
+                    wrapped_mint_authority_info.key,
+                    Field::Uri,
+                    unwrapped_metadata.uri.clone(),
+                ),
+                &cpi_accounts,
+                &[&authority_signer_seeds],
+            )?;
+        }
+
+        // --- Sync additional metadata fields ---
+        let mut wrapped_meta_map: HashMap<String, String> =
+            wrapped_metadata.additional_metadata.into_iter().collect();
+
+        for (key, value) in &unwrapped_metadata.additional_metadata {
+            // Update if the key is not present or if the value is different
+            if wrapped_meta_map.get(key) != Some(value) {
+                invoke_signed(
+                    &update_field(
+                        token_program_info.key,
+                        wrapped_mint_info.key,
+                        wrapped_mint_authority_info.key,
+                        Field::Key(key.clone()),
+                        value.clone(),
+                    ),
+                    &cpi_accounts,
+                    &[&authority_signer_seeds],
+                )?;
+            }
+            // Remove the key from the map so we can track deletions
+            wrapped_meta_map.remove(key);
+        }
+
+        // Any keys remaining in the map no longer exist in the source, so remove them
+        for key in wrapped_meta_map.keys() {
+            invoke_signed(
+                &remove_key(
+                    token_program_info.key,
+                    wrapped_mint_info.key,
+                    wrapped_mint_authority_info.key,
+                    key.clone(),
+                    false,
+                ),
+                &cpi_accounts,
+                &[&authority_signer_seeds],
+            )?;
+        }
+    } else {
+        // The wrapped mint does not have the metadata extension. Initialize it with the
+        // fields from the unwrapped mint.
+        invoke_signed(
+            &initialize_token_metadata(
+                token_program_info.key,
+                wrapped_mint_info.key,
+                wrapped_mint_authority_info.key,
+                wrapped_mint_info.key,
+                wrapped_mint_authority_info.key,
+                unwrapped_metadata.name.clone(),
+                unwrapped_metadata.symbol.clone(),
+                unwrapped_metadata.uri.clone(),
+            ),
+            &cpi_accounts,
+            &[&authority_signer_seeds],
+        )?;
+
+        // After initializing, add the additional metadata fields.
+        for (key, value) in &unwrapped_metadata.additional_metadata {
+            invoke_signed(
+                &update_field(
+                    token_program_info.key,
+                    wrapped_mint_info.key,
+                    wrapped_mint_authority_info.key,
+                    Field::Key(key.clone()),
+                    value.clone(),
+                ),
+                &cpi_accounts,
+                &[&authority_signer_seeds],
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -530,6 +693,10 @@ pub fn process_instruction(
         TokenWrapInstruction::CloseStuckEscrow => {
             msg!("Instruction: CloseStuckEscrow");
             process_close_stuck_escrow(accounts)
+        }
+        TokenWrapInstruction::SyncMetadataToToken2022 => {
+            msg!("Instruction: SyncMetadataToToken2022");
+            process_sync_metadata_to_token_2022(accounts)
         }
     }
 }

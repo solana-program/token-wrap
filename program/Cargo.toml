@@ -41,6 +41,7 @@ spl-token-2022 = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-programs-token = { workspace = true }
 solana-account = { workspace = true }
+spl-type-length-value = { workspace = true }
 spl-tlv-account-resolution = { workspace = true }
 test-case = { workspace = true }
 test-transfer-hook = { workspace = true }

@@ -11,7 +11,6 @@ use {
         },
         pod::PodMint,
     },
-    spl_token_metadata_interface::state::TokenMetadata,
     spl_token_wrap::{
         self, get_wrapped_mint_address, get_wrapped_mint_authority,
         get_wrapped_mint_backpointer_address, state::Backpointer,
@@ -65,7 +64,7 @@ async fn test_create_mint() {
     assert_eq!(backpointer.unwrapped_mint, unwrapped_mint);
 
     // Verify extension state
-    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 3);
+    assert_eq!(wrapped_mint_state.get_extension_types().unwrap().len(), 2);
 
     assert!(wrapped_mint_state
         .get_extension::<ConfidentialTransferMint>()
@@ -84,14 +83,4 @@ async fn test_create_mint() {
         Option::<Pubkey>::from(pointer_ext.metadata_address).unwrap(),
         wrapped_mint_address
     );
-
-    // Verify TokenMetadata content
-    let metadata_ext = wrapped_mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .unwrap();
-    assert_eq!(
-        Option::<Pubkey>::from(metadata_ext.update_authority).unwrap(),
-        expected_mint_authority
-    );
-    assert_eq!(metadata_ext.mint, wrapped_mint_address);
 }

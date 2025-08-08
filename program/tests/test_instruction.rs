@@ -40,7 +40,7 @@ fn test_pack_unpack_unwrap() {
 #[test]
 fn test_unpack_invalid_data() {
     assert!(TokenWrapInstruction::unpack(&[]).is_err());
-    assert!(TokenWrapInstruction::unpack(&[4]).is_err());
+    assert!(TokenWrapInstruction::unpack(&[5]).is_err());
     assert!(TokenWrapInstruction::unpack(&[0]).is_err());
     assert!(TokenWrapInstruction::unpack(&[1, 0, 0, 0]).is_err());
     assert!(TokenWrapInstruction::unpack(&[2, 0, 0, 0]).is_err());
