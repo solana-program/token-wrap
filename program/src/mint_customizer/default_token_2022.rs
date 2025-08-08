@@ -1,7 +1,7 @@
 use {
     crate::{get_wrapped_mint_authority, mint_customizer::interface::MintCustomizer},
     solana_account_info::AccountInfo,
-    solana_cpi::{invoke, invoke_signed},
+    solana_cpi::invoke,
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
     spl_token_2022::{
@@ -14,17 +14,14 @@ use {
         pod::PodMint,
         state::Mint,
     },
-    spl_token_metadata_interface::{
-        instruction::initialize as initialize_token_metadata, state::TokenMetadata,
-    },
 };
 
-/// This implementation adds the `ConfidentialTransferMint` & `TokenMetadata`
+/// This implementation adds the `ConfidentialTransferMint` & `MetadataPointer`
 /// extensions by default.
 pub struct DefaultToken2022Customizer;
 
 impl MintCustomizer for DefaultToken2022Customizer {
-    fn get_token_2022_mint_initialization_space() -> Result<usize, ProgramError> {
+    fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
         // Calculate space for all extensions that are initialized *before* the base
         // mint. The TokenMetadata extension is initialized *after* and its
         // `initialize` instruction handles its own reallocation.
@@ -34,15 +31,7 @@ impl MintCustomizer for DefaultToken2022Customizer {
         ])
     }
 
-    fn get_token_2022_total_space() -> Result<usize, ProgramError> {
-        let base_size = Self::get_token_2022_mint_initialization_space()?;
-        let metadata_size = TokenMetadata::default().tlv_size_of()?;
-        base_size
-            .checked_add(metadata_size)
-            .ok_or(ProgramError::ArithmeticOverflow)
-    }
-
-    fn pre_initialize_extensions(
+    fn initialize_extensions(
         wrapped_mint_account: &AccountInfo,
         wrapped_token_program_account: &AccountInfo,
     ) -> ProgramResult {
@@ -68,42 +57,6 @@ impl MintCustomizer for DefaultToken2022Customizer {
                 Some(*wrapped_mint_account.key),
             )?,
             &[wrapped_mint_account.clone()],
-        )?;
-
-        Ok(())
-    }
-
-    fn post_initialize_extensions<'a>(
-        wrapped_mint_account: &AccountInfo<'a>,
-        wrapped_token_program_account: &AccountInfo,
-        wrapped_mint_authority_account: &AccountInfo<'a>,
-        mint_authority_signer_seeds: &[&[u8]],
-    ) -> ProgramResult {
-        // Initialize metadata ext (must be done after mint initialization)
-        let wrapped_mint_authority = get_wrapped_mint_authority(wrapped_mint_account.key);
-
-        let cpi_accounts = [
-            wrapped_mint_account.clone(),
-            wrapped_mint_authority_account.clone(),
-            wrapped_mint_account.clone(),
-            wrapped_mint_authority_account.clone(),
-        ];
-
-        invoke_signed(
-            &initialize_token_metadata(
-                wrapped_token_program_account.key,
-                wrapped_mint_account.key,
-                &wrapped_mint_authority,
-                wrapped_mint_account.key,
-                &wrapped_mint_authority,
-                // Initialized as empty, but separate instructions are available
-                // to update these fields
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            ),
-            &cpi_accounts,
-            &[mint_authority_signer_seeds],
         )?;
 
         Ok(())

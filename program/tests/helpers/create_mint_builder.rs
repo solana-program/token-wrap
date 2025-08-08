@@ -7,8 +7,7 @@ use {
     solana_account::Account,
     solana_pubkey::Pubkey,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_authority, get_wrapped_mint_backpointer_address,
-        instruction::create_mint,
+        get_wrapped_mint_address, get_wrapped_mint_backpointer_address, instruction::create_mint,
     },
 };
 
@@ -27,7 +26,6 @@ pub struct CreateMintBuilder<'a> {
     unwrapped_token_program: TokenProgram,
     wrapped_mint_addr: Option<Pubkey>,
     wrapped_mint_account: Option<Account>,
-    wrapped_mint_authority_addr: Option<Pubkey>,
     backpointer_addr: Option<Pubkey>,
     backpointer_account: Option<Account>,
     freeze_authority: Option<Pubkey>,
@@ -46,7 +44,6 @@ impl Default for CreateMintBuilder<'_> {
             unwrapped_token_program: TokenProgram::SplToken,
             wrapped_mint_addr: None,
             wrapped_mint_account: None,
-            wrapped_mint_authority_addr: None,
             backpointer_addr: None,
             backpointer_account: None,
             freeze_authority: None,
@@ -84,11 +81,6 @@ impl<'a> CreateMintBuilder<'a> {
 
     pub fn wrapped_mint_account(mut self, account: Account) -> Self {
         self.wrapped_mint_account = Some(account);
-        self
-    }
-
-    pub fn wrapped_mint_authority_addr(mut self, key: Pubkey) -> Self {
-        self.wrapped_mint_authority_addr = Some(key);
         self
     }
 
@@ -157,16 +149,11 @@ impl<'a> CreateMintBuilder<'a> {
             ..Default::default()
         });
 
-        let wrapped_mint_authority_address = self
-            .wrapped_mint_authority_addr
-            .unwrap_or_else(|| get_wrapped_mint_authority(&wrapped_mint_addr));
-
         let instruction = create_mint(
             &spl_token_wrap::id(),
             &wrapped_mint_addr,
             &wrapped_backpointer_address,
             &unwrapped_mint_addr,
-            &wrapped_mint_authority_address,
             &wrapped_token_program_id,
             self.idempotent,
         );
@@ -181,7 +168,6 @@ impl<'a> CreateMintBuilder<'a> {
             (wrapped_mint_addr, wrapped_mint_account),
             (wrapped_backpointer_address, wrapped_backpointer_account),
             (unwrapped_mint_addr, unwrapped_mint_account),
-            (wrapped_mint_authority_address, Account::default()),
             keyed_account_for_system_program(),
             keyed_token_program,
         ];

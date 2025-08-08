@@ -108,6 +108,27 @@ pub enum TokenWrapInstruction {
     /// 4. `[]` Wrapped mint authority (PDA)
     /// 5. `[]` Token-2022 program
     CloseStuckEscrow,
+
+    /// This instruction copies the metadata fields from an unwrapped mint to
+    /// its wrapped mint `TokenMetadata` extension.
+    ///
+    /// Supports (unwrapped to wrapped):
+    /// - Token-2022 to Token-2022
+    /// - SPL-token to Token-2022 (still `TODO`)
+    ///
+    /// If the `TokenMetadata` extension on the wrapped mint if not present, it
+    /// will initialize it. The client is responsible for funding the wrapped
+    /// mint account with enough lamports to cover the rent for the
+    /// additional space required by the `TokenMetadata` extension and/or
+    /// metadata sync.
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    /// 0. `[w]` Wrapped mint
+    /// 1. `[]` Wrapped mint authority (PDA)
+    /// 2. `[]` Unwrapped mint
+    /// 3. `[]` Token-2022 program
+    SyncMetadataToToken2022,
 }
 
 impl TokenWrapInstruction {
@@ -131,6 +152,9 @@ impl TokenWrapInstruction {
             }
             TokenWrapInstruction::CloseStuckEscrow => {
                 buf.push(3);
+            }
+            TokenWrapInstruction::SyncMetadataToToken2022 => {
+                buf.push(4);
             }
         }
         buf
@@ -157,6 +181,7 @@ impl TokenWrapInstruction {
                 Ok(TokenWrapInstruction::Unwrap { amount })
             }
             Some((&3, [])) => Ok(TokenWrapInstruction::CloseStuckEscrow),
+            Some((&4, [])) => Ok(TokenWrapInstruction::SyncMetadataToToken2022),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -168,7 +193,6 @@ pub fn create_mint(
     wrapped_mint_address: &Pubkey,
     wrapped_backpointer_address: &Pubkey,
     unwrapped_mint_address: &Pubkey,
-    wrapped_mint_authority_address: &Pubkey,
     wrapped_token_program_id: &Pubkey,
     idempotent: bool,
 ) -> Instruction {
@@ -176,7 +200,6 @@ pub fn create_mint(
         AccountMeta::new(*wrapped_mint_address, false),
         AccountMeta::new(*wrapped_backpointer_address, false),
         AccountMeta::new_readonly(*unwrapped_mint_address, false),
-        AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
         AccountMeta::new_readonly(solana_system_interface::program::id(), false),
         AccountMeta::new_readonly(*wrapped_token_program_id, false),
     ];
@@ -278,5 +301,22 @@ pub fn close_stuck_escrow(
         AccountMeta::new_readonly(spl_token_2022::id(), false),
     ];
     let data = TokenWrapInstruction::CloseStuckEscrow.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `SyncMetadataToToken2022` instruction.
+pub fn sync_metadata_to_token_2022(
+    program_id: &Pubkey,
+    wrapped_mint: &Pubkey,
+    wrapped_mint_authority: &Pubkey,
+    unwrapped_mint: &Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*wrapped_mint, false),
+        AccountMeta::new_readonly(*wrapped_mint_authority, false),
+        AccountMeta::new_readonly(*unwrapped_mint, false),
+        AccountMeta::new_readonly(spl_token_2022::id(), false),
+    ];
+    let data = TokenWrapInstruction::SyncMetadataToToken2022.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }

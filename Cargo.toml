@@ -19,6 +19,7 @@ level = "warn"
 check-cfg = [
     'cfg(target_os, values("solana"))',
     'cfg(feature, values("frozen-abi", "no-entrypoint"))',
+    'cfg(feature, values("custom-heap", "custom-panic"))',
 ]
 
 [workspace.package]
@@ -77,6 +78,7 @@ spl-token-2022 = { version = "9.0.0", features = ["no-entrypoint"] }
 spl-token-metadata-interface = "0.7.0"
 spl-token-wrap = { path = "program", features = ["no-entrypoint"] }
 spl-transfer-hook-interface = "0.10.0"
+spl-type-length-value = "0.8.0"
 tempfile = "3.20.0"
 test-case = "3.3.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
