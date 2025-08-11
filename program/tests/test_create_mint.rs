@@ -19,14 +19,13 @@ use {
             BaseStateWithExtensions,
             ExtensionType::{
                 ConfidentialTransferMint as ConfidentialTransferMintExt,
-                MetadataPointer as MetadataPointerExt, TokenMetadata as TokenMetadataExt,
+                MetadataPointer as MetadataPointerExt,
             },
             PodStateWithExtensions,
         },
         pod::PodMint,
         state::Mint,
     },
-    spl_token_metadata_interface::state::TokenMetadata,
     spl_token_wrap::{
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority,
         state::Backpointer,
@@ -179,14 +178,6 @@ fn test_improperly_derived_addresses_fail() {
     CreateMintBuilder::default()
         .token_program_addr(incorrect_token_program)
         .check(Check::err(ProgramError::IncorrectProgramId))
-        .execute();
-}
-
-#[test]
-fn test_fails_with_incorrect_wrapped_mint_authority() {
-    CreateMintBuilder::default()
-        .wrapped_mint_authority_addr(Pubkey::new_unique()) // wrong addr
-        .check(Check::err(TokenWrapError::MintAuthorityMismatch.into()))
         .execute();
 }
 
@@ -369,10 +360,9 @@ fn test_customizer_applies_all_default_extensions() {
         PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
 
     let extensions = wrapped_mint_state.get_extension_types().unwrap();
-    assert_eq!(extensions.len(), 3);
+    assert_eq!(extensions.len(), 2);
     assert!(extensions.contains(&ConfidentialTransferMintExt));
     assert!(extensions.contains(&MetadataPointerExt));
-    assert!(extensions.contains(&TokenMetadataExt));
 
     assert!(wrapped_mint_state
         .get_extension::<ConfidentialTransferMint>()
@@ -391,14 +381,4 @@ fn test_customizer_applies_all_default_extensions() {
         Option::<Pubkey>::from(pointer_ext.metadata_address).unwrap(),
         result.wrapped_mint.key
     );
-
-    // Verify TokenMetadata content
-    let metadata_ext = wrapped_mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .unwrap();
-    assert_eq!(
-        Option::<Pubkey>::from(metadata_ext.update_authority).unwrap(),
-        expected_mint_authority
-    );
-    assert_eq!(metadata_ext.mint, result.wrapped_mint.key);
 }

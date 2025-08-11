@@ -42,6 +42,9 @@ pub enum TokenWrapError {
     /// The escrow account is in a good state and cannot be recreated
     #[error("The escrow account is in a good state and cannot be recreated")]
     EscrowInGoodState,
+    /// Unwrapped mint does not have the `TokenMetadata` extension
+    #[error("Unwrapped mint does not have the TokenMetadata extension")]
+    UnwrappedMintHasNoMetadata,
 }
 
 impl From<TokenWrapError> for ProgramError {
@@ -73,6 +76,7 @@ impl ToStr for TokenWrapError {
             TokenWrapError::InvalidBackpointerOwner => "Error: InvalidBackpointerOwner",
             TokenWrapError::EscrowMismatch => "Error: EscrowMismatch",
             TokenWrapError::EscrowInGoodState => "Error: EscrowInGoodState",
+            TokenWrapError::UnwrappedMintHasNoMetadata => "Error: UnwrappedMintHasNoMetadata",
         }
     }
 }
