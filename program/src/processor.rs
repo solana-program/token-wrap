@@ -492,6 +492,37 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
     Ok(())
 }
 
+type FieldExtractor = Vec<(Field, fn(&TokenMetadata) -> &str)>;
+
+fn update_fields_if_changed<'a>(
+    token_program: &Pubkey,
+    mint: &AccountInfo<'a>,
+    authority: &AccountInfo<'a>,
+    fields: FieldExtractor,
+    wrapped_metadata: &TokenMetadata,
+    unwrapped_metadata: &TokenMetadata,
+    signer_seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    for (field, extractor) in fields {
+        let current_value = extractor(wrapped_metadata);
+        let new_value = extractor(unwrapped_metadata);
+        if current_value != new_value {
+            invoke_signed(
+                &update_field(
+                    token_program,
+                    mint.key,
+                    authority.key,
+                    field.clone(),
+                    new_value.to_string(),
+                ),
+                &[mint.clone(), authority.clone()],
+                signer_seeds,
+            )?;
+        }
+    }
+    Ok(())
+}
+
 /// Processes [`SyncMetadataToToken2022`](enum.TokenWrapInstruction.html)
 /// instruction.
 pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramResult {
@@ -553,47 +584,21 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
         // token-wrap.
 
         // --- Sync base fields ---
-        if wrapped_metadata.name != unwrapped_metadata.name {
-            invoke_signed(
-                &update_field(
-                    token_program_info.key,
-                    wrapped_mint_info.key,
-                    wrapped_mint_authority_info.key,
-                    Field::Name,
-                    unwrapped_metadata.name.clone(),
-                ),
-                &cpi_accounts,
-                &[&authority_signer_seeds],
-            )?;
-        }
+        let base_fields: FieldExtractor = vec![
+            (Field::Name, |m| &m.name),
+            (Field::Symbol, |m| &m.symbol),
+            (Field::Uri, |m| &m.uri),
+        ];
 
-        if wrapped_metadata.symbol != unwrapped_metadata.symbol {
-            invoke_signed(
-                &update_field(
-                    token_program_info.key,
-                    wrapped_mint_info.key,
-                    wrapped_mint_authority_info.key,
-                    Field::Symbol,
-                    unwrapped_metadata.symbol.clone(),
-                ),
-                &cpi_accounts,
-                &[&authority_signer_seeds],
-            )?;
-        }
-
-        if wrapped_metadata.uri != unwrapped_metadata.uri {
-            invoke_signed(
-                &update_field(
-                    token_program_info.key,
-                    wrapped_mint_info.key,
-                    wrapped_mint_authority_info.key,
-                    Field::Uri,
-                    unwrapped_metadata.uri.clone(),
-                ),
-                &cpi_accounts,
-                &[&authority_signer_seeds],
-            )?;
-        }
+        update_fields_if_changed(
+            token_program_info.key,
+            wrapped_mint_info,
+            wrapped_mint_authority_info,
+            base_fields,
+            &wrapped_metadata,
+            &unwrapped_metadata,
+            &[&authority_signer_seeds],
+        )?;
 
         // --- Sync additional metadata fields ---
         let mut wrapped_meta_map: HashMap<String, String> =

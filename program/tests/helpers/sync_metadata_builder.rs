@@ -16,6 +16,7 @@ use {
 pub struct SyncMetadataResult {
     pub unwrapped_mint: KeyedAccount,
     pub wrapped_mint: KeyedAccount,
+    pub wrapped_mint_authority: KeyedAccount,
 }
 
 pub struct SyncMetadataBuilder<'a> {
@@ -122,6 +123,10 @@ impl<'a> SyncMetadataBuilder<'a> {
             wrapped_mint: KeyedAccount {
                 key: wrapped_mint.key,
                 account: result.get_account(&wrapped_mint.key).unwrap().clone(),
+            },
+            wrapped_mint_authority: KeyedAccount {
+                key: wrapped_mint_authority,
+                account: result.get_account(&wrapped_mint_authority).unwrap().clone(),
             },
         }
     }

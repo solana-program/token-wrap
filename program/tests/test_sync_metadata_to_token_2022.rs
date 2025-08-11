@@ -48,7 +48,7 @@ fn test_success_initialize_metadata() {
 
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .wrapped_mint(wrapped_mint)
+        .wrapped_mint(wrapped_mint.clone())
         .execute();
 
     let wrapped_mint_state =
@@ -68,6 +68,11 @@ fn test_success_initialize_metadata() {
         assert_eq!(wrapped_metadata.symbol, symbol);
         assert_eq!(wrapped_metadata.uri, uri);
         assert_eq!(wrapped_metadata.additional_metadata, additional_metadata);
+        assert_eq!(
+            Option::<Pubkey>::from(wrapped_metadata.update_authority).unwrap(),
+            wrapped_mint_authority
+        );
+        assert_eq!(wrapped_metadata.mint, wrapped_mint.key);
     } else {
         panic!("destructure failed");
     }
@@ -105,7 +110,7 @@ fn test_success_initialize_metadata_with_additional_fields() {
 
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .wrapped_mint(wrapped_mint)
+        .wrapped_mint(wrapped_mint.clone())
         .execute();
 
     let wrapped_mint_state =
@@ -125,6 +130,11 @@ fn test_success_initialize_metadata_with_additional_fields() {
         assert_eq!(wrapped_metadata.symbol, symbol);
         assert_eq!(wrapped_metadata.uri, uri);
         assert_eq!(wrapped_metadata.additional_metadata, additional_metadata);
+        assert_eq!(
+            Option::<Pubkey>::from(wrapped_metadata.update_authority).unwrap(),
+            result.wrapped_mint_authority.key
+        );
+        assert_eq!(wrapped_metadata.mint, wrapped_mint.key);
     } else {
         panic!("destructure failed");
     }
@@ -166,7 +176,7 @@ fn test_success_update_metadata() {
 
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .wrapped_mint(wrapped_mint)
+        .wrapped_mint(wrapped_mint.clone())
         .execute();
 
     let wrapped_mint_state =
@@ -186,6 +196,11 @@ fn test_success_update_metadata() {
         assert_eq!(wrapped_metadata.symbol, symbol);
         assert_eq!(wrapped_metadata.uri, uri);
         assert_eq!(wrapped_metadata.additional_metadata, additional_metadata);
+        assert_eq!(
+            Option::<Pubkey>::from(wrapped_metadata.update_authority).unwrap(),
+            result.wrapped_mint_authority.key
+        );
+        assert_eq!(wrapped_metadata.mint, wrapped_mint.key);
     } else {
         panic!("destructure failed");
     }
@@ -230,7 +245,7 @@ fn test_success_update_metadata_with_additional_fields() {
 
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .wrapped_mint(wrapped_mint)
+        .wrapped_mint(wrapped_mint.clone())
         .execute();
 
     let wrapped_mint_state =
@@ -250,6 +265,11 @@ fn test_success_update_metadata_with_additional_fields() {
         assert_eq!(wrapped_metadata.symbol, symbol);
         assert_eq!(wrapped_metadata.uri, uri);
         assert_eq!(wrapped_metadata.additional_metadata, additional_metadata);
+        assert_eq!(
+            Option::<Pubkey>::from(wrapped_metadata.update_authority).unwrap(),
+            result.wrapped_mint_authority.key
+        );
+        assert_eq!(wrapped_metadata.mint, wrapped_mint.key);
     } else {
         panic!("destructure failed");
     }
