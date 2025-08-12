@@ -3444,13 +3444,16 @@ dependencies = [
 
 [[package]]
 name = "mollusk-svm-programs-token"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7b83ea06294d62f3db6cd783d6fcb3bb9c370dff3128b45eac2cb2145c60150"
+checksum = "3efcb4cb61dbf93457a233025a403ba320b831f2c15da9e9a337c38e951eafa7"
 dependencies = [
  "mollusk-svm",
  "solana-account",
  "solana-pubkey",
+ "solana-rent",
+ "spl-associated-token-account",
+ "spl-token",
 ]
 
 [[package]]

@@ -34,7 +34,7 @@ anyhow = "1.0.98"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
 mollusk-svm = "0.4.2"
-mollusk-svm-programs-token = "0.4.1"
+mollusk-svm-programs-token = "0.4.2"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 serde = "1.0.219"
