@@ -8,11 +8,13 @@ use {
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
+        metaplex::metaplex_to_token_2022_metadata,
         mint_customizer::{
             default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
         },
         state::Backpointer,
     },
+    mpl_token_metadata::accounts::Metadata as MetaplexMetadata,
     solana_account_info::{next_account_info, AccountInfo},
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
@@ -536,11 +538,6 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
         return Err(ProgramError::IncorrectProgramId);
     }
 
-    // TODO: Temp until spl-token branch is added
-    if *unwrapped_mint_info.owner != spl_token_2022::id() {
-        return Err(ProgramError::IncorrectProgramId);
-    }
-
     if *wrapped_mint_info.owner != spl_token_2022::id() {
         return Err(ProgramError::IncorrectProgramId);
     }
@@ -556,12 +553,27 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
         return Err(TokenWrapError::MintAuthorityMismatch.into());
     }
 
-    // Get metadata from the token-2022 unwrapped mint
-    let unwrapped_mint_data = unwrapped_mint_info.try_borrow_data()?;
-    let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-    let unwrapped_metadata = unwrapped_mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .map_err(|_| TokenWrapError::UnwrappedMintHasNoMetadata)?;
+    let unwrapped_metadata = if *unwrapped_mint_info.owner == spl_token_2022::id() {
+        // Source is Token-2022: read from extension
+        let unwrapped_mint_data = unwrapped_mint_info.try_borrow_data()?;
+        let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
+        unwrapped_mint_state
+            .get_variable_len_extension::<TokenMetadata>()
+            .map_err(|_| TokenWrapError::UnwrappedMintHasNoMetadata)?
+    } else if *unwrapped_mint_info.owner == spl_token::id() {
+        // Source is spl-token: read from Metaplex PDA
+        let metaplex_metadata_info = next_account_info(account_info_iter)?;
+        let (expected_metaplex_pda, _) = MetaplexMetadata::find_pda(unwrapped_mint_info.key);
+        if *metaplex_metadata_info.owner != mpl_token_metadata::ID {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+        if *metaplex_metadata_info.key != expected_metaplex_pda {
+            return Err(TokenWrapError::MetaplexMetadataMismatch.into());
+        }
+        metaplex_to_token_2022_metadata(unwrapped_mint_info, metaplex_metadata_info)?
+    } else {
+        return Err(ProgramError::IncorrectProgramId);
+    };
 
     let authority_bump_seed = [authority_bump];
     let authority_signer_seeds =

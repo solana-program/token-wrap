@@ -45,6 +45,11 @@ pub enum TokenWrapError {
     /// Unwrapped mint does not have the `TokenMetadata` extension
     #[error("Unwrapped mint does not have the TokenMetadata extension")]
     UnwrappedMintHasNoMetadata,
+
+    // 10
+    /// `Metaplex` metadata account address does not match expected PDA
+    #[error("Metaplex metadata account address does not match expected PDA")]
+    MetaplexMetadataMismatch,
 }
 
 impl From<TokenWrapError> for ProgramError {
@@ -77,6 +82,7 @@ impl ToStr for TokenWrapError {
             TokenWrapError::EscrowMismatch => "Error: EscrowMismatch",
             TokenWrapError::EscrowInGoodState => "Error: EscrowInGoodState",
             TokenWrapError::UnwrappedMintHasNoMetadata => "Error: UnwrappedMintHasNoMetadata",
+            TokenWrapError::MetaplexMetadataMismatch => "Error: MetaplexMetadataMismatch",
         }
     }
 }

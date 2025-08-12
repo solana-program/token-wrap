@@ -4,17 +4,18 @@ use {
         extensions::MintExtension,
         mint_builder::MintBuilder,
     },
+    borsh::BorshSerialize,
     mollusk_svm::{result::Check, Mollusk},
+    mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, types::Key},
     solana_account::Account,
     solana_pubkey::Pubkey,
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_authority,
+        get_wrapped_mint_address, get_wrapped_mint_authority, id,
         instruction::sync_metadata_to_token_2022,
     },
 };
 
 pub struct SyncMetadataResult {
-    pub unwrapped_mint: KeyedAccount,
     pub wrapped_mint: KeyedAccount,
     pub wrapped_mint_authority: KeyedAccount,
 }
@@ -25,6 +26,7 @@ pub struct SyncMetadataBuilder<'a> {
     unwrapped_mint: Option<KeyedAccount>,
     wrapped_mint: Option<KeyedAccount>,
     wrapped_mint_authority: Option<Pubkey>,
+    metaplex_metadata: Option<KeyedAccount>,
 }
 
 impl Default for SyncMetadataBuilder<'_> {
@@ -35,6 +37,7 @@ impl Default for SyncMetadataBuilder<'_> {
             unwrapped_mint: None,
             wrapped_mint: None,
             wrapped_mint_authority: None,
+            metaplex_metadata: None,
         }
     }
 }
@@ -56,6 +59,11 @@ impl<'a> SyncMetadataBuilder<'a> {
 
     pub fn wrapped_mint_authority(mut self, authority: Pubkey) -> Self {
         self.wrapped_mint_authority = Some(authority);
+        self
+    }
+
+    pub fn metaplex_metadata(mut self, account: Option<KeyedAccount>) -> Self {
+        self.metaplex_metadata = account;
         self
     }
 
@@ -93,19 +101,58 @@ impl<'a> SyncMetadataBuilder<'a> {
                 .build()
         });
 
+        let metaplex_metadata: Option<KeyedAccount> = self.metaplex_metadata.or_else(|| {
+            if unwrapped_mint.account.owner == spl_token::id() {
+                let metadata = MetaplexMetadata {
+                    key: Key::MetadataV1,
+                    update_authority: Default::default(),
+                    mint: unwrapped_mint.key,
+                    name: "x".to_string(),
+                    symbol: "y".to_string(),
+                    uri: "z".to_string(),
+                    seller_fee_basis_points: 0,
+                    creators: None,
+                    primary_sale_happened: false,
+                    is_mutable: false,
+                    edition_nonce: None,
+                    token_standard: None,
+                    collection: None,
+                    uses: None,
+                    collection_details: None,
+                    programmable_config: None,
+                };
+                Some(KeyedAccount {
+                    key: MetaplexMetadata::find_pda(&unwrapped_mint.key).0,
+                    account: Account {
+                        lamports: 1_000_000_000,
+                        data: metadata.try_to_vec().unwrap(),
+                        owner: mpl_token_metadata::ID,
+                        ..Default::default()
+                    },
+                })
+            } else {
+                None
+            }
+        });
+
         let instruction = sync_metadata_to_token_2022(
-            &spl_token_wrap::id(),
+            &id(),
             &wrapped_mint.key,
             &wrapped_mint_authority,
             &unwrapped_mint.key,
+            metaplex_metadata.as_ref().map(|ka| &ka.key),
         );
 
-        let accounts = &[
+        let mut accounts = vec![
             wrapped_mint.pair(),
             (wrapped_mint_authority, Account::default()),
             unwrapped_mint.pair(),
             TokenProgram::SplToken2022.keyed_account(),
         ];
+
+        if let Some(metadata) = metaplex_metadata {
+            accounts.push(metadata.pair());
+        }
 
         if self.checks.is_empty() {
             self.checks.push(Check::success());
@@ -113,13 +160,9 @@ impl<'a> SyncMetadataBuilder<'a> {
 
         let result =
             self.mollusk
-                .process_and_validate_instruction(&instruction, accounts, &self.checks);
+                .process_and_validate_instruction(&instruction, &accounts, &self.checks);
 
         SyncMetadataResult {
-            unwrapped_mint: KeyedAccount {
-                key: unwrapped_mint.key,
-                account: result.get_account(&unwrapped_mint.key).unwrap().clone(),
-            },
             wrapped_mint: KeyedAccount {
                 key: wrapped_mint.key,
                 account: result.get_account(&wrapped_mint.key).unwrap().clone(),
