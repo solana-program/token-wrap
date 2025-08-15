@@ -200,7 +200,7 @@ fn test_fail_sync_metadata_with_wrong_metaplex_owner() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(Some(malicious_metadata_account))
+        .metaplex_metadata(malicious_metadata_account)
         .check(Check::err(ProgramError::InvalidAccountOwner))
         .execute();
 }
@@ -220,7 +220,7 @@ fn test_fail_spl_token_with_invalid_metaplex_pda() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(Some(invalid_metaplex_pda))
+        .metaplex_metadata(invalid_metaplex_pda)
         .check(Check::err(TokenWrapError::MetaplexMetadataMismatch.into()))
         .execute();
 }
@@ -242,7 +242,7 @@ fn test_fail_spl_token_without_metaplex_metadata() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(Some(missing_metaplex_account))
+        .metaplex_metadata(missing_metaplex_account)
         .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
 }
@@ -502,7 +502,7 @@ fn test_success_initialize_from_spl_token() {
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
-        .metaplex_metadata(Some(metaplex_metadata))
+        .metaplex_metadata(metaplex_metadata)
         .execute();
 
     let wrapped_mint_state =
@@ -585,7 +585,7 @@ fn test_success_update_from_spl_token() {
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
-        .metaplex_metadata(Some(metaplex_metadata))
+        .metaplex_metadata(metaplex_metadata)
         .execute();
 
     let wrapped_mint_state =

@@ -62,8 +62,8 @@ impl<'a> SyncMetadataBuilder<'a> {
         self
     }
 
-    pub fn metaplex_metadata(mut self, account: Option<KeyedAccount>) -> Self {
-        self.metaplex_metadata = account;
+    pub fn metaplex_metadata(mut self, account: KeyedAccount) -> Self {
+        self.metaplex_metadata = Some(account);
         self
     }
 
