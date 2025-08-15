@@ -114,7 +114,7 @@ pub enum TokenWrapInstruction {
     ///
     /// Supports (unwrapped to wrapped):
     /// - Token-2022 to Token-2022
-    /// - SPL-token to Token-2022 (still `TODO`)
+    /// - SPL-token to Token-2022
     ///
     /// If the `TokenMetadata` extension on the wrapped mint if not present, it
     /// will initialize it. The client is responsible for funding the wrapped
@@ -125,9 +125,11 @@ pub enum TokenWrapInstruction {
     /// Accounts expected by this instruction:
     ///
     /// 0. `[w]` Wrapped mint
-    /// 1. `[]` Wrapped mint authority (PDA)
+    /// 1. `[]` Wrapped mint authority PDA
     /// 2. `[]` Unwrapped mint
     /// 3. `[]` Token-2022 program
+    /// 4. `[]` (Optional) `Metaplex` Metadata PDA. Required if the unwrapped
+    ///    mint is an `spl-token` mint.
     SyncMetadataToToken2022,
 }
 
@@ -310,13 +312,19 @@ pub fn sync_metadata_to_token_2022(
     wrapped_mint: &Pubkey,
     wrapped_mint_authority: &Pubkey,
     unwrapped_mint: &Pubkey,
+    metaplex_metadata: Option<&Pubkey>,
 ) -> Instruction {
-    let accounts = vec![
+    let mut accounts = vec![
         AccountMeta::new(*wrapped_mint, false),
         AccountMeta::new_readonly(*wrapped_mint_authority, false),
         AccountMeta::new_readonly(*unwrapped_mint, false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),
     ];
+
+    if let Some(pubkey) = metaplex_metadata {
+        accounts.push(AccountMeta::new_readonly(*pubkey, false));
+    }
+
     let data = TokenWrapInstruction::SyncMetadataToToken2022.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }
