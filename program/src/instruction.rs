@@ -112,9 +112,17 @@ pub enum TokenWrapInstruction {
     /// This instruction copies the metadata fields from an unwrapped mint to
     /// its wrapped mint `TokenMetadata` extension.
     ///
-    /// Supports (unwrapped to wrapped):
-    /// - Token-2022 to Token-2022
-    /// - SPL-token to Token-2022
+    /// Token-2022 source (via `MetadataPointer`):
+    /// - `pointer == self`: Read `TokenMetadata` from the mint (no extra acct)
+    /// - `pointer -> Token-2022 account`: Read `TokenMetadata` from that
+    ///   account (must be passed)
+    /// - `pointer -> Metaplex PDA`: convert fields (must pass PDA)
+    /// - `pointer -> third-party program`: CPI `Emit` to the account owner and
+    ///   use returned fields (must pass the metadata account and its owner
+    ///   program).
+    ///
+    /// SPL Token source:
+    /// - `Metaplex` PDA: convert fields (must pass PDA)
     ///
     /// If the `TokenMetadata` extension on the wrapped mint if not present, it
     /// will initialize it. The client is responsible for funding the wrapped
@@ -128,8 +136,10 @@ pub enum TokenWrapInstruction {
     /// 1. `[]` Wrapped mint authority PDA
     /// 2. `[]` Unwrapped mint
     /// 3. `[]` Token-2022 program
-    /// 4. `[]` (Optional) `Metaplex` Metadata PDA. Required if the unwrapped
-    ///    mint is an `spl-token` mint.
+    /// 4. `[]` (Optional) Source metadata account. Required if metadata pointer
+    ///    indicates external account.
+    /// 5. `[]` (Optional) Owner program. Required when metadata account is
+    ///    owned by a third-party program.
     SyncMetadataToToken2022,
 }
 
@@ -312,7 +322,8 @@ pub fn sync_metadata_to_token_2022(
     wrapped_mint: &Pubkey,
     wrapped_mint_authority: &Pubkey,
     unwrapped_mint: &Pubkey,
-    metaplex_metadata: Option<&Pubkey>,
+    source_metadata: Option<&Pubkey>,
+    owner_program: Option<&Pubkey>,
 ) -> Instruction {
     let mut accounts = vec![
         AccountMeta::new(*wrapped_mint, false),
@@ -321,8 +332,12 @@ pub fn sync_metadata_to_token_2022(
         AccountMeta::new_readonly(spl_token_2022::id(), false),
     ];
 
-    if let Some(pubkey) = metaplex_metadata {
+    if let Some(pubkey) = source_metadata {
         accounts.push(AccountMeta::new_readonly(*pubkey, false));
+    }
+
+    if let Some(owner) = owner_program {
+        accounts.push(AccountMeta::new_readonly(*owner, false));
     }
 
     let data = TokenWrapInstruction::SyncMetadataToToken2022.pack();

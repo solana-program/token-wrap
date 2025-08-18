@@ -23,7 +23,6 @@ solana-instruction = { workspace = true }
 solana-msg = { workspace = true }
 solana-program-entrypoint = { workspace = true }
 solana-program-error = { workspace = true }
-solana-program-option = { workspace = true }
 solana-program-pack = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-rent = { workspace = true }
@@ -34,6 +33,7 @@ spl-pod = { workspace = true }
 spl-token = { workspace = true }
 spl-token-metadata-interface = { workspace = true }
 spl-transfer-hook-interface = { workspace = true }
+spl-type-length-value = { workspace = true }
 thiserror = { workspace = true }
 
 # Should depend on the next crate version after 7.0.0 when https://github.com/solana-program/token-2022/pull/253 is deployed
@@ -41,10 +41,10 @@ spl-token-2022 = { workspace = true }
 
 [dev-dependencies]
 borsh = { workspace = true }
+mock-metadata-owner = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-programs-token = { workspace = true }
 solana-account = { workspace = true }
-spl-type-length-value = { workspace = true }
 spl-tlv-account-resolution = { workspace = true }
 test-case = { workspace = true }
 test-transfer-hook = { workspace = true }

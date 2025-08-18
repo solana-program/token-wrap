@@ -50,6 +50,18 @@ pub enum TokenWrapError {
     /// `Metaplex` metadata account address does not match expected PDA
     #[error("Metaplex metadata account address does not match expected PDA")]
     MetaplexMetadataMismatch,
+    /// Metadata pointer extension missing on mint
+    #[error("Metadata pointer extension missing on mint")]
+    MetadataPointerMissing,
+    /// Metadata pointer is unset (None)
+    #[error("Metadata pointer is unset (None)")]
+    MetadataPointerUnset,
+    /// Provided source metadata account does not match pointer
+    #[error("Provided source metadata account does not match pointer")]
+    MetadataPointerMismatch,
+    /// External metadata program returned no data
+    #[error("External metadata program returned no data")]
+    ExternalProgramReturnedNoData,
 }
 
 impl From<TokenWrapError> for ProgramError {
@@ -83,6 +95,12 @@ impl ToStr for TokenWrapError {
             TokenWrapError::EscrowInGoodState => "Error: EscrowInGoodState",
             TokenWrapError::UnwrappedMintHasNoMetadata => "Error: UnwrappedMintHasNoMetadata",
             TokenWrapError::MetaplexMetadataMismatch => "Error: MetaplexMetadataMismatch",
+            TokenWrapError::MetadataPointerMissing => "Error: MetadataPointerMissing",
+            TokenWrapError::MetadataPointerUnset => "Error: MetadataPointerUnset",
+            TokenWrapError::MetadataPointerMismatch => "Error: MetadataPointerMismatch",
+            &TokenWrapError::ExternalProgramReturnedNoData => {
+                "Error: ExternalProgramReturnedNoData"
+            }
         }
     }
 }

@@ -5,6 +5,7 @@
 mod entrypoint;
 pub mod error;
 pub mod instruction;
+pub mod metadata;
 pub mod metaplex;
 pub mod mint_customizer;
 pub mod processor;

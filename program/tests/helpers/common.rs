@@ -64,6 +64,11 @@ pub fn init_mollusk() -> Mollusk {
         "test_transfer_hook",
         &mollusk_svm::program::loader_keys::LOADER_V3,
     );
+    mollusk.add_program(
+        &mock_metadata_owner::ID,
+        "mock_metadata_owner",
+        &mollusk_svm::program::loader_keys::LOADER_V3,
+    );
     mollusk
 }
 

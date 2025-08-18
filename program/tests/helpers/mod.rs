@@ -2,6 +2,7 @@ pub mod close_stuck_escrow_builder;
 pub mod common;
 pub mod create_mint_builder;
 pub mod extensions;
+pub mod metadata;
 pub mod mint_builder;
 pub mod sync_metadata_builder;
 pub mod token_account_builder;
