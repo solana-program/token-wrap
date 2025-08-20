@@ -84,5 +84,5 @@ spl-type-length-value = "0.8.0"
 tempfile = "3.20.0"
 test-case = "3.3.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
-thiserror = "2.0.15"
+thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = ["full"] }
