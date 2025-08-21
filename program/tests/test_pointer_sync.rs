@@ -142,7 +142,7 @@ fn test_fail_pointer_to_token_2022_account_metadata_unsupported() {
 }
 
 #[test]
-fn test_pointing_to_token_2022_success() {
+fn test_fail_pointer_to_token_2022_mint() {
     let metadata_source_mint_key = Pubkey::new_unique();
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
@@ -155,40 +155,20 @@ fn test_pointing_to_token_2022_success() {
         name: "Mock Token".to_string(),
         symbol: "MOCK".to_string(),
         uri: "https://example.com/mock.json".to_string(),
-        additional_metadata: vec![("mock_key".to_string(), "mock_value".to_string())],
+        additional_metadata: vec![],
     };
-    let mut mock_metadata_account = MintBuilder::new()
+
+    let source_metadata_account = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .mint_key(metadata_source_mint_key)
         .with_extension(source_metadata_extension.clone())
         .build();
-    mock_metadata_account.account.owner = mock_metadata_owner::ID;
 
-    let result = SyncMetadataBuilder::new()
+    SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .source_metadata(mock_metadata_account)
+        .source_metadata(source_metadata_account)
+        .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
-
-    let wrapped_mint_state =
-        PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data).unwrap();
-    let wrapped_metadata = wrapped_mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .unwrap();
-
-    if let MintExtension::TokenMetadata {
-        name,
-        symbol,
-        uri,
-        additional_metadata,
-    } = source_metadata_extension
-    {
-        assert_eq!(wrapped_metadata.name, name);
-        assert_eq!(wrapped_metadata.symbol, symbol);
-        assert_eq!(wrapped_metadata.uri, uri);
-        assert_eq!(wrapped_metadata.additional_metadata, additional_metadata);
-    } else {
-        panic!("Unexpected extension type");
-    }
 }
 
 #[test]

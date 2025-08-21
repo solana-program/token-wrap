@@ -72,15 +72,14 @@ pub fn resolve_token_2022_source_metadata<'a>(
     }
 
     if metadata_info.owner == &token_2022_id() {
-        // Scenario 2: points to another token-2022 mint
-        let data = metadata_info.try_borrow_data()?;
-        let state = PodStateWithExtensions::<PodMint>::unpack(&data)?;
-        state.get_variable_len_extension::<TokenMetadata>()
+        // This is explicitly unsupported. A metadata pointer should not point to
+        // another mint account.
+        Err(ProgramError::InvalidAccountData)
     } else if metadata_info.owner == &MPL_TOKEN_METADATA_ID {
-        // Scenario 3: points to a Metaplex PDA
+        // Scenario 2: points to a Metaplex PDA
         metaplex_to_token_2022_metadata(unwrapped_mint_info, metadata_info)
     } else {
-        // Scenario 4: points to an external program
+        // Scenario 3: points to an external program
         let owner_program_info =
             maybe_owner_program_info.ok_or(ProgramError::NotEnoughAccountKeys)?;
         if owner_program_info.key != metadata_info.owner {
