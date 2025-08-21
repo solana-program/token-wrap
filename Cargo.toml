@@ -36,7 +36,7 @@ edition = "2021"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
-borsh = "0.10.4"
+borsh = "1.5.7"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
 mock-metadata-owner = { path = "program/tests/programs/mock-metadata-owner" }
