@@ -1,0 +1,23 @@
+[package]
+name = "mock-metadata-owner"
+version = "0.1.0"
+edition = { workspace = true }
+publish = false
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+solana-account-info = { workspace = true }
+solana-cpi = { workspace = true }
+solana-program-entrypoint = { workspace = true }
+solana-program-error = { workspace = true }
+solana-pubkey = { workspace = true }
+spl-token-2022 = { workspace = true }
+spl-token-metadata-interface = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[lints]
+workspace = true

@@ -6,6 +6,7 @@ use {
         extension::{
             confidential_transfer::ConfidentialTransferMint,
             immutable_owner::ImmutableOwner,
+            metadata_pointer::MetadataPointer,
             mint_close_authority::MintCloseAuthority,
             non_transferable::{NonTransferable, NonTransferableAccount},
             transfer_fee::{TransferFee, TransferFeeAmount, TransferFeeConfig},
@@ -34,7 +35,9 @@ pub enum MintExtension {
         uri: String,
         additional_metadata: Vec<(String, String)>,
     },
-    MetadataPointer,
+    MetadataPointer {
+        metadata_address: Option<Pubkey>,
+    },
 }
 
 impl MintExtension {
@@ -46,7 +49,7 @@ impl MintExtension {
             MintExtension::ConfidentialTransfer => ExtensionType::ConfidentialTransferMint,
             MintExtension::NonTransferable => ExtensionType::NonTransferable,
             MintExtension::TokenMetadata { .. } => ExtensionType::TokenMetadata,
-            MintExtension::MetadataPointer => ExtensionType::MetadataPointer,
+            MintExtension::MetadataPointer { .. } => ExtensionType::MetadataPointer,
         }
     }
 }
@@ -120,15 +123,9 @@ pub fn init_mint_extensions(
                     .init_variable_len_extension::<TokenMetadata>(&token_metadata, false)
                     .unwrap();
             }
-            MintExtension::MetadataPointer => {
-                let wrapped_mint_authority = get_wrapped_mint_authority(mint_key);
-                let extension = state
-                    .init_extension::<spl_token_2022::extension::metadata_pointer::MetadataPointer>(
-                        false,
-                    )
-                    .unwrap();
-                extension.authority = Some(wrapped_mint_authority).try_into().unwrap();
-                extension.metadata_address = Some(*mint_key).try_into().unwrap();
+            MintExtension::MetadataPointer { metadata_address } => {
+                let pointer = state.init_extension::<MetadataPointer>(false).unwrap();
+                pointer.metadata_address = (*metadata_address).try_into().unwrap();
             }
         }
     }

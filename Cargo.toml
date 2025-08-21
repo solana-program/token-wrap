@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["clients/cli", "program", "program/tests/programs/test-transfer-hook"]
+members = [
+    "clients/cli",
+    "program",
+    "program/tests/programs/test-transfer-hook",
+    "program/tests/programs/mock-metadata-owner"
+]
 
 [workspace.metadata.cli]
 solana = "2.3.4"
@@ -34,6 +39,7 @@ anyhow = "1.0.98"
 borsh = "0.10.4"
 bytemuck = { version = "1.23.2", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
+mock-metadata-owner = { path = "program/tests/programs/mock-metadata-owner" }
 mollusk-svm = "0.4.2"
 mollusk-svm-programs-token = "0.4.1"
 mpl-token-metadata = "5.1.1"

@@ -1,7 +1,8 @@
 use {
     crate::helpers::{
         common::{init_mollusk, KeyedAccount, TokenProgram},
-        extensions::{MintExtension, MintExtension::MetadataPointer as MetadataPointerExt},
+        extensions::MintExtension,
+        metadata::assert_metaplex_fields_synced,
         mint_builder::MintBuilder,
         sync_metadata_builder::SyncMetadataBuilder,
     },
@@ -24,7 +25,6 @@ use {
         error::TokenWrapError, get_wrapped_mint_address, get_wrapped_mint_authority, id,
         instruction::sync_metadata_to_token_2022,
     },
-    std::collections::HashMap,
 };
 
 pub mod helpers;
@@ -59,6 +59,7 @@ fn test_fail_incorrect_token_program() {
         &wrapped_mint.key,
         &wrapped_mint_authority,
         &unwrapped_mint.key,
+        None,
         None,
     );
 
@@ -127,20 +128,6 @@ fn test_fail_wrapped_mint_authority_pda_mismatch() {
 }
 
 #[test]
-fn test_fail_unwrapped_mint_has_no_metadata() {
-    let unwrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken2022)
-        .build(); // No metadata extension
-
-    SyncMetadataBuilder::new()
-        .unwrapped_mint(unwrapped_mint)
-        .check(Check::err(
-            TokenWrapError::UnwrappedMintHasNoMetadata.into(),
-        ))
-        .execute();
-}
-
-#[test]
 fn test_fail_spl_token_missing_metaplex_account() {
     let mollusk = init_mollusk();
 
@@ -155,7 +142,9 @@ fn test_fail_spl_token_missing_metaplex_account() {
         .token_program(TokenProgram::SplToken2022)
         .mint_key(wrapped_mint_address)
         .mint_authority(wrapped_mint_authority)
-        .with_extension(MetadataPointerExt)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(wrapped_mint_address),
+        })
         .lamports(1_000_000_000)
         .build();
 
@@ -165,6 +154,7 @@ fn test_fail_spl_token_missing_metaplex_account() {
         &wrapped_mint_authority,
         &unwrapped_mint.key,
         None, // Metaplex account is omitted
+        None, // Metadata owner is omitted
     );
 
     let accounts = &[
@@ -200,7 +190,7 @@ fn test_fail_sync_metadata_with_wrong_metaplex_owner() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(malicious_metadata_account)
+        .source_metadata(malicious_metadata_account)
         .check(Check::err(ProgramError::InvalidAccountOwner))
         .execute();
 }
@@ -220,7 +210,7 @@ fn test_fail_spl_token_with_invalid_metaplex_pda() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(invalid_metaplex_pda)
+        .source_metadata(invalid_metaplex_pda)
         .check(Check::err(TokenWrapError::MetaplexMetadataMismatch.into()))
         .execute();
 }
@@ -242,7 +232,7 @@ fn test_fail_spl_token_without_metaplex_metadata() {
 
     SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
-        .metaplex_metadata(missing_metaplex_account)
+        .source_metadata(missing_metaplex_account)
         .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
 }
@@ -258,9 +248,14 @@ fn test_success_initialize_from_token_2022() {
             ("key2".to_string(), "value2".to_string()),
         ],
     };
+    let unwrapped_mint_addr = Pubkey::new_unique();
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(unwrapped_metadata.clone())
+        .mint_key(unwrapped_mint_addr)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(unwrapped_mint_addr),
+        })
         .build();
 
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
@@ -269,7 +264,9 @@ fn test_success_initialize_from_token_2022() {
         .token_program(TokenProgram::SplToken2022)
         .mint_key(wrapped_mint_address)
         .mint_authority(wrapped_mint_authority)
-        .with_extension(MetadataPointerExt)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(wrapped_mint_address),
+        })
         .lamports(1_000_000_000)
         .build();
 
@@ -326,18 +323,25 @@ fn test_success_update_from_token_2022() {
             ("key3".to_string(), "value3".to_string()),    // new
         ],
     };
+
+    let unwrapped_mint_key = Pubkey::new_unique();
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
+        .mint_key(unwrapped_mint_key)
         .with_extension(new_metadata.clone())
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(unwrapped_mint_key),
+        })
         .build();
+
+    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
 
     let wrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .mint_key(get_wrapped_mint_address(
-            &unwrapped_mint.key,
-            &spl_token_2022::id(),
-        ))
-        .with_extension(MetadataPointerExt)
+        .mint_key(wrapped_mint_address)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(wrapped_mint_address),
+        })
         .with_extension(old_metadata)
         .lamports(1_000_000_000)
         .build();
@@ -371,74 +375,6 @@ fn test_success_update_from_token_2022() {
         assert_eq!(wrapped_metadata.mint, wrapped_mint.key);
     } else {
         panic!("destructure failed");
-    }
-}
-
-fn assert_metaplex_fields_synced(
-    wrapped_metadata: &TokenMetadata,
-    metaplex_metadata: &MetaplexMetadata,
-) {
-    let additional_meta_map: HashMap<_, _> = wrapped_metadata
-        .additional_metadata
-        .iter()
-        .cloned()
-        .collect();
-
-    assert_eq!(
-        additional_meta_map.get("seller_fee_basis_points").unwrap(),
-        &metaplex_metadata.seller_fee_basis_points.to_string()
-    );
-    assert_eq!(
-        additional_meta_map.get("primary_sale_happened").unwrap(),
-        &metaplex_metadata.primary_sale_happened.to_string()
-    );
-    assert_eq!(
-        additional_meta_map.get("is_mutable").unwrap(),
-        &metaplex_metadata.is_mutable.to_string()
-    );
-    if let Some(edition_nonce) = metaplex_metadata.edition_nonce {
-        assert_eq!(
-            additional_meta_map.get("edition_nonce").unwrap(),
-            &edition_nonce.to_string()
-        );
-    }
-    if let Some(token_standard) = &metaplex_metadata.token_standard {
-        assert_eq!(
-            additional_meta_map.get("token_standard").unwrap(),
-            &serde_json::to_string(token_standard).unwrap()
-        );
-    }
-    if let Some(collection) = &metaplex_metadata.collection {
-        assert_eq!(
-            additional_meta_map.get("collection").unwrap(),
-            &serde_json::to_string(collection).unwrap()
-        );
-    }
-    if let Some(uses) = &metaplex_metadata.uses {
-        assert_eq!(
-            additional_meta_map.get("uses").unwrap(),
-            &serde_json::to_string(uses).unwrap()
-        );
-    }
-    if let Some(collection_details) = &metaplex_metadata.collection_details {
-        assert_eq!(
-            additional_meta_map.get("collection_details").unwrap(),
-            &serde_json::to_string(collection_details).unwrap()
-        );
-    }
-    if let Some(creators) = &metaplex_metadata.creators {
-        if !creators.is_empty() {
-            assert_eq!(
-                additional_meta_map.get("creators").unwrap(),
-                &serde_json::to_string(creators).unwrap()
-            );
-        }
-    }
-    if let Some(config) = &metaplex_metadata.programmable_config {
-        assert_eq!(
-            additional_meta_map.get("config").unwrap(),
-            &serde_json::to_string(config).unwrap()
-        );
     }
 }
 
@@ -495,14 +431,16 @@ fn test_success_initialize_from_spl_token() {
         .token_program(TokenProgram::SplToken2022)
         .mint_key(wrapped_mint_address)
         .mint_authority(wrapped_mint_authority)
-        .with_extension(MetadataPointerExt)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(wrapped_mint_address),
+        })
         .lamports(1_000_000_000)
         .build();
 
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
-        .metaplex_metadata(metaplex_metadata)
+        .source_metadata(metaplex_metadata)
         .execute();
 
     let wrapped_mint_state =
@@ -544,7 +482,9 @@ fn test_success_update_from_spl_token() {
         .token_program(TokenProgram::SplToken2022)
         .mint_key(wrapped_mint_address)
         .mint_authority(wrapped_mint_authority)
-        .with_extension(MintExtension::MetadataPointer)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(wrapped_mint_address),
+        })
         .with_extension(old_wrapped_metadata)
         .lamports(1_000_000_000)
         .build();
@@ -585,7 +525,7 @@ fn test_success_update_from_spl_token() {
     let result = SyncMetadataBuilder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
-        .metaplex_metadata(metaplex_metadata)
+        .source_metadata(metaplex_metadata)
         .execute();
 
     let wrapped_mint_state =

@@ -8,6 +8,7 @@ use {
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
+        metadata::resolve_token_2022_source_metadata,
         metaplex::metaplex_to_token_2022_metadata,
         mint_customizer::{
             default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
@@ -533,6 +534,8 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
     let wrapped_mint_authority_info = next_account_info(account_info_iter)?;
     let unwrapped_mint_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
+    let source_metadata_info = account_info_iter.next();
+    let owner_program_info = account_info_iter.next();
 
     if *token_program_info.key != spl_token_2022::id() {
         return Err(ProgramError::IncorrectProgramId);
@@ -554,15 +557,16 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
     }
 
     let unwrapped_metadata = if *unwrapped_mint_info.owner == spl_token_2022::id() {
-        // Source is Token-2022: read from extension
-        let unwrapped_mint_data = unwrapped_mint_info.try_borrow_data()?;
-        let unwrapped_mint_state = PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint_data)?;
-        unwrapped_mint_state
-            .get_variable_len_extension::<TokenMetadata>()
-            .map_err(|_| TokenWrapError::UnwrappedMintHasNoMetadata)?
+        // Source is Token-2022: resolve metadata pointer
+        resolve_token_2022_source_metadata(
+            unwrapped_mint_info,
+            source_metadata_info,
+            owner_program_info,
+        )?
     } else if *unwrapped_mint_info.owner == spl_token::id() {
         // Source is spl-token: read from Metaplex PDA
-        let metaplex_metadata_info = next_account_info(account_info_iter)?;
+        let metaplex_metadata_info =
+            source_metadata_info.ok_or(ProgramError::NotEnoughAccountKeys)?;
         let (expected_metaplex_pda, _) = MetaplexMetadata::find_pda(unwrapped_mint_info.key);
         if *metaplex_metadata_info.owner != mpl_token_metadata::ID {
             return Err(ProgramError::InvalidAccountOwner);
