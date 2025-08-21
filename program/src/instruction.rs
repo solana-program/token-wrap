@@ -112,17 +112,13 @@ pub enum TokenWrapInstruction {
     /// This instruction copies the metadata fields from an unwrapped mint to
     /// its wrapped mint `TokenMetadata` extension.
     ///
-    /// Token-2022 source (via `MetadataPointer`):
-    /// - `pointer == self`: Read `TokenMetadata` from the mint (no extra acct)
-    /// - `pointer -> Token-2022 account`: Read `TokenMetadata` from that
-    ///   account (must be passed)
-    /// - `pointer -> Metaplex PDA`: convert fields (must pass PDA)
-    /// - `pointer -> third-party program`: CPI `Emit` to the account owner and
-    ///   use returned fields (must pass the metadata account and its owner
-    ///   program).
+    /// Supports (unwrapped to wrapped):
+    /// - Token-2022 to Token-2022
+    /// - SPL-token to Token-2022
     ///
-    /// SPL Token source:
-    /// - `Metaplex` PDA: convert fields (must pass PDA)
+    /// If source mint is a Token-2022, it must have a `MetadataPointer` and the
+    /// account it points to must be provided. If source mint is an SPL-Token,
+    /// the `Metaplex` PDA must be provided.
     ///
     /// If the `TokenMetadata` extension on the wrapped mint if not present, it
     /// will initialize it. The client is responsible for funding the wrapped
