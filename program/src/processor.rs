@@ -8,14 +8,20 @@ use {
         get_wrapped_mint_backpointer_address_signer_seeds,
         get_wrapped_mint_backpointer_address_with_seed, get_wrapped_mint_signer_seeds,
         instruction::TokenWrapInstruction,
-        metadata::resolve_token_2022_source_metadata,
-        metaplex::metaplex_to_token_2022_metadata,
+        metadata::extract_token_metadata,
+        metaplex::token_2022_metadata_to_metaplex,
         mint_customizer::{
             default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
         },
         state::Backpointer,
     },
-    mpl_token_metadata::accounts::Metadata as MetaplexMetadata,
+    mpl_token_metadata::{
+        accounts::Metadata as MetaplexMetadata,
+        instructions::{
+            CreateMetadataAccountV3, CreateMetadataAccountV3InstructionArgs,
+            UpdateMetadataAccountV2, UpdateMetadataAccountV2InstructionArgs,
+        },
+    },
     solana_account_info::{next_account_info, AccountInfo},
     solana_cpi::{invoke, invoke_signed},
     solana_msg::msg,
@@ -556,28 +562,11 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
         return Err(TokenWrapError::MintAuthorityMismatch.into());
     }
 
-    let unwrapped_metadata = if *unwrapped_mint_info.owner == spl_token_2022::id() {
-        // Source is Token-2022: resolve metadata pointer
-        resolve_token_2022_source_metadata(
-            unwrapped_mint_info,
-            source_metadata_info,
-            owner_program_info,
-        )?
-    } else if *unwrapped_mint_info.owner == spl_token::id() {
-        // Source is spl-token: read from Metaplex PDA
-        let metaplex_metadata_info =
-            source_metadata_info.ok_or(ProgramError::NotEnoughAccountKeys)?;
-        let (expected_metaplex_pda, _) = MetaplexMetadata::find_pda(unwrapped_mint_info.key);
-        if *metaplex_metadata_info.owner != mpl_token_metadata::ID {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
-        if *metaplex_metadata_info.key != expected_metaplex_pda {
-            return Err(TokenWrapError::MetaplexMetadataMismatch.into());
-        }
-        metaplex_to_token_2022_metadata(unwrapped_mint_info, metaplex_metadata_info)?
-    } else {
-        return Err(ProgramError::IncorrectProgramId);
-    };
+    let unwrapped_metadata = extract_token_metadata(
+        unwrapped_mint_info,
+        source_metadata_info,
+        owner_program_info,
+    )?;
 
     let authority_bump_seed = [authority_bump];
     let authority_signer_seeds =
@@ -690,6 +679,120 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
     Ok(())
 }
 
+/// Processes [`SyncMetadataToSplToken`](enum.TokenWrapInstruction.html)
+/// instruction.
+pub fn process_sync_metadata_to_spl_token(accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let metaplex_metadata_info = next_account_info(account_info_iter)?;
+    let wrapped_mint_info = next_account_info(account_info_iter)?;
+    let wrapped_mint_authority_info = next_account_info(account_info_iter)?;
+    let unwrapped_mint_info = next_account_info(account_info_iter)?;
+    let metaplex_program_info = next_account_info(account_info_iter)?;
+    let system_program_info = next_account_info(account_info_iter)?;
+    let rent_sysvar_info = next_account_info(account_info_iter)?;
+    let source_metadata_info = account_info_iter.next();
+    let owner_program_info = account_info_iter.next();
+
+    // ====== Validations ======
+
+    if *wrapped_mint_info.owner != spl_token::id() {
+        return Err(TokenWrapError::NoSyncingToToken2022.into());
+    }
+
+    let (expected_wrapped_mint, _) =
+        get_wrapped_mint_address_with_seed(unwrapped_mint_info.key, &spl_token::id());
+    if *wrapped_mint_info.key != expected_wrapped_mint {
+        return Err(TokenWrapError::WrappedMintMismatch.into());
+    }
+
+    let (expected_authority, authority_bump) =
+        get_wrapped_mint_authority_with_seed(wrapped_mint_info.key);
+    if *wrapped_mint_authority_info.key != expected_authority {
+        return Err(TokenWrapError::MintAuthorityMismatch.into());
+    }
+
+    let (expected_metaplex_metadata, _) = MetaplexMetadata::find_pda(wrapped_mint_info.key);
+    if *metaplex_metadata_info.key != expected_metaplex_metadata {
+        return Err(TokenWrapError::MetaplexMetadataMismatch.into());
+    }
+
+    if metaplex_program_info.key != &mpl_token_metadata::ID {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    // ====== Extract metadata from source ======
+
+    let unwrapped_metadata = extract_token_metadata(
+        unwrapped_mint_info,
+        source_metadata_info,
+        owner_program_info,
+    )?;
+
+    // ====== Upsert logic ======
+
+    let authority_bump_seed = [authority_bump];
+    let authority_signer_seeds =
+        get_wrapped_mint_authority_signer_seeds(wrapped_mint_info.key, &authority_bump_seed);
+
+    let new_metadata = token_2022_metadata_to_metaplex(&unwrapped_metadata)?;
+
+    // If the Metaplex metadata account is uninitialized, create a new one. The user
+    // is expected to have pre-funded the wrapped_mint_authority PDA. This program
+    // will use that PDA as the payer for the CPI.
+    if metaplex_metadata_info.data_is_empty() {
+        let create_ix = CreateMetadataAccountV3 {
+            metadata: *metaplex_metadata_info.key,
+            mint: *wrapped_mint_info.key,
+            mint_authority: *wrapped_mint_authority_info.key,
+            payer: *wrapped_mint_authority_info.key,
+            update_authority: (*wrapped_mint_authority_info.key, true),
+            system_program: *system_program_info.key,
+            rent: Some(*rent_sysvar_info.key),
+        }
+        .instruction(CreateMetadataAccountV3InstructionArgs {
+            data: new_metadata,
+            is_mutable: true,
+            collection_details: None,
+        });
+
+        invoke_signed(
+            &create_ix,
+            &[
+                metaplex_metadata_info.clone(),
+                wrapped_mint_info.clone(),
+                wrapped_mint_authority_info.clone(),
+                system_program_info.clone(),
+                rent_sysvar_info.clone(),
+            ],
+            &[&authority_signer_seeds],
+        )?;
+    } else {
+        // The Metaplex metadata account is initialized, so update the fields
+        let update_ix = UpdateMetadataAccountV2 {
+            metadata: *metaplex_metadata_info.key,
+            update_authority: *wrapped_mint_authority_info.key,
+        }
+        .instruction(UpdateMetadataAccountV2InstructionArgs {
+            data: Some(new_metadata),
+            // Cannot trust the additional metadata fields on token-2022 & external program case,
+            // so simplifying this and not updating it in any case
+            primary_sale_happened: None,
+            new_update_authority: None,
+            is_mutable: None,
+        });
+        invoke_signed(
+            &update_ix,
+            &[
+                metaplex_metadata_info.clone(),
+                wrapped_mint_authority_info.clone(),
+            ],
+            &[&authority_signer_seeds],
+        )?;
+    }
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -718,6 +821,10 @@ pub fn process_instruction(
         TokenWrapInstruction::SyncMetadataToToken2022 => {
             msg!("Instruction: SyncMetadataToToken2022");
             process_sync_metadata_to_token_2022(accounts)
+        }
+        TokenWrapInstruction::SyncMetadataToSplToken => {
+            msg!("Instruction: SyncMetadataToSplToken");
+            process_sync_metadata_to_spl_token(accounts)
         }
     }
 }

@@ -62,6 +62,11 @@ pub enum TokenWrapError {
     /// External metadata program returned no data
     #[error("External metadata program returned no data")]
     ExternalProgramReturnedNoData,
+
+    // 15
+    /// Instruction can only be used with spl-token wrapped mints
+    #[error("Instruction can only be used with spl-token wrapped mints")]
+    NoSyncingToToken2022,
 }
 
 impl From<TokenWrapError> for ProgramError {
@@ -98,9 +103,8 @@ impl ToStr for TokenWrapError {
             TokenWrapError::MetadataPointerMissing => "Error: MetadataPointerMissing",
             TokenWrapError::MetadataPointerUnset => "Error: MetadataPointerUnset",
             TokenWrapError::MetadataPointerMismatch => "Error: MetadataPointerMismatch",
-            &TokenWrapError::ExternalProgramReturnedNoData => {
-                "Error: ExternalProgramReturnedNoData"
-            }
+            TokenWrapError::ExternalProgramReturnedNoData => "Error: ExternalProgramReturnedNoData",
+            TokenWrapError::NoSyncingToToken2022 => "Error: NoSyncingToToken2022",
         }
     }
 }

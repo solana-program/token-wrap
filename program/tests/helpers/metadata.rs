@@ -57,9 +57,15 @@ pub fn assert_metaplex_fields_synced(
     }
     if let Some(creators) = &metaplex_metadata.creators {
         if !creators.is_empty() {
+            // Creator verification status cannot be carried over due to signature
+            // requirements on updates
+            let mut unverified_creators = creators.clone();
+            for creator in &mut unverified_creators {
+                creator.verified = false;
+            }
             assert_eq!(
                 additional_meta_map.get("creators").unwrap(),
-                &serde_json::to_string(creators).unwrap()
+                &serde_json::to_string(&unverified_creators).unwrap()
             );
         }
     }
