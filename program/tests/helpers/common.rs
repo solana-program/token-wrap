@@ -69,6 +69,11 @@ pub fn init_mollusk() -> Mollusk {
         "mock_metadata_owner",
         &mollusk_svm::program::loader_keys::LOADER_V3,
     );
+    mollusk.add_program(
+        &mpl_token_metadata::ID,
+        "mpl_token_metadata",
+        &mollusk_svm::program::loader_keys::LOADER_V3,
+    );
     mollusk
 }
 

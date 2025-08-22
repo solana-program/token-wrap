@@ -137,6 +137,40 @@ pub enum TokenWrapInstruction {
     /// 5. `[]` (Optional) Owner program. Required when metadata account is
     ///    owned by a third-party program.
     SyncMetadataToToken2022,
+
+    /// This instruction copies the metadata fields from an unwrapped mint to
+    /// its wrapped mint `Metaplex` metadata account.
+    ///
+    /// Supports (unwrapped to wrapped):
+    /// - Token-2022 to SPL-token
+    /// - SPL-token to SPL-token
+    ///
+    /// This instruction will create the `Metaplex` metadata account if it
+    /// doesn't exist, or update it if it does. The `wrapped_mint_authority`
+    /// PDA must be pre-funded with enough lamports to cover the rent for
+    /// the `Metaplex` metadata account's creation or updates, as it will
+    /// act as the payer for the `Metaplex` program CPI.
+    ///
+    /// If source mint is a Token-2022, it must have a `MetadataPointer` and the
+    /// account it points to must be provided. If source mint is an SPL-Token,
+    /// the `Metaplex` PDA must be provided.
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    /// 0. `[w]` `Metaplex` metadata account
+    /// 1. `[]` Wrapped SPL Token mint
+    /// 2. `[w]` Wrapped mint authority (PDA)
+    /// 3. `[]` Unwrapped mint
+    /// 4. `[]` `Metaplex` Token Metadata Program
+    /// 5. `[]` System program
+    /// 6. `[]` Rent sysvar
+    /// 7. `[]` Instructions sysvar
+    /// 8. `[]` (Optional) Source metadata account. Required if unwrapped mint
+    ///    is an SPL-Token or, if a Token-2022, its metadata pointer indicates
+    ///    an external account.
+    /// 9. `[]` (Optional) Owner program. Required when metadata account is
+    ///    owned by a third-party program.
+    SyncMetadataToSplToken,
 }
 
 impl TokenWrapInstruction {
@@ -164,6 +198,9 @@ impl TokenWrapInstruction {
             TokenWrapInstruction::SyncMetadataToToken2022 => {
                 buf.push(4);
             }
+            TokenWrapInstruction::SyncMetadataToSplToken => {
+                buf.push(5);
+            }
         }
         buf
     }
@@ -190,6 +227,7 @@ impl TokenWrapInstruction {
             }
             Some((&3, [])) => Ok(TokenWrapInstruction::CloseStuckEscrow),
             Some((&4, [])) => Ok(TokenWrapInstruction::SyncMetadataToToken2022),
+            Some((&5, [])) => Ok(TokenWrapInstruction::SyncMetadataToSplToken),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -337,5 +375,37 @@ pub fn sync_metadata_to_token_2022(
     }
 
     let data = TokenWrapInstruction::SyncMetadataToToken2022.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `SyncMetadataToSplToken` instruction.
+pub fn sync_metadata_to_spl_token(
+    program_id: &Pubkey,
+    metaplex_metadata: &Pubkey,
+    wrapped_mint: &Pubkey,
+    wrapped_mint_authority: &Pubkey,
+    unwrapped_mint: &Pubkey,
+    source_metadata: Option<&Pubkey>,
+    owner_program: Option<&Pubkey>,
+) -> Instruction {
+    let mut accounts = vec![
+        AccountMeta::new(*metaplex_metadata, false),
+        AccountMeta::new_readonly(*wrapped_mint, false),
+        AccountMeta::new(*wrapped_mint_authority, false),
+        AccountMeta::new_readonly(*unwrapped_mint, false),
+        AccountMeta::new_readonly(mpl_token_metadata::ID, false),
+        AccountMeta::new_readonly(solana_system_interface::program::id(), false),
+        AccountMeta::new_readonly(solana_sysvar::rent::id(), false),
+    ];
+
+    if let Some(pubkey) = source_metadata {
+        accounts.push(AccountMeta::new_readonly(*pubkey, false));
+    }
+
+    if let Some(owner) = owner_program {
+        accounts.push(AccountMeta::new_readonly(*owner, false));
+    }
+
+    let data = TokenWrapInstruction::SyncMetadataToSplToken.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }
