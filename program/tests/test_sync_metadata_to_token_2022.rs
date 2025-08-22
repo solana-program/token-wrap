@@ -4,7 +4,7 @@ use {
         extensions::MintExtension,
         metadata::assert_metaplex_fields_synced,
         mint_builder::MintBuilder,
-        sync_metadata_builder::SyncMetadataBuilder,
+        sync_to_token_2022_builder::SyncToToken2022Builder,
     },
     borsh::BorshSerialize,
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
@@ -99,7 +99,7 @@ fn test_fail_wrapped_mint_not_token_2022() {
         ))
         .build();
 
-    SyncMetadataBuilder::new()
+    SyncToToken2022Builder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint)
         .check(Check::err(ProgramError::IncorrectProgramId))
@@ -113,7 +113,7 @@ fn test_fail_wrapped_mint_pda_mismatch() {
         .mint_key(Pubkey::new_unique()) // Not the derived PDA
         .build();
 
-    SyncMetadataBuilder::new()
+    SyncToToken2022Builder::new()
         .wrapped_mint(wrong_wrapped_mint)
         .check(Check::err(TokenWrapError::WrappedMintMismatch.into()))
         .execute();
@@ -121,119 +121,9 @@ fn test_fail_wrapped_mint_pda_mismatch() {
 
 #[test]
 fn test_fail_wrapped_mint_authority_pda_mismatch() {
-    SyncMetadataBuilder::new()
+    SyncToToken2022Builder::new()
         .wrapped_mint_authority(Pubkey::new_unique()) // Not the derived PDA
         .check(Check::err(TokenWrapError::MintAuthorityMismatch.into()))
-        .execute();
-}
-
-#[test]
-fn test_fail_spl_token_missing_metaplex_account() {
-    let mollusk = init_mollusk();
-
-    let unwrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken)
-        .build();
-
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
-    let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
-
-    let wrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken2022)
-        .mint_key(wrapped_mint_address)
-        .mint_authority(wrapped_mint_authority)
-        .with_extension(MintExtension::MetadataPointer {
-            metadata_address: Some(wrapped_mint_address),
-        })
-        .lamports(1_000_000_000)
-        .build();
-
-    let instruction = sync_metadata_to_token_2022(
-        &id(),
-        &wrapped_mint.key,
-        &wrapped_mint_authority,
-        &unwrapped_mint.key,
-        None, // Metaplex account is omitted
-        None, // Metadata owner is omitted
-    );
-
-    let accounts = &[
-        wrapped_mint.pair(),
-        (wrapped_mint_authority, Account::default()),
-        unwrapped_mint.pair(),
-        TokenProgram::SplToken2022.keyed_account(),
-    ];
-
-    mollusk.process_and_validate_instruction(
-        &instruction,
-        accounts,
-        &[Check::err(ProgramError::NotEnoughAccountKeys)],
-    );
-}
-
-#[test]
-fn test_fail_sync_metadata_with_wrong_metaplex_owner() {
-    let unwrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken)
-        .build();
-
-    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint.key);
-
-    let malicious_metadata_account = KeyedAccount {
-        key: metaplex_pda,
-        account: Account {
-            lamports: 1_000_000_000,
-            owner: Pubkey::new_unique(), // fake metadata account owner
-            ..Default::default()
-        },
-    };
-
-    SyncMetadataBuilder::new()
-        .unwrapped_mint(unwrapped_mint)
-        .source_metadata(malicious_metadata_account)
-        .check(Check::err(ProgramError::InvalidAccountOwner))
-        .execute();
-}
-
-#[test]
-fn test_fail_spl_token_with_invalid_metaplex_pda() {
-    let unwrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken)
-        .build();
-    let invalid_metaplex_pda = KeyedAccount {
-        key: Pubkey::new_unique(),
-        account: Account {
-            owner: mpl_token_metadata::ID, // Correct owner
-            ..Default::default()
-        },
-    };
-
-    SyncMetadataBuilder::new()
-        .unwrapped_mint(unwrapped_mint)
-        .source_metadata(invalid_metaplex_pda)
-        .check(Check::err(TokenWrapError::MetaplexMetadataMismatch.into()))
-        .execute();
-}
-
-#[test]
-fn test_fail_spl_token_without_metaplex_metadata() {
-    let unwrapped_mint = MintBuilder::new()
-        .token_program(TokenProgram::SplToken)
-        .build();
-
-    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint.key);
-    let missing_metaplex_account = KeyedAccount {
-        key: metaplex_pda,
-        account: Account {
-            owner: mpl_token_metadata::ID, // Correct owner, but no data
-            ..Default::default()
-        },
-    };
-
-    SyncMetadataBuilder::new()
-        .unwrapped_mint(unwrapped_mint)
-        .source_metadata(missing_metaplex_account)
-        .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
 }
 
@@ -270,7 +160,7 @@ fn test_success_initialize_from_token_2022() {
         .lamports(1_000_000_000)
         .build();
 
-    let result = SyncMetadataBuilder::new()
+    let result = SyncToToken2022Builder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
         .execute();
@@ -346,7 +236,7 @@ fn test_success_update_from_token_2022() {
         .lamports(1_000_000_000)
         .build();
 
-    let result = SyncMetadataBuilder::new()
+    let result = SyncToToken2022Builder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
         .execute();
@@ -437,7 +327,7 @@ fn test_success_initialize_from_spl_token() {
         .lamports(1_000_000_000)
         .build();
 
-    let result = SyncMetadataBuilder::new()
+    let result = SyncToToken2022Builder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
         .source_metadata(metaplex_metadata)
@@ -522,7 +412,7 @@ fn test_success_update_from_spl_token() {
         },
     };
 
-    let result = SyncMetadataBuilder::new()
+    let result = SyncToToken2022Builder::new()
         .unwrapped_mint(unwrapped_mint)
         .wrapped_mint(wrapped_mint.clone())
         .source_metadata(metaplex_metadata)

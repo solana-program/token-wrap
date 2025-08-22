@@ -19,7 +19,7 @@ pub struct SyncMetadataResult {
     pub wrapped_mint_authority: KeyedAccount,
 }
 
-pub struct SyncMetadataBuilder<'a> {
+pub struct SyncToToken2022Builder<'a> {
     mollusk: Mollusk,
     checks: Vec<Check<'a>>,
     unwrapped_mint: Option<KeyedAccount>,
@@ -28,7 +28,7 @@ pub struct SyncMetadataBuilder<'a> {
     source_metadata: Option<KeyedAccount>,
 }
 
-impl Default for SyncMetadataBuilder<'_> {
+impl Default for SyncToToken2022Builder<'_> {
     fn default() -> Self {
         Self {
             mollusk: init_mollusk(),
@@ -41,7 +41,7 @@ impl Default for SyncMetadataBuilder<'_> {
     }
 }
 
-impl<'a> SyncMetadataBuilder<'a> {
+impl<'a> SyncToToken2022Builder<'a> {
     pub fn new() -> Self {
         Self::default()
     }
