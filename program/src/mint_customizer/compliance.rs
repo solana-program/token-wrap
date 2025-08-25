@@ -1,5 +1,5 @@
 //! A reference mint customizer for compliance-focused use cases.
-//! This is NOT enabled by default. To use it, the processor must be
+//! NOTE: This is NOT enabled by default. To use it, the processor must be
 //! modified to use this instead of `DefaultToken2022Customizer`.
 
 use {
@@ -12,10 +12,7 @@ use {
         extension::{
             confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
             default_account_state::instruction::initialize_default_account_state,
-            // permanent_delegate init helper is not available under extension::permanent_delegate
-            // in this workspace version; we'll use the top-level instruction helper instead.
-            ExtensionType,
-            PodStateWithExtensions,
+            ExtensionType, PodStateWithExtensions,
         },
         pod::PodMint,
         state::{AccountState, Mint},
@@ -34,15 +31,15 @@ use {
 /// - Confidential transfers with a designated auditor.
 pub struct ComplianceMintCustomizer;
 
+// Placeholder addresses for demonstration purposes.
 /// Permanent delegate address for the reference customizer.
-/// Exposed for tests to assert correct initialization.
-pub static PERMANENT_DELEGATE_ADDRESS_RAW: Pubkey = Pubkey::new_from_array([0xAA; 32]);
-/// Public static reference used by tests
-pub static PERMANENT_DELEGATE_ADDRESS: &Pubkey = &PERMANENT_DELEGATE_ADDRESS_RAW;
+pub const PERMANENT_DELEGATE_ADDRESS: Pubkey = solana_pubkey::pubkey!(
+    "De1eGade12222222222222222222222222222222222"
+);
 
 /// Auditor ElGamal public key used by the reference customizer.
-/// Exposed for tests to assert correct initialization.
-pub const AUDITOR_ELGAMAL_PUBKEY: Pubkey = Pubkey::new_from_array([0x11; 32]);
+pub const AUDITOR_ELGAMAL_PUBKEY: Pubkey =
+    solana_pubkey::pubkey!("AuDiT11111111111111111111111111111111111111");
 
 impl MintCustomizer for ComplianceMintCustomizer {
     fn get_token_2022_mint_space() -> Result<usize, ProgramError> {
@@ -69,7 +66,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
             &spl_token_2022::instruction::initialize_permanent_delegate(
                 wrapped_token_program_account.key,
                 wrapped_mint_account.key,
-                PERMANENT_DELEGATE_ADDRESS,
+                &PERMANENT_DELEGATE_ADDRESS,
             )?,
             &[wrapped_mint_account.clone()],
         )?;
@@ -95,7 +92,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
                 wrapped_mint_account.key,
                 Some(wrapped_mint_authority), // Authority to manage settings
                 true,                         /* Auto-approve new accounts for confidential
-                                               * transfers */
+                                                * transfers */
                 Some(AUDITOR_ELGAMAL_PUBKEY.to_bytes().into()),
             )?,
             &[wrapped_mint_account.clone()],

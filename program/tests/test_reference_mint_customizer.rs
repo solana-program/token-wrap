@@ -5,6 +5,7 @@ use {
     },
     mollusk_svm::result::Check,
     solana_account::Account,
+    solana_account_info::AccountInfo,
     solana_pubkey::Pubkey,
     spl_token_2022::{
         extension::{
@@ -16,7 +17,7 @@ use {
         state::AccountState,
     },
     spl_token_wrap::{
-        get_wrapped_mint_address, get_wrapped_mint_authority,
+        get_wrapped_mint_authority,
         mint_customizer::{
             compliance::{
                 ComplianceMintCustomizer, AUDITOR_ELGAMAL_PUBKEY, PERMANENT_DELEGATE_ADDRESS,
@@ -29,7 +30,7 @@ use {
 pub mod helpers;
 
 #[test]
-fn test_reference_customizer_space_calculation() {
+fn test_compliance_customizer_space_calculation() {
     // Test that the space calculation is correct.
     let expected_space = ComplianceMintCustomizer::get_token_2022_mint_space().unwrap();
     let calculated_space = spl_token_2022::extension::ExtensionType::try_calculate_account_len::<
@@ -44,34 +45,44 @@ fn test_reference_customizer_space_calculation() {
 }
 
 #[test]
-fn test_reference_customizer_get_auth_and_decimals() {
-    // This customizer sets the freeze authority to the wrapped mint authority
-    // and preserves the decimals from the unwrapped mint.
+fn test_compliance_customizer_get_auth_and_decimals() {
+    // Test that the freeze authority and decimals are set correctly.
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken)
         .build();
+    // Build a temporary AccountInfo view over the unwrapped mint data
+    let mut lamports = unwrapped_mint.account.lamports;
+    let mut data = unwrapped_mint.account.data.clone();
+    let ai = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut lamports,
+        data.as_mut_slice(),
+        &unwrapped_mint.account.owner,
+        unwrapped_mint.account.executable,
+        unwrapped_mint.account.rent_epoch,
+    );
+    let (freeze_authority, decimals) =
+        ComplianceMintCustomizer::get_freeze_auth_and_decimals(&ai).unwrap();
 
-    // Expected freeze authority is the wrapped mint authority PDA
     let expected_authority = get_wrapped_mint_authority(&unwrapped_mint.key);
-    assert_eq!(Some(expected_authority), Some(expected_authority));
-
-    // Decimals on the wrapped mint should match the unwrapped mint's decimals
-    let unwrapped_state =
-        PodStateWithExtensions::<PodMint>::unpack(&unwrapped_mint.account.data).unwrap();
-    assert_eq!(unwrapped_state.base.decimals, DEFAULT_MINT_DECIMALS);
+    assert_eq!(freeze_authority, Some(expected_authority));
+    assert_eq!(decimals, DEFAULT_MINT_DECIMALS);
 }
 
 #[test]
-fn test_reference_customizer_initialize_extensions() {
+fn test_compliance_customizer_initialize_extensions() {
     // Test that all extensions are initialized correctly via CPI.
     let mollusk = init_mollusk();
     let wrapped_token_program = TokenProgram::SplToken2022;
 
-    let wrapped_mint = KeyedAccount {
+    let mut wrapped_mint = KeyedAccount {
         key: Pubkey::new_unique(),
         account: Account {
             lamports: 1_000_000_000, // Must be rent-exempt
             data: vec![0; ComplianceMintCustomizer::get_token_2022_mint_space().unwrap()],
+            owner: wrapped_token_program.id(),
             ..Default::default()
         },
     };
@@ -81,7 +92,7 @@ fn test_reference_customizer_initialize_extensions() {
     let inst = spl_token_2022::instruction::initialize_permanent_delegate(
         &wrapped_token_program.id(),
         &wrapped_mint.key,
-        PERMANENT_DELEGATE_ADDRESS,
+        &PERMANENT_DELEGATE_ADDRESS,
     )
     .unwrap();
     let result = mollusk.process_and_validate_instruction(
@@ -90,10 +101,7 @@ fn test_reference_customizer_initialize_extensions() {
         &[Check::success()],
     );
     let updated = result.get_account(&wrapped_mint.key).unwrap().clone();
-    let mut wrapped_mint = KeyedAccount {
-        key: wrapped_mint.key,
-        account: updated,
-    };
+    wrapped_mint.account = updated;
 
     // 2) Default Account State: Frozen
     let inst = spl_token_2022::extension::default_account_state::instruction::initialize_default_account_state(
@@ -127,8 +135,12 @@ fn test_reference_customizer_initialize_extensions() {
 
     // Assert the state of the mint account after the function call.
     let final_mint_account = result.get_account(&wrapped_mint.key).unwrap();
+    let mut data = final_mint_account.data.clone();
     let wrapped_mint_state =
-        PodStateWithExtensions::<PodMint>::unpack(&final_mint_account.data).unwrap();
+        spl_token_2022::extension::PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(
+            &mut data,
+        )
+        .unwrap();
 
     // Verify Permanent Delegate extension
     let permanent_delegate_ext = wrapped_mint_state
@@ -136,7 +148,7 @@ fn test_reference_customizer_initialize_extensions() {
         .unwrap();
     assert_eq!(
         Option::<Pubkey>::from(permanent_delegate_ext.delegate).unwrap(),
-        *PERMANENT_DELEGATE_ADDRESS
+        PERMANENT_DELEGATE_ADDRESS
     );
 
     // Verify Default Account State extension is Frozen
