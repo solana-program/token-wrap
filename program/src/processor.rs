@@ -684,8 +684,8 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
 pub fn process_sync_metadata_to_spl_token(accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let metaplex_metadata_info = next_account_info(account_info_iter)?;
-    let wrapped_mint_info = next_account_info(account_info_iter)?;
     let wrapped_mint_authority_info = next_account_info(account_info_iter)?;
+    let wrapped_mint_info = next_account_info(account_info_iter)?;
     let unwrapped_mint_info = next_account_info(account_info_iter)?;
     let metaplex_program_info = next_account_info(account_info_iter)?;
     let system_program_info = next_account_info(account_info_iter)?;

@@ -103,8 +103,8 @@ fn test_fail_incorrect_metaplex_program_id() {
     let mut instruction = spl_token_wrap::instruction::sync_metadata_to_spl_token(
         &spl_token_wrap::id(),
         &metaplex_metadata_account.key,
-        &wrapped_mint.key,
         &wrapped_mint_authority,
+        &wrapped_mint.key,
         &unwrapped_mint.key,
         None,
         None,
@@ -176,8 +176,8 @@ fn test_fail_owner_program_mismatch() {
     let instruction = spl_token_wrap::instruction::sync_metadata_to_spl_token(
         &spl_token_wrap::id(),
         &metaplex_metadata_account.key,
-        &wrapped_mint.key,
         &wrapped_mint_authority,
+        &wrapped_mint.key,
         &unwrapped_mint.key,
         Some(&source_metadata.key),
         Some(&wrong_owner_program.key),

@@ -158,17 +158,16 @@ pub enum TokenWrapInstruction {
     /// Accounts expected by this instruction:
     ///
     /// 0. `[w]` `Metaplex` metadata account
-    /// 1. `[]` Wrapped SPL Token mint
-    /// 2. `[w]` Wrapped mint authority (PDA)
+    /// 1. `[w]` Wrapped mint authority (PDA)
+    /// 2. `[]` Wrapped SPL Token mint
     /// 3. `[]` Unwrapped mint
     /// 4. `[]` `Metaplex` Token Metadata Program
     /// 5. `[]` System program
     /// 6. `[]` Rent sysvar
-    /// 7. `[]` Instructions sysvar
-    /// 8. `[]` (Optional) Source metadata account. Required if unwrapped mint
+    /// 7. `[]` (Optional) Source metadata account. Required if unwrapped mint
     ///    is an SPL-Token or, if a Token-2022, its metadata pointer indicates
     ///    an external account.
-    /// 9. `[]` (Optional) Owner program. Required when metadata account is
+    /// 8. `[]` (Optional) Owner program. Required when metadata account is
     ///    owned by a third-party program.
     SyncMetadataToSplToken,
 }
@@ -382,16 +381,16 @@ pub fn sync_metadata_to_token_2022(
 pub fn sync_metadata_to_spl_token(
     program_id: &Pubkey,
     metaplex_metadata: &Pubkey,
-    wrapped_mint: &Pubkey,
     wrapped_mint_authority: &Pubkey,
+    wrapped_mint: &Pubkey,
     unwrapped_mint: &Pubkey,
     source_metadata: Option<&Pubkey>,
     owner_program: Option<&Pubkey>,
 ) -> Instruction {
     let mut accounts = vec![
         AccountMeta::new(*metaplex_metadata, false),
-        AccountMeta::new_readonly(*wrapped_mint, false),
         AccountMeta::new(*wrapped_mint_authority, false),
+        AccountMeta::new_readonly(*wrapped_mint, false),
         AccountMeta::new_readonly(*unwrapped_mint, false),
         AccountMeta::new_readonly(mpl_token_metadata::ID, false),
         AccountMeta::new_readonly(solana_system_interface::program::id(), false),

@@ -160,8 +160,8 @@ impl<'a> SyncToSplTokenBuilder<'a> {
         let instruction = sync_metadata_to_spl_token(
             &spl_token_wrap::id(),
             &metaplex_metadata.key,
-            &wrapped_mint.key,
             &wrapped_mint_authority,
+            &wrapped_mint.key,
             &unwrapped_mint.key,
             source_metadata_key_opt.as_ref(),
             owner_program_opt.as_ref(),
@@ -173,7 +173,6 @@ impl<'a> SyncToSplTokenBuilder<'a> {
 
         let mut accounts = vec![
             metaplex_metadata.pair(),
-            wrapped_mint.pair(),
             (
                 wrapped_mint_authority,
                 Account {
@@ -184,6 +183,7 @@ impl<'a> SyncToSplTokenBuilder<'a> {
                     rent_epoch: 0,
                 },
             ),
+            wrapped_mint.pair(),
             unwrapped_mint.pair(),
             (
                 mpl_token_metadata::ID,
