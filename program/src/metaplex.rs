@@ -1,8 +1,16 @@
 //! `Metaplex` related helpers
 
 use {
-    mpl_token_metadata::accounts::Metadata as MetaplexMetadata, solana_account_info::AccountInfo,
-    solana_program_error::ProgramError, spl_pod::optional_keys::OptionalNonZeroPubkey,
+    mpl_token_metadata::{
+        accounts::Metadata as MetaplexMetadata,
+        types::{
+            Collection as MetaplexCollection, Creator as MetaplexCreator, DataV2,
+            Uses as MetaplexUses,
+        },
+    },
+    solana_account_info::AccountInfo,
+    solana_program_error::ProgramError,
+    spl_pod::optional_keys::OptionalNonZeroPubkey,
     spl_token_metadata_interface::state::TokenMetadata,
 };
 
@@ -31,9 +39,16 @@ fn extract_additional_metadata(
 
     if let Some(creators) = &metaplex_metadata.creators {
         if !creators.is_empty() {
+            // When syncing, verification status cannot be preserved as we do not have the
+            // creator's signature. Setting all creators to unverified.
+            let mut unverified_creators = creators.clone();
+            for creator in &mut unverified_creators {
+                creator.verified = false;
+            }
             additional_metadata.push((
                 "creators".to_string(),
-                serde_json::to_string(creators).map_err(|_| ProgramError::InvalidAccountData)?,
+                serde_json::to_string(&unverified_creators)
+                    .map_err(|_| ProgramError::InvalidAccountData)?,
             ));
         }
     }
@@ -94,5 +109,56 @@ pub fn metaplex_to_token_2022_metadata(
         symbol: metaplex_metadata.symbol,
         uri: metaplex_metadata.uri,
         additional_metadata,
+    })
+}
+
+/// Converts Token-2022 `TokenMetadata` to the `Metaplex` `DataV2` format.
+pub fn token_2022_metadata_to_metaplex(
+    token_metadata: &TokenMetadata,
+) -> Result<DataV2, ProgramError> {
+    let mut creators: Option<Vec<MetaplexCreator>> = None;
+    let mut seller_fee_basis_points = 0;
+    let mut collection: Option<MetaplexCollection> = None;
+    let mut uses: Option<MetaplexUses> = None;
+
+    for (key, value) in &token_metadata.additional_metadata {
+        match key.as_str() {
+            "creators" => {
+                let mut deserialized_creators: Vec<MetaplexCreator> =
+                    serde_json::from_str(value).map_err(|_| ProgramError::InvalidAccountData)?;
+                // When syncing, verification status cannot be preserved as we do not have the
+                // creator's signature. Setting all creators to unverified.
+                for creator in &mut deserialized_creators {
+                    creator.verified = false;
+                }
+                creators = Some(deserialized_creators);
+            }
+            "seller_fee_basis_points" => {
+                seller_fee_basis_points = value
+                    .parse::<u16>()
+                    .map_err(|_| ProgramError::InvalidAccountData)?;
+            }
+            "collection" => {
+                collection = Some(
+                    serde_json::from_str(value).map_err(|_| ProgramError::InvalidAccountData)?,
+                );
+            }
+            "uses" => {
+                uses = Some(
+                    serde_json::from_str(value).map_err(|_| ProgramError::InvalidAccountData)?,
+                );
+            }
+            _ => {} // Ignore other fields
+        }
+    }
+
+    Ok(DataV2 {
+        name: token_metadata.name.clone(),
+        symbol: token_metadata.symbol.clone(),
+        uri: token_metadata.uri.clone(),
+        seller_fee_basis_points,
+        creators,
+        collection,
+        uses,
     })
 }
