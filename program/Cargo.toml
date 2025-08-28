@@ -45,6 +45,8 @@ mock-metadata-owner = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-programs-token = { workspace = true }
 solana-account = { workspace = true }
+solana-zk-sdk = { workspace = true }
+solana-sdk-ids = { workspace = true }
 spl-tlv-account-resolution = { workspace = true }
 test-case = { workspace = true }
 test-transfer-hook = { workspace = true }
