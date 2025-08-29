@@ -9,16 +9,17 @@ use {
     spl_token_2022::{
         extension::{
             confidential_transfer::ConfidentialTransferMint,
-            default_account_state::DefaultAccountState, permanent_delegate::PermanentDelegate,
-            BaseStateWithExtensions, PodStateWithExtensions,
+            default_account_state::DefaultAccountState, pausable::PausableConfig,
+            permanent_delegate::PermanentDelegate, BaseStateWithExtensions, PodStateWithExtensions,
         },
         pod::PodMint,
         state::AccountState,
     },
     spl_token_wrap::mint_customizer::compliance::{
-        AUDITOR_ELGAMAL_PUBKEY, CONFIDENTIAL_EXT_AUTHORITY, FREEZE_AUTHORITY,
-        PERMANENT_DELEGATE_ADDRESS,
+        AUDITOR_ELGAMAL_PUBKEY_B64, CONFIDENTIAL_TRANSFER_AUTHORITY, FREEZE_AUTHORITY,
+        PAUSE_AUTHORITY, PERMANENT_DELEGATE,
     },
+    std::str::FromStr,
 };
 
 #[test]
@@ -50,7 +51,7 @@ fn test_create_mint_with_compliance_customizer() {
     let perm_delegate_ext = mint_state.get_extension::<PermanentDelegate>().unwrap();
     assert_eq!(
         Option::<Pubkey>::from(perm_delegate_ext.delegate).unwrap(),
-        PERMANENT_DELEGATE_ADDRESS
+        PERMANENT_DELEGATE
     );
 
     // Assert DefaultAccountState extension
@@ -63,11 +64,19 @@ fn test_create_mint_with_compliance_customizer() {
         .unwrap();
     assert_eq!(
         Option::<Pubkey>::from(ct_ext.authority).unwrap(),
-        CONFIDENTIAL_EXT_AUTHORITY
+        CONFIDENTIAL_TRANSFER_AUTHORITY
     );
     assert_eq!(ct_ext.auto_approve_new_accounts, PodBool::from_bool(true));
     assert_eq!(
         Option::<PodElGamalPubkey>::from(ct_ext.auditor_elgamal_pubkey).unwrap(),
-        AUDITOR_ELGAMAL_PUBKEY.to_bytes().into()
+        PodElGamalPubkey::from_str(AUDITOR_ELGAMAL_PUBKEY_B64).unwrap()
     );
+
+    // Assert Pausable extension
+    let pausable_ext = mint_state.get_extension::<PausableConfig>().unwrap();
+    assert_eq!(
+        Option::<Pubkey>::from(pausable_ext.authority).unwrap(),
+        PAUSE_AUTHORITY
+    );
+    assert!(!bool::from(pausable_ext.paused));
 }

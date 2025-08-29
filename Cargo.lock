@@ -9810,7 +9810,6 @@ dependencies = [
  "solana-program-pack",
  "solana-pubkey",
  "solana-rent",
- "solana-sdk-ids",
  "solana-system-interface",
  "solana-sysvar",
  "solana-zk-sdk",
