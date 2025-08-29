@@ -1,7 +1,6 @@
 import {
   Address,
   appendTransactionMessageInstructions,
-  CompilableTransactionMessage,
   createTransactionMessage,
   GetAccountInfoApi,
   Instruction,
@@ -9,7 +8,9 @@ import {
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  TransactionMessage,
   TransactionMessageWithBlockhashLifetime,
+  TransactionMessageWithFeePayerSigner,
   TransactionSigner,
 } from '@solana/kit';
 import {
@@ -47,7 +48,11 @@ export interface MultiSignerWrapIxBuilderArgs extends IxBuilderArgs {
 // Used to collect signatures
 export async function multisigOfflineSignWrap(
   args: MultiSignerWrapIxBuilderArgs,
-): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+): Promise<
+  TransactionMessage &
+    TransactionMessageWithBlockhashLifetime &
+    TransactionMessageWithFeePayerSigner
+> {
   const wrapIx = await buildWrapIx(args);
 
   return pipe(

@@ -1,7 +1,6 @@
 import {
   Address,
   appendTransactionMessageInstructions,
-  CompilableTransactionMessage,
   createTransactionMessage,
   fetchEncodedAccount,
   GetAccountInfoApi,
@@ -10,7 +9,9 @@ import {
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  TransactionMessage,
   TransactionMessageWithBlockhashLifetime,
+  TransactionMessageWithFeePayerSigner,
   TransactionSigner,
 } from '@solana/kit';
 import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
@@ -197,7 +198,11 @@ export interface MultiSignerUnWrapTxBuilderArgs extends UnwrapTxBuilderArgs {
 // Used to collect signatures
 export async function multisigOfflineSignUnwrap(
   args: MultiSignerUnWrapTxBuilderArgs,
-): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+): Promise<
+  TransactionMessage &
+    TransactionMessageWithBlockhashLifetime &
+    TransactionMessageWithFeePayerSigner
+> {
   const unwrapIx = await buildUnwrapTransaction(args);
 
   return pipe(

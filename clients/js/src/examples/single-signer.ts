@@ -1,11 +1,11 @@
 import {
   address,
   appendTransactionMessageInstructions,
+  assertIsTransactionWithinSizeLimit,
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
   createTransactionMessage,
-  getSignatureFromTransaction,
   pipe,
   sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
@@ -49,15 +49,16 @@ async function main() {
     payer,
     idempotent: true,
   });
-  const createMintTx = await pipe(
+  const createMintMessage = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions(createMintHelper.ixs, tx),
-    tx => signTransactionMessageWithSigners(tx),
   );
+  const createMintTx = await signTransactionMessageWithSigners(createMintMessage);
+  assertIsTransactionWithinSizeLimit(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
-  const createMintSignature = getSignatureFromTransaction(createMintTx);
+  const createMintSignature = createMintTx.signatures[payer.address]!;
 
   console.log('======== Create Mint Successful ========');
   console.log('Wrapped Mint:', createMintHelper.wrappedMint);
@@ -76,15 +77,16 @@ async function main() {
     wrappedTokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
   });
   if (createEscrowHelper.kind === 'instructions_to_create') {
-    const createEscrowTx = await pipe(
+    const createEscrowMessage = pipe(
       createTransactionMessage({ version: 0 }),
       tx => setTransactionMessageFeePayerSigner(payer, tx),
       tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
       tx => appendTransactionMessageInstructions(createEscrowHelper.ixs, tx),
-      tx => signTransactionMessageWithSigners(tx),
     );
+    const createEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage);
+    assertIsTransactionWithinSizeLimit(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
-    const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
+    const createEscrowSignature = createEscrowTx.signatures[payer.address]!;
 
     console.log('======== Create Escrow Successful ========');
     console.log('Escrow address:', createEscrowHelper.address);
@@ -105,13 +107,16 @@ async function main() {
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     owner: payer.address,
   });
-  const recipientTokenAccountTx = await pipe(
+  const recipientTokenAccountMessage = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions(recipientTokenAccountHelper.ixs, tx),
-    tx => signTransactionMessageWithSigners(tx),
   );
+  const recipientTokenAccountTx = await signTransactionMessageWithSigners(
+    recipientTokenAccountMessage,
+  );
+  assertIsTransactionWithinSizeLimit(recipientTokenAccountTx);
   await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   // Execute wrap
@@ -125,15 +130,16 @@ async function main() {
     recipientWrappedTokenAccount: recipientTokenAccountHelper.keyPair.address,
   });
 
-  const wrapTx = await pipe(
+  const wrapMessage = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions(wrapHelper.ixs, tx),
-    tx => signTransactionMessageWithSigners(tx),
   );
+  const wrapTx = await signTransactionMessageWithSigners(wrapMessage);
+  assertIsTransactionWithinSizeLimit(wrapTx);
   await sendAndConfirm(wrapTx, { commitment: 'confirmed' });
-  const wrapSignature = getSignatureFromTransaction(wrapTx);
+  const wrapSignature = wrapTx.signatures[payer.address]!;
 
   console.log('======== Wrap Successful ========');
   console.log('Wrap amount:', wrapHelper.amount);
@@ -151,15 +157,16 @@ async function main() {
     recipientUnwrappedToken: UNWRAPPED_TOKEN_ACCOUNT,
   });
 
-  const unwrapTx = await pipe(
+  const unwrapMessage = pipe(
     createTransactionMessage({ version: 0 }),
     tx => setTransactionMessageFeePayerSigner(payer, tx),
     tx => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     tx => appendTransactionMessageInstructions(unwrapHelper.ixs, tx),
-    tx => signTransactionMessageWithSigners(tx),
   );
+  const unwrapTx = await signTransactionMessageWithSigners(unwrapMessage);
+  assertIsTransactionWithinSizeLimit(unwrapTx);
   await sendAndConfirm(unwrapTx, { commitment: 'confirmed' });
-  const unwrapSignature = getSignatureFromTransaction(unwrapTx);
+  const unwrapSignature = unwrapTx.signatures[payer.address]!;
 
   console.log('======== Unwrap Successful ========');
   console.log('Unwrapped amount:', unwrapHelper.amount);

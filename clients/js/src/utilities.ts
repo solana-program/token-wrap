@@ -2,6 +2,7 @@ import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
   assertIsFullySignedTransaction,
+  assertIsTransactionWithinSizeLimit,
   containsBytes,
   fetchEncodedAccount,
   FullySignedTransaction,
@@ -14,6 +15,7 @@ import {
   SignatureBytes,
   Transaction,
   TransactionWithBlockhashLifetime,
+  TransactionWithinSizeLimit,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
 import {
@@ -216,7 +218,10 @@ export interface MultiSigCombineArgs {
 export function combinedMultisigTx({
   signedTxs,
   blockhash,
-}: MultiSigCombineArgs): FullySignedTransaction & TransactionWithBlockhashLifetime {
+}: MultiSigCombineArgs): Transaction &
+  FullySignedTransaction &
+  TransactionWithBlockhashLifetime &
+  TransactionWithinSizeLimit {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -228,6 +233,7 @@ export function combinedMultisigTx({
   };
 
   assertIsFullySignedTransaction(tx);
+  assertIsTransactionWithinSizeLimit(tx);
 
   return tx;
 }
