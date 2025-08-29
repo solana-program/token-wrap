@@ -9812,6 +9812,7 @@ dependencies = [
  "solana-rent",
  "solana-system-interface",
  "solana-sysvar",
+ "solana-zk-sdk",
  "spl-associated-token-account-client",
  "spl-pod",
  "spl-tlv-account-resolution",
