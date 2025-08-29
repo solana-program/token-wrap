@@ -32,14 +32,35 @@ export const TOKEN_WRAP_ERROR__ESCROW_MISMATCH = 0x7; // 7
 
 export const TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE = 0x8; // 8
 
+export const TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA = 0x9; // 9
+
+export const TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH = 0xa; // 10
+
+export const TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING = 0xb; // 11
+
+export const TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET = 0xc; // 12
+
+export const TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH = 0xd; // 13
+
+export const TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA = 0xe; // 14
+
+export const TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022 = 0xf; // 15
+
 export type TokenWrapError =
   | typeof TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH
   | typeof TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE
   | typeof TOKEN_WRAP_ERROR__ESCROW_MISMATCH
   | typeof TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH
+  | typeof TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA
   | typeof TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER
   | typeof TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER
+  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH
+  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING
+  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET
+  | typeof TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH
   | typeof TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH
+  | typeof TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022
+  | typeof TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA
   | typeof TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH
   | typeof TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT;
 
@@ -50,9 +71,16 @@ if (process.env.NODE_ENV !== 'production') {
     [TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE]: `The escrow account is in a good state and cannot be recreated`,
     [TOKEN_WRAP_ERROR__ESCROW_MISMATCH]: `Escrow account address does not match expected ATA`,
     [TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH]: `Unwrapped escrow token owner is not set to expected PDA`,
+    [TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA]: `External metadata program returned no data`,
     [TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER]: `Wrapped backpointer account owner is not the expected token wrap program`,
     [TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER]: `Wrapped mint account owner is not the expected token program`,
+    [TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH]: `Provided source metadata account does not match pointer`,
+    [TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING]: `Metadata pointer extension missing on mint`,
+    [TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET]: `Metadata pointer is unset (None)`,
+    [TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH]: `Metaplex metadata account address does not match expected PDA`,
     [TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH]: `Wrapped mint authority does not match expected PDA`,
+    [TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022]: `Instruction can only be used with spl-token wrapped mints`,
+    [TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA]: `Unwrapped mint does not have the TokenMetadata extension`,
     [TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH]: `Wrapped mint account address does not match expected PDA`,
     [TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT]: `Wrap amount should be positive`,
   };

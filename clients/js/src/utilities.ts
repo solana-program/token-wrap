@@ -1,14 +1,14 @@
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
-  assertTransactionIsFullySigned,
+  assertIsFullySignedTransaction,
   containsBytes,
   fetchEncodedAccount,
   FullySignedTransaction,
   generateKeyPairSigner,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
-  IInstruction,
+  Instruction,
   KeyPairSigner,
   Rpc,
   SignatureBytes,
@@ -50,7 +50,7 @@ export async function createTokenAccount({
   mint: Address;
   owner: Address;
   tokenProgram: Address;
-}): Promise<{ ixs: IInstruction[]; keyPair: KeyPairSigner }> {
+}): Promise<{ ixs: Instruction[]; keyPair: KeyPairSigner }> {
   const [keyPair, lamports] = await Promise.all([
     generateKeyPairSigner(),
     rpc.getMinimumBalanceForRentExemption(165n).send(),
@@ -88,7 +88,7 @@ export type CreateEscrowAccountResult =
   | {
       kind: 'instructions_to_create';
       address: Address;
-      ixs: IInstruction[];
+      ixs: Instruction[];
     };
 
 export async function createEscrowAccount({
@@ -227,7 +227,7 @@ export function combinedMultisigTx({
     lifetimeConstraint: blockhash,
   };
 
-  assertTransactionIsFullySigned(tx);
+  assertIsFullySignedTransaction(tx);
 
   return tx;
 }

@@ -5,7 +5,7 @@ import {
   createTransactionMessage,
   fetchEncodedAccount,
   GetAccountInfoApi,
-  IInstruction,
+  Instruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
@@ -103,7 +103,7 @@ async function buildUnwrapTransaction({
   transferAuthority,
   amount,
   multiSigners = [],
-}: UnwrapTxBuilderArgs): Promise<IInstruction> {
+}: UnwrapTxBuilderArgs): Promise<Instruction> {
   const [unwrappedEscrow] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
     mint: unwrappedMint,
@@ -128,7 +128,7 @@ async function buildUnwrapTransaction({
 }
 
 export interface SingleSignerUnwrapResult {
-  ixs: IInstruction[];
+  ixs: Instruction[];
   recipientUnwrappedToken: Address;
   amount: bigint;
 }

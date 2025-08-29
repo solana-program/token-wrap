@@ -3,7 +3,7 @@ import {
   fetchEncodedAccount,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
-  IInstruction,
+  Instruction,
   KeyPairSigner,
   Rpc,
 } from '@solana/kit';
@@ -29,7 +29,7 @@ export interface CreateMintResult {
   backpointer: Address;
   fundedWrappedMintLamports: bigint;
   fundedBackpointerLamports: bigint;
-  ixs: IInstruction[];
+  ixs: Instruction[];
 }
 
 export async function createMint({
@@ -45,7 +45,7 @@ export async function createMint({
   });
   const [backpointer] = await findBackpointerPda({ wrappedMint });
 
-  const instructions: IInstruction[] = [];
+  const instructions: Instruction[] = [];
 
   // Fund wrapped mint account if needed
   let fundedWrappedMintLamports = 0n;

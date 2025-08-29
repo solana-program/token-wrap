@@ -4,7 +4,7 @@ import {
   CompilableTransactionMessage,
   createTransactionMessage,
   GetAccountInfoApi,
-  IInstruction,
+  Instruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
@@ -71,7 +71,7 @@ export interface SingleSignerWrapArgs {
 }
 
 export interface SingleSignerWrapResult {
-  ixs: IInstruction[];
+  ixs: Instruction[];
   recipientWrappedTokenAccount: Address;
   escrowAccount: Address;
   amount: bigint;
@@ -192,7 +192,7 @@ async function buildWrapIx({
   wrappedMint,
   wrappedMintAuthority,
   multiSigners = [],
-}: IxBuilderArgs): Promise<IInstruction> {
+}: IxBuilderArgs): Promise<Instruction> {
   const [unwrappedEscrow] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
     mint: unwrappedMint,
