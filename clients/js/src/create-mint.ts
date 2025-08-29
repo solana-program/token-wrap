@@ -59,13 +59,12 @@ export async function createMint({
   const wrappedMintLamports = wrappedMintAccount.exists ? wrappedMintAccount.lamports : 0n;
   if (wrappedMintLamports < wrappedMintRent) {
     fundedWrappedMintLamports = wrappedMintRent - wrappedMintLamports;
-    instructions.push(
-      getTransferSolInstruction({
-        source: payer,
-        destination: wrappedMint,
-        amount: fundedWrappedMintLamports,
-      }),
-    );
+    const fundWrappedMintIx = getTransferSolInstruction({
+      source: payer,
+      destination: wrappedMint,
+      amount: fundedWrappedMintLamports,
+    }) as Instruction;
+    instructions.push(fundWrappedMintIx);
   }
 
   // Fund backpointer account if needed
@@ -80,13 +79,12 @@ export async function createMint({
   const backpointerLamports = backpointerAccount.exists ? backpointerAccount.lamports : 0n;
   if (backpointerLamports < backpointerRent) {
     fundedBackpointerLamports = backpointerRent - backpointerLamports;
-    instructions.push(
-      getTransferSolInstruction({
-        source: payer,
-        destination: backpointer,
-        amount: fundedBackpointerLamports,
-      }),
-    );
+    const fundBackpointerIx = getTransferSolInstruction({
+      source: payer,
+      destination: backpointer,
+      amount: fundedBackpointerLamports,
+    }) as Instruction;
+    instructions.push(fundBackpointerIx);
   }
 
   // Add create_mint instruction

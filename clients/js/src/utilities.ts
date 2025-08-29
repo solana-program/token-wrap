@@ -64,13 +64,13 @@ export async function createTokenAccount({
     lamports,
     space: 165,
     programAddress: tokenProgram,
-  });
+  }) as unknown as Instruction;
 
   const initializeAccountIx = getInitializeTokenFn(tokenProgram)({
     account: keyPair.address,
     mint,
     owner,
-  });
+  }) as unknown as Instruction;
 
   return {
     ixs: [createAccountIx, initializeAccountIx],
@@ -120,7 +120,7 @@ export async function createEscrowAccount({
     mint: unwrappedMint,
     ata: escrowAta,
     tokenProgram: unwrappedTokenProgram,
-  });
+  }) as unknown as Instruction;
 
   return { address: escrowAta, ixs: [ix], kind: 'instructions_to_create' };
 }

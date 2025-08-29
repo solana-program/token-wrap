@@ -58,7 +58,10 @@ async function main() {
   const createMintTx = await signTransactionMessageWithSigners(createMintMessage);
   assertIsTransactionWithinSizeLimit(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
-  const createMintSignature = createMintTx.signatures[payer.address]!;
+  const createMintSignature = createMintTx.signatures[payer.address];
+  if (!createMintSignature) {
+    throw new Error('Missing payer signature on createMintTx');
+  }
 
   console.log('======== Create Mint Successful ========');
   console.log('Wrapped Mint:', createMintHelper.wrappedMint);
@@ -86,7 +89,10 @@ async function main() {
     const createEscrowTx = await signTransactionMessageWithSigners(createEscrowMessage);
     assertIsTransactionWithinSizeLimit(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
-    const createEscrowSignature = createEscrowTx.signatures[payer.address]!;
+    const createEscrowSignature = createEscrowTx.signatures[payer.address];
+    if (!createEscrowSignature) {
+      throw new Error('Missing payer signature on createEscrowTx');
+    }
 
     console.log('======== Create Escrow Successful ========');
     console.log('Escrow address:', createEscrowHelper.address);
@@ -139,7 +145,10 @@ async function main() {
   const wrapTx = await signTransactionMessageWithSigners(wrapMessage);
   assertIsTransactionWithinSizeLimit(wrapTx);
   await sendAndConfirm(wrapTx, { commitment: 'confirmed' });
-  const wrapSignature = wrapTx.signatures[payer.address]!;
+  const wrapSignature = wrapTx.signatures[payer.address];
+  if (!wrapSignature) {
+    throw new Error('Missing payer signature on wrapTx');
+  }
 
   console.log('======== Wrap Successful ========');
   console.log('Wrap amount:', wrapHelper.amount);
@@ -166,7 +175,10 @@ async function main() {
   const unwrapTx = await signTransactionMessageWithSigners(unwrapMessage);
   assertIsTransactionWithinSizeLimit(unwrapTx);
   await sendAndConfirm(unwrapTx, { commitment: 'confirmed' });
-  const unwrapSignature = unwrapTx.signatures[payer.address]!;
+  const unwrapSignature = unwrapTx.signatures[payer.address];
+  if (!unwrapSignature) {
+    throw new Error('Missing payer signature on unwrapTx');
+  }
 
   console.log('======== Unwrap Successful ========');
   console.log('Unwrapped amount:', unwrapHelper.amount);
