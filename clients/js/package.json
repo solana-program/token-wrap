@@ -49,7 +49,7 @@
     "@solana-program/token": "^0.5.1",
     "@solana-program/token-2022": "^0.4.2",
     "@solana/accounts": "^3.0.0",
-    "@solana/rpc-types": "^2.3.0"
+    "@solana/rpc-types": "^3.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
