@@ -1,7 +1,7 @@
 {
   "kind": "rootNode",
   "standard": "codama",
-  "version": "1.3.0",
+  "version": "1.3.3",
   "program": {
     "kind": "programNode",
     "name": "tokenWrap",

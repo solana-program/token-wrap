@@ -16,17 +16,18 @@ import {
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
+  type AccountMeta,
+  type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
-  type IAccountMeta,
-  type IAccountSignerMeta,
-  type IInstruction,
-  type IInstructionWithAccounts,
-  type IInstructionWithData,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
+  type Instruction,
+  type InstructionWithAccounts,
+  type InstructionWithData,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
+  type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/kit';
@@ -41,21 +42,19 @@ export function getUnwrapDiscriminatorBytes() {
 
 export type UnwrapInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountUnwrappedEscrow extends string | IAccountMeta<string> = string,
-  TAccountRecipientUnwrappedToken extends
-    | string
-    | IAccountMeta<string> = string,
-  TAccountWrappedMintAuthority extends string | IAccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | IAccountMeta<string> = string,
-  TAccountWrappedTokenProgram extends string | IAccountMeta<string> = string,
-  TAccountUnwrappedTokenProgram extends string | IAccountMeta<string> = string,
-  TAccountWrappedTokenAccount extends string | IAccountMeta<string> = string,
-  TAccountWrappedMint extends string | IAccountMeta<string> = string,
-  TAccountTransferAuthority extends string | IAccountMeta<string> = string,
-  TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
-> = IInstruction<TProgram> &
-  IInstructionWithData<Uint8Array> &
-  IInstructionWithAccounts<
+  TAccountUnwrappedEscrow extends string | AccountMeta<string> = string,
+  TAccountRecipientUnwrappedToken extends string | AccountMeta<string> = string,
+  TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
+  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
+  TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
+  TAccountUnwrappedTokenProgram extends string | AccountMeta<string> = string,
+  TAccountWrappedTokenAccount extends string | AccountMeta<string> = string,
+  TAccountWrappedMint extends string | AccountMeta<string> = string,
+  TAccountTransferAuthority extends string | AccountMeta<string> = string,
+  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+> = Instruction<TProgram> &
+  InstructionWithData<ReadonlyUint8Array> &
+  InstructionWithAccounts<
     [
       TAccountUnwrappedEscrow extends string
         ? WritableAccount<TAccountUnwrappedEscrow>
@@ -99,7 +98,7 @@ export type UnwrapInstructionDataArgs = {
   amount: number | bigint;
 };
 
-export function getUnwrapInstructionDataEncoder(): Encoder<UnwrapInstructionDataArgs> {
+export function getUnwrapInstructionDataEncoder(): FixedSizeEncoder<UnwrapInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
@@ -109,14 +108,14 @@ export function getUnwrapInstructionDataEncoder(): Encoder<UnwrapInstructionData
   );
 }
 
-export function getUnwrapInstructionDataDecoder(): Decoder<UnwrapInstructionData> {
+export function getUnwrapInstructionDataDecoder(): FixedSizeDecoder<UnwrapInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['amount', getU64Decoder()],
   ]);
 }
 
-export function getUnwrapInstructionDataCodec(): Codec<
+export function getUnwrapInstructionDataCodec(): FixedSizeCodec<
   UnwrapInstructionDataArgs,
   UnwrapInstructionData
 > {
@@ -206,7 +205,7 @@ export function getUnwrapInstruction<
   TAccountWrappedMint,
   (typeof input)['transferAuthority'] extends TransactionSigner<TAccountTransferAuthority>
     ? ReadonlySignerAccount<TAccountTransferAuthority> &
-        IAccountSignerMeta<TAccountTransferAuthority>
+        AccountSignerMeta<TAccountTransferAuthority>
     : TAccountTransferAuthority
 > {
   // Program address.
@@ -251,7 +250,7 @@ export function getUnwrapInstruction<
   const args = { ...input };
 
   // Remaining accounts.
-  const remainingAccounts: IAccountMeta[] = (args.multiSigners ?? []).map(
+  const remainingAccounts: AccountMeta[] = (args.multiSigners ?? []).map(
     (signer) => ({
       address: signer.address,
       role: AccountRole.READONLY_SIGNER,
@@ -289,7 +288,7 @@ export function getUnwrapInstruction<
     TAccountWrappedMint,
     (typeof input)['transferAuthority'] extends TransactionSigner<TAccountTransferAuthority>
       ? ReadonlySignerAccount<TAccountTransferAuthority> &
-          IAccountSignerMeta<TAccountTransferAuthority>
+          AccountSignerMeta<TAccountTransferAuthority>
       : TAccountTransferAuthority
   >;
 
@@ -298,7 +297,7 @@ export function getUnwrapInstruction<
 
 export type ParsedUnwrapInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
@@ -338,11 +337,11 @@ export type ParsedUnwrapInstruction<
 
 export function parseUnwrapInstruction<
   TProgram extends string,
-  TAccountMetas extends readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[],
 >(
-  instruction: IInstruction<TProgram> &
-    IInstructionWithAccounts<TAccountMetas> &
-    IInstructionWithData<Uint8Array>
+  instruction: Instruction<TProgram> &
+    InstructionWithAccounts<TAccountMetas> &
+    InstructionWithData<ReadonlyUint8Array>
 ): ParsedUnwrapInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 9) {
     // TODO: Coded error.
@@ -350,7 +349,7 @@ export function parseUnwrapInstruction<
   }
   let accountIndex = 0;
   const getNextAccount = () => {
-    const accountMeta = instruction.accounts![accountIndex]!;
+    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
     accountIndex += 1;
     return accountMeta;
   };

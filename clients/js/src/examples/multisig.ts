@@ -1,6 +1,7 @@
 import {
   address,
   appendTransactionMessageInstructions,
+  assertIsTransactionWithinSizeLimit,
   createKeyPairSignerFromBytes,
   createNoopSigner,
   createSolanaRpc,
@@ -78,6 +79,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(createMintHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
+  assertIsTransactionWithinSizeLimit(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
   const createMintSignature = getSignatureFromTransaction(createMintTx);
 
@@ -105,6 +107,7 @@ async function main() {
       tx => appendTransactionMessageInstructions(createEscrowHelper.ixs, tx),
       tx => signTransactionMessageWithSigners(tx),
     );
+    assertIsTransactionWithinSizeLimit(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
     const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
 
@@ -134,6 +137,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(recipientTokenAccountHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
+  assertIsTransactionWithinSizeLimit(recipientTokenAccountTx);
   await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, UNWRAPPED_TOKEN_ACCOUNT);

@@ -1,19 +1,21 @@
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
-  assertTransactionIsFullySigned,
+  assertIsFullySignedTransaction,
+  assertIsTransactionWithinSizeLimit,
   containsBytes,
   fetchEncodedAccount,
   FullySignedTransaction,
   generateKeyPairSigner,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
-  IInstruction,
+  Instruction,
   KeyPairSigner,
   Rpc,
   SignatureBytes,
   Transaction,
   TransactionWithBlockhashLifetime,
+  TransactionWithinSizeLimit,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
 import {
@@ -50,7 +52,7 @@ export async function createTokenAccount({
   mint: Address;
   owner: Address;
   tokenProgram: Address;
-}): Promise<{ ixs: IInstruction[]; keyPair: KeyPairSigner }> {
+}): Promise<{ ixs: Instruction[]; keyPair: KeyPairSigner }> {
   const [keyPair, lamports] = await Promise.all([
     generateKeyPairSigner(),
     rpc.getMinimumBalanceForRentExemption(165n).send(),
@@ -62,13 +64,13 @@ export async function createTokenAccount({
     lamports,
     space: 165,
     programAddress: tokenProgram,
-  });
+  }) as Instruction;
 
   const initializeAccountIx = getInitializeTokenFn(tokenProgram)({
     account: keyPair.address,
     mint,
     owner,
-  });
+  }) as Instruction;
 
   return {
     ixs: [createAccountIx, initializeAccountIx],
@@ -88,7 +90,7 @@ export type CreateEscrowAccountResult =
   | {
       kind: 'instructions_to_create';
       address: Address;
-      ixs: IInstruction[];
+      ixs: Instruction[];
     };
 
 export async function createEscrowAccount({
@@ -118,7 +120,7 @@ export async function createEscrowAccount({
     mint: unwrappedMint,
     ata: escrowAta,
     tokenProgram: unwrappedTokenProgram,
-  });
+  }) as Instruction;
 
   return { address: escrowAta, ixs: [ix], kind: 'instructions_to_create' };
 }
@@ -216,7 +218,10 @@ export interface MultiSigCombineArgs {
 export function combinedMultisigTx({
   signedTxs,
   blockhash,
-}: MultiSigCombineArgs): FullySignedTransaction & TransactionWithBlockhashLifetime {
+}: MultiSigCombineArgs): Transaction &
+  FullySignedTransaction &
+  TransactionWithBlockhashLifetime &
+  TransactionWithinSizeLimit {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -227,7 +232,8 @@ export function combinedMultisigTx({
     lifetimeConstraint: blockhash,
   };
 
-  assertTransactionIsFullySigned(tx);
+  assertIsFullySignedTransaction(tx);
+  assertIsTransactionWithinSizeLimit(tx);
 
   return tx;
 }

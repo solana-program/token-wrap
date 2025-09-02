@@ -19,12 +19,12 @@ import {
   getStructEncoder,
   type Account,
   type Address,
-  type Codec,
-  type Decoder,
   type EncodedAccount,
-  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
 } from '@solana/kit';
@@ -34,15 +34,18 @@ export type Backpointer = { unwrappedMint: Address };
 
 export type BackpointerArgs = Backpointer;
 
-export function getBackpointerEncoder(): Encoder<BackpointerArgs> {
+export function getBackpointerEncoder(): FixedSizeEncoder<BackpointerArgs> {
   return getStructEncoder([['unwrappedMint', getAddressEncoder()]]);
 }
 
-export function getBackpointerDecoder(): Decoder<Backpointer> {
+export function getBackpointerDecoder(): FixedSizeDecoder<Backpointer> {
   return getStructDecoder([['unwrappedMint', getAddressDecoder()]]);
 }
 
-export function getBackpointerCodec(): Codec<BackpointerArgs, Backpointer> {
+export function getBackpointerCodec(): FixedSizeCodec<
+  BackpointerArgs,
+  Backpointer
+> {
   return combineCodec(getBackpointerEncoder(), getBackpointerDecoder());
 }
 

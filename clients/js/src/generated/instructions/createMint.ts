@@ -15,15 +15,16 @@ import {
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
+  type AccountMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
-  type IAccountMeta,
-  type IInstruction,
-  type IInstructionWithAccounts,
-  type IInstructionWithData,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
+  type Instruction,
+  type InstructionWithAccounts,
+  type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlyUint8Array,
   type WritableAccount,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
@@ -37,17 +38,17 @@ export function getCreateMintDiscriminatorBytes() {
 
 export type CreateMintInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountWrappedMint extends string | IAccountMeta<string> = string,
-  TAccountBackpointer extends string | IAccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | IAccountMeta<string> = string,
+  TAccountWrappedMint extends string | AccountMeta<string> = string,
+  TAccountBackpointer extends string | AccountMeta<string> = string,
+  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
-    | IAccountMeta<string> = '11111111111111111111111111111111',
-  TAccountWrappedTokenProgram extends string | IAccountMeta<string> = string,
-  TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
-> = IInstruction<TProgram> &
-  IInstructionWithData<Uint8Array> &
-  IInstructionWithAccounts<
+    | AccountMeta<string> = '11111111111111111111111111111111',
+  TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
+  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+> = Instruction<TProgram> &
+  InstructionWithData<ReadonlyUint8Array> &
+  InstructionWithAccounts<
     [
       TAccountWrappedMint extends string
         ? WritableAccount<TAccountWrappedMint>
@@ -79,7 +80,7 @@ export type CreateMintInstructionDataArgs = {
   idempotent?: boolean;
 };
 
-export function getCreateMintInstructionDataEncoder(): Encoder<CreateMintInstructionDataArgs> {
+export function getCreateMintInstructionDataEncoder(): FixedSizeEncoder<CreateMintInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
@@ -93,14 +94,14 @@ export function getCreateMintInstructionDataEncoder(): Encoder<CreateMintInstruc
   );
 }
 
-export function getCreateMintInstructionDataDecoder(): Decoder<CreateMintInstructionData> {
+export function getCreateMintInstructionDataDecoder(): FixedSizeDecoder<CreateMintInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['idempotent', getBooleanDecoder()],
   ]);
 }
 
-export function getCreateMintInstructionDataCodec(): Codec<
+export function getCreateMintInstructionDataCodec(): FixedSizeCodec<
   CreateMintInstructionDataArgs,
   CreateMintInstructionData
 > {
@@ -215,7 +216,7 @@ export function getCreateMintInstruction<
 
 export type ParsedCreateMintInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
@@ -243,11 +244,11 @@ export type ParsedCreateMintInstruction<
 
 export function parseCreateMintInstruction<
   TProgram extends string,
-  TAccountMetas extends readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[],
 >(
-  instruction: IInstruction<TProgram> &
-    IInstructionWithAccounts<TAccountMetas> &
-    IInstructionWithData<Uint8Array>
+  instruction: Instruction<TProgram> &
+    InstructionWithAccounts<TAccountMetas> &
+    InstructionWithData<ReadonlyUint8Array>
 ): ParsedCreateMintInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
     // TODO: Coded error.
@@ -255,7 +256,7 @@ export function parseCreateMintInstruction<
   }
   let accountIndex = 0;
   const getNextAccount = () => {
-    const accountMeta = instruction.accounts![accountIndex]!;
+    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
     accountIndex += 1;
     return accountMeta;
   };
