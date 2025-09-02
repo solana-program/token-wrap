@@ -8,5 +8,7 @@
 
 export * from './closeStuckEscrow';
 export * from './createMint';
+export * from './syncMetadataToSplToken';
+export * from './syncMetadataToToken2022';
 export * from './unwrap';
 export * from './wrap';
