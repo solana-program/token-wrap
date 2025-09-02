@@ -1,15 +1,16 @@
 import {
   Address,
   appendTransactionMessageInstructions,
-  CompilableTransactionMessage,
   createTransactionMessage,
   GetAccountInfoApi,
-  IInstruction,
+  Instruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  TransactionMessage,
   TransactionMessageWithBlockhashLifetime,
+  TransactionMessageWithFeePayerSigner,
   TransactionSigner,
 } from '@solana/kit';
 import {
@@ -47,7 +48,11 @@ export interface MultiSignerWrapIxBuilderArgs extends IxBuilderArgs {
 // Used to collect signatures
 export async function multisigOfflineSignWrap(
   args: MultiSignerWrapIxBuilderArgs,
-): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+): Promise<
+  TransactionMessage &
+    TransactionMessageWithBlockhashLifetime &
+    TransactionMessageWithFeePayerSigner
+> {
   const wrapIx = await buildWrapIx(args);
 
   return pipe(
@@ -71,7 +76,7 @@ export interface SingleSignerWrapArgs {
 }
 
 export interface SingleSignerWrapResult {
-  ixs: IInstruction[];
+  ixs: Instruction[];
   recipientWrappedTokenAccount: Address;
   escrowAccount: Address;
   amount: bigint;
@@ -192,7 +197,7 @@ async function buildWrapIx({
   wrappedMint,
   wrappedMintAuthority,
   multiSigners = [],
-}: IxBuilderArgs): Promise<IInstruction> {
+}: IxBuilderArgs): Promise<Instruction> {
   const [unwrappedEscrow] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
     mint: unwrappedMint,

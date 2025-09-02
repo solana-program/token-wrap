@@ -1,16 +1,17 @@
 import {
   Address,
   appendTransactionMessageInstructions,
-  CompilableTransactionMessage,
   createTransactionMessage,
   fetchEncodedAccount,
   GetAccountInfoApi,
-  IInstruction,
+  Instruction,
   pipe,
   Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  TransactionMessage,
   TransactionMessageWithBlockhashLifetime,
+  TransactionMessageWithFeePayerSigner,
   TransactionSigner,
 } from '@solana/kit';
 import { findAssociatedTokenPda, getTokenDecoder } from '@solana-program/token-2022';
@@ -103,7 +104,7 @@ async function buildUnwrapTransaction({
   transferAuthority,
   amount,
   multiSigners = [],
-}: UnwrapTxBuilderArgs): Promise<IInstruction> {
+}: UnwrapTxBuilderArgs): Promise<Instruction> {
   const [unwrappedEscrow] = await findAssociatedTokenPda({
     owner: wrappedMintAuthority,
     mint: unwrappedMint,
@@ -128,7 +129,7 @@ async function buildUnwrapTransaction({
 }
 
 export interface SingleSignerUnwrapResult {
-  ixs: IInstruction[];
+  ixs: Instruction[];
   recipientUnwrappedToken: Address;
   amount: bigint;
 }
@@ -197,7 +198,11 @@ export interface MultiSignerUnWrapTxBuilderArgs extends UnwrapTxBuilderArgs {
 // Used to collect signatures
 export async function multisigOfflineSignUnwrap(
   args: MultiSignerUnWrapTxBuilderArgs,
-): Promise<CompilableTransactionMessage & TransactionMessageWithBlockhashLifetime> {
+): Promise<
+  TransactionMessage &
+    TransactionMessageWithBlockhashLifetime &
+    TransactionMessageWithFeePayerSigner
+> {
   const unwrapIx = await buildUnwrapTransaction(args);
 
   return pipe(

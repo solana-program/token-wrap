@@ -1,19 +1,21 @@
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
-  assertTransactionIsFullySigned,
+  assertIsFullySignedTransaction,
+  assertIsSendableTransaction,
   containsBytes,
   fetchEncodedAccount,
   FullySignedTransaction,
   generateKeyPairSigner,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
-  IInstruction,
+  Instruction,
   KeyPairSigner,
   Rpc,
   SignatureBytes,
   Transaction,
   TransactionWithBlockhashLifetime,
+  TransactionWithinSizeLimit,
 } from '@solana/kit';
 import { getCreateAccountInstruction } from '@solana-program/system';
 import {
@@ -31,8 +33,11 @@ import {
 } from '@solana-program/token-2022';
 import { Blockhash } from '@solana/rpc-types';
 import { Account } from '@solana/accounts';
+import { InitializeAccountInput } from '@solana-program/token-2022';
 
-function getInitializeTokenFn(tokenProgram: Address) {
+function getInitializeTokenFn(
+  tokenProgram: Address,
+): (input: InitializeAccountInput) => Instruction {
   if (tokenProgram === TOKEN_PROGRAM_ADDRESS) return initializeToken;
   if (tokenProgram === TOKEN_2022_PROGRAM_ADDRESS) return initializeToken2022;
   throw new Error(`${tokenProgram} is not a valid token program.`);
@@ -50,7 +55,7 @@ export async function createTokenAccount({
   mint: Address;
   owner: Address;
   tokenProgram: Address;
-}): Promise<{ ixs: IInstruction[]; keyPair: KeyPairSigner }> {
+}): Promise<{ ixs: Instruction[]; keyPair: KeyPairSigner }> {
   const [keyPair, lamports] = await Promise.all([
     generateKeyPairSigner(),
     rpc.getMinimumBalanceForRentExemption(165n).send(),
@@ -88,7 +93,7 @@ export type CreateEscrowAccountResult =
   | {
       kind: 'instructions_to_create';
       address: Address;
-      ixs: IInstruction[];
+      ixs: Instruction[];
     };
 
 export async function createEscrowAccount({
@@ -118,7 +123,7 @@ export async function createEscrowAccount({
     mint: unwrappedMint,
     ata: escrowAta,
     tokenProgram: unwrappedTokenProgram,
-  });
+  }) as Instruction;
 
   return { address: escrowAta, ixs: [ix], kind: 'instructions_to_create' };
 }
@@ -216,7 +221,10 @@ export interface MultiSigCombineArgs {
 export function combinedMultisigTx({
   signedTxs,
   blockhash,
-}: MultiSigCombineArgs): FullySignedTransaction & TransactionWithBlockhashLifetime {
+}: MultiSigCombineArgs): Transaction &
+  FullySignedTransaction &
+  TransactionWithBlockhashLifetime &
+  TransactionWithinSizeLimit {
   const messagesEqual = messageBytesEqual(signedTxs);
   if (!messagesEqual) throw new Error('Messages are not all the same');
   if (!signedTxs[0]) throw new Error('No signed transactions provided');
@@ -227,7 +235,8 @@ export function combinedMultisigTx({
     lifetimeConstraint: blockhash,
   };
 
-  assertTransactionIsFullySigned(tx);
+  assertIsFullySignedTransaction(tx);
+  assertIsSendableTransaction(tx);
 
   return tx;
 }

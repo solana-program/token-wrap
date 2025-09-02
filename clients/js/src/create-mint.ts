@@ -3,11 +3,11 @@ import {
   fetchEncodedAccount,
   GetAccountInfoApi,
   GetMinimumBalanceForRentExemptionApi,
-  IInstruction,
+  Instruction,
   KeyPairSigner,
   Rpc,
 } from '@solana/kit';
-import { getMintSize } from '@solana-program/token-2022';
+import { getMintSize, TOKEN_2022_PROGRAM_ADDRESS, extension } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
 import {
   findBackpointerPda,
@@ -29,8 +29,24 @@ export interface CreateMintResult {
   backpointer: Address;
   fundedWrappedMintLamports: bigint;
   fundedBackpointerLamports: bigint;
-  ixs: IInstruction[];
+  ixs: Instruction[];
 }
+
+// The on-chain program adds these two extensions by default. We must account for
+// their size here. The `getMintSize` function from the library expects extension
+// data objects, but since the size of these extensions is fixed, we can pass
+// dummy/default values.
+const DEFAULT_EXTENSIONS = [
+  extension('ConfidentialTransferMint', {
+    autoApproveNewAccounts: true,
+    authority: null,
+    auditorElgamalPubkey: null,
+  }),
+  extension('MetadataPointer', {
+    authority: null,
+    metadataAddress: null,
+  }),
+];
 
 export async function createMint({
   rpc,
@@ -45,12 +61,16 @@ export async function createMint({
   });
   const [backpointer] = await findBackpointerPda({ wrappedMint });
 
-  const instructions: IInstruction[] = [];
+  const instructions: Instruction[] = [];
 
   // Fund wrapped mint account if needed
   let fundedWrappedMintLamports = 0n;
 
-  const mintSize = BigInt(getMintSize());
+  let mintSize = BigInt(getMintSize());
+  if (wrappedTokenProgram === TOKEN_2022_PROGRAM_ADDRESS) {
+    mintSize = BigInt(getMintSize(DEFAULT_EXTENSIONS));
+  }
+
   const [wrappedMintAccount, wrappedMintRent] = await Promise.all([
     fetchEncodedAccount(rpc, wrappedMint),
     rpc.getMinimumBalanceForRentExemption(mintSize).send(),

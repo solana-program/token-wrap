@@ -13,15 +13,16 @@ import {
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
+  type AccountMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
-  type IAccountMeta,
-  type IInstruction,
-  type IInstructionWithAccounts,
-  type IInstructionWithData,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
+  type Instruction,
+  type InstructionWithAccounts,
+  type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlyUint8Array,
   type WritableAccount,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
@@ -35,18 +36,18 @@ export function getCloseStuckEscrowDiscriminatorBytes() {
 
 export type CloseStuckEscrowInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountEscrow extends string | IAccountMeta<string> = string,
-  TAccountDestination extends string | IAccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | IAccountMeta<string> = string,
-  TAccountWrappedMint extends string | IAccountMeta<string> = string,
-  TAccountWrappedMintAuthority extends string | IAccountMeta<string> = string,
+  TAccountEscrow extends string | AccountMeta<string> = string,
+  TAccountDestination extends string | AccountMeta<string> = string,
+  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
+  TAccountWrappedMint extends string | AccountMeta<string> = string,
+  TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
   TAccountToken2022Program extends
     | string
-    | IAccountMeta<string> = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
-  TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
-> = IInstruction<TProgram> &
-  IInstructionWithData<Uint8Array> &
-  IInstructionWithAccounts<
+    | AccountMeta<string> = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
+  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+> = Instruction<TProgram> &
+  InstructionWithData<ReadonlyUint8Array> &
+  InstructionWithAccounts<
     [
       TAccountEscrow extends string
         ? WritableAccount<TAccountEscrow>
@@ -74,18 +75,18 @@ export type CloseStuckEscrowInstructionData = { discriminator: number };
 
 export type CloseStuckEscrowInstructionDataArgs = {};
 
-export function getCloseStuckEscrowInstructionDataEncoder(): Encoder<CloseStuckEscrowInstructionDataArgs> {
+export function getCloseStuckEscrowInstructionDataEncoder(): FixedSizeEncoder<CloseStuckEscrowInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
     (value) => ({ ...value, discriminator: CLOSE_STUCK_ESCROW_DISCRIMINATOR })
   );
 }
 
-export function getCloseStuckEscrowInstructionDataDecoder(): Decoder<CloseStuckEscrowInstructionData> {
+export function getCloseStuckEscrowInstructionDataDecoder(): FixedSizeDecoder<CloseStuckEscrowInstructionData> {
   return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
-export function getCloseStuckEscrowInstructionDataCodec(): Codec<
+export function getCloseStuckEscrowInstructionDataCodec(): FixedSizeCodec<
   CloseStuckEscrowInstructionDataArgs,
   CloseStuckEscrowInstructionData
 > {
@@ -200,7 +201,7 @@ export function getCloseStuckEscrowInstruction<
 
 export type ParsedCloseStuckEscrowInstruction<
   TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
@@ -222,11 +223,11 @@ export type ParsedCloseStuckEscrowInstruction<
 
 export function parseCloseStuckEscrowInstruction<
   TProgram extends string,
-  TAccountMetas extends readonly IAccountMeta[],
+  TAccountMetas extends readonly AccountMeta[],
 >(
-  instruction: IInstruction<TProgram> &
-    IInstructionWithAccounts<TAccountMetas> &
-    IInstructionWithData<Uint8Array>
+  instruction: Instruction<TProgram> &
+    InstructionWithAccounts<TAccountMetas> &
+    InstructionWithData<ReadonlyUint8Array>
 ): ParsedCloseStuckEscrowInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 6) {
     // TODO: Coded error.
@@ -234,7 +235,7 @@ export function parseCloseStuckEscrowInstruction<
   }
   let accountIndex = 0;
   const getNextAccount = () => {
-    const accountMeta = instruction.accounts![accountIndex]!;
+    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
     accountIndex += 1;
     return accountMeta;
   };
