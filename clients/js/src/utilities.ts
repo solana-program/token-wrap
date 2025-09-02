@@ -2,7 +2,7 @@ import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
 import {
   Address,
   assertIsFullySignedTransaction,
-  assertIsTransactionWithinSizeLimit,
+  assertIsSendableTransaction,
   containsBytes,
   fetchEncodedAccount,
   FullySignedTransaction,
@@ -33,8 +33,11 @@ import {
 } from '@solana-program/token-2022';
 import { Blockhash } from '@solana/rpc-types';
 import { Account } from '@solana/accounts';
+import { InitializeAccountInput } from '@solana-program/token-2022';
 
-function getInitializeTokenFn(tokenProgram: Address) {
+function getInitializeTokenFn(
+  tokenProgram: Address,
+): (input: InitializeAccountInput) => Instruction {
   if (tokenProgram === TOKEN_PROGRAM_ADDRESS) return initializeToken;
   if (tokenProgram === TOKEN_2022_PROGRAM_ADDRESS) return initializeToken2022;
   throw new Error(`${tokenProgram} is not a valid token program.`);
@@ -64,13 +67,13 @@ export async function createTokenAccount({
     lamports,
     space: 165,
     programAddress: tokenProgram,
-  }) as Instruction;
+  });
 
   const initializeAccountIx = getInitializeTokenFn(tokenProgram)({
     account: keyPair.address,
     mint,
     owner,
-  }) as Instruction;
+  });
 
   return {
     ixs: [createAccountIx, initializeAccountIx],
@@ -233,7 +236,7 @@ export function combinedMultisigTx({
   };
 
   assertIsFullySignedTransaction(tx);
-  assertIsTransactionWithinSizeLimit(tx);
+  assertIsSendableTransaction(tx);
 
   return tx;
 }

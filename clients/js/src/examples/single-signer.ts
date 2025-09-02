@@ -1,7 +1,7 @@
 import {
   address,
   appendTransactionMessageInstructions,
-  assertIsTransactionWithinSizeLimit,
+  assertIsSendableTransaction,
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
@@ -57,7 +57,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(createMintHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
-  assertIsTransactionWithinSizeLimit(createMintTx);
+  assertIsSendableTransaction(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
   const createMintSignature = getSignatureFromTransaction(createMintTx);
 
@@ -85,7 +85,7 @@ async function main() {
       tx => appendTransactionMessageInstructions(createEscrowHelper.ixs, tx),
       tx => signTransactionMessageWithSigners(tx),
     );
-    assertIsTransactionWithinSizeLimit(createEscrowTx);
+    assertIsSendableTransaction(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
     const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
 
@@ -115,7 +115,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(recipientTokenAccountHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
-  assertIsTransactionWithinSizeLimit(recipientTokenAccountTx);
+  assertIsSendableTransaction(recipientTokenAccountTx);
   await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   // Execute wrap
@@ -136,7 +136,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(wrapHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
-  assertIsTransactionWithinSizeLimit(wrapTx);
+  assertIsSendableTransaction(wrapTx);
   await sendAndConfirm(wrapTx, { commitment: 'confirmed' });
   const wrapSignature = getSignatureFromTransaction(wrapTx);
 
@@ -163,7 +163,7 @@ async function main() {
     tx => appendTransactionMessageInstructions(unwrapHelper.ixs, tx),
     tx => signTransactionMessageWithSigners(tx),
   );
-  assertIsTransactionWithinSizeLimit(unwrapTx);
+  assertIsSendableTransaction(unwrapTx);
   await sendAndConfirm(unwrapTx, { commitment: 'confirmed' });
   const unwrapSignature = getSignatureFromTransaction(unwrapTx);
 

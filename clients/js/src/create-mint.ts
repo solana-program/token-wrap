@@ -84,7 +84,7 @@ export async function createMint({
         source: payer,
         destination: wrappedMint,
         amount: fundedWrappedMintLamports,
-      }) as Instruction,
+      }),
     );
   }
 
@@ -105,7 +105,7 @@ export async function createMint({
         source: payer,
         destination: backpointer,
         amount: fundedBackpointerLamports,
-      }) as Instruction,
+      }),
     );
   }
 
