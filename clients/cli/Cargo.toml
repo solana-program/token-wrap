@@ -35,6 +35,7 @@ spl-token = { workspace = true }
 spl-token-metadata-interface = { workspace = true }
 spl-token-wrap = { workspace = true }
 spl-token-2022 = { workspace = true }
+mpl-token-metadata = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]

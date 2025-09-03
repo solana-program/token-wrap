@@ -9833,6 +9833,7 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "clap 3.2.25",
+ "mpl-token-metadata",
  "serde",
  "serde_derive",
  "serde_json",
