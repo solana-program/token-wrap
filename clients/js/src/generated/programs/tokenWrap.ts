@@ -15,6 +15,8 @@ import {
 import {
   type ParsedCloseStuckEscrowInstruction,
   type ParsedCreateMintInstruction,
+  type ParsedSyncMetadataToSplTokenInstruction,
+  type ParsedSyncMetadataToToken2022Instruction,
   type ParsedUnwrapInstruction,
   type ParsedWrapInstruction,
 } from '../instructions';
@@ -31,6 +33,8 @@ export enum TokenWrapInstruction {
   Wrap,
   Unwrap,
   CloseStuckEscrow,
+  SyncMetadataToToken2022,
+  SyncMetadataToSplToken,
 }
 
 export function identifyTokenWrapInstruction(
@@ -48,6 +52,12 @@ export function identifyTokenWrapInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return TokenWrapInstruction.CloseStuckEscrow;
+  }
+  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+    return TokenWrapInstruction.SyncMetadataToToken2022;
+  }
+  if (containsBytes(data, getU8Encoder().encode(5), 0)) {
+    return TokenWrapInstruction.SyncMetadataToSplToken;
   }
   throw new Error(
     'The provided instruction could not be identified as a tokenWrap instruction.'
@@ -68,4 +78,10 @@ export type ParsedTokenWrapInstruction<
     } & ParsedUnwrapInstruction<TProgram>)
   | ({
       instructionType: TokenWrapInstruction.CloseStuckEscrow;
-    } & ParsedCloseStuckEscrowInstruction<TProgram>);
+    } & ParsedCloseStuckEscrowInstruction<TProgram>)
+  | ({
+      instructionType: TokenWrapInstruction.SyncMetadataToToken2022;
+    } & ParsedSyncMetadataToToken2022Instruction<TProgram>)
+  | ({
+      instructionType: TokenWrapInstruction.SyncMetadataToSplToken;
+    } & ParsedSyncMetadataToSplTokenInstruction<TProgram>);

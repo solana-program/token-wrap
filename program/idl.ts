@@ -26,6 +26,7 @@ import {
 } from "codama";
 import { writeFileSync } from "fs";
 import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system";
+import { SYSVAR_RENT_ADDRESS } from "@solana/sysvars";
 
 // Note: this is temporary until Codama macros are available: https://github.com/codama-idl/codama-rs
 
@@ -363,6 +364,185 @@ const codama = createFromRoot(
             }),
           ],
         }),
+        instructionNode({
+          name: "syncMetadataToToken2022",
+          docs: [
+            "This instruction copies the metadata fields from an unwrapped mint to",
+            "its wrapped mint `TokenMetadata` extension.",
+            "",
+            "Supports (unwrapped to wrapped):",
+            "- Token-2022 to Token-2022",
+            "- SPL-token to Token-2022",
+            "",
+            "If source mint is a Token-2022, it must have a `MetadataPointer` and the",
+            "account it points to must be provided. If source mint is an SPL-Token,",
+            "the `Metaplex` PDA must be provided.",
+            "",
+            "If the `TokenMetadata` extension on the wrapped mint if not present, it",
+            "will initialize it. The client is responsible for funding the wrapped",
+            "mint account with enough lamports to cover the rent for the",
+            "additional space required by the `TokenMetadata` extension and/or",
+            "metadata sync.",
+          ],
+          accounts: [
+            instructionAccountNode({
+              name: "wrappedMint",
+              docs: ["Wrapped mint"],
+              isSigner: false,
+              isWritable: true,
+            }),
+            instructionAccountNode({
+              name: "wrappedMintAuthority",
+              docs: ["Wrapped mint authority PDA"],
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "unwrappedMint",
+              docs: ["Unwrapped mint"],
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "token2022Program",
+              docs: ["Token-2022 program"],
+              isSigner: false,
+              isWritable: false,
+              defaultValue: publicKeyValueNode(
+                "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+              ),
+            }),
+            instructionAccountNode({
+              name: "sourceMetadata",
+              docs: [
+                "Source metadata account. Required if metadata pointer",
+                "indicates external account.",
+              ],
+              isSigner: false,
+              isWritable: false,
+              isOptional: true,
+            }),
+            instructionAccountNode({
+              name: "ownerProgram",
+              docs: [
+                "Owner program. Required when metadata account is",
+                "owned by a third-party program.",
+              ],
+              isSigner: false,
+              isWritable: false,
+              isOptional: true,
+            }),
+          ],
+          discriminators: [fieldDiscriminatorNode("discriminator", 0)],
+          arguments: [
+            instructionArgumentNode({
+              name: "discriminator",
+              type: numberTypeNode("u8"),
+              defaultValue: numberValueNode(4),
+              defaultValueStrategy: "omitted",
+            }),
+          ],
+        }),
+        instructionNode({
+          name: "syncMetadataToSplToken",
+          docs: [
+            "This instruction copies the metadata fields from an unwrapped mint to",
+            "its wrapped mint `Metaplex` metadata account.",
+            "",
+            "Supports (unwrapped to wrapped):",
+            "- Token-2022 to SPL-token",
+            "- SPL-token to SPL-token",
+            "",
+            "This instruction will create the `Metaplex` metadata account if it",
+            "doesn't exist, or update it if it does. The `wrapped_mint_authority`",
+            "PDA must be pre-funded with enough lamports to cover the rent for",
+            "the `Metaplex` metadata account's creation or updates, as it will",
+            "act as the payer for the `Metaplex` program CPI.",
+            "",
+            "If source mint is a Token-2022, it must have a `MetadataPointer` and the",
+            "account it points to must be provided. If source mint is an SPL-Token,",
+            "the `Metaplex` PDA must be provided.",
+          ],
+          accounts: [
+            instructionAccountNode({
+              name: "metaplexMetadata",
+              docs: ["`Metaplex` metadata account"],
+              isSigner: false,
+              isWritable: true,
+            }),
+            instructionAccountNode({
+              name: "wrappedMintAuthority",
+              docs: ["Wrapped mint authority (PDA)"],
+              isSigner: false,
+              isWritable: true,
+            }),
+            instructionAccountNode({
+              name: "wrappedMint",
+              docs: ["Wrapped SPL Token mint"],
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "unwrappedMint",
+              docs: ["Unwrapped mint"],
+              isSigner: false,
+              isWritable: false,
+            }),
+            instructionAccountNode({
+              name: "metaplexProgram",
+              docs: ["`Metaplex` Token Metadata Program"],
+              isSigner: false,
+              isWritable: false,
+              defaultValue: publicKeyValueNode(
+                "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+              ),
+            }),
+            instructionAccountNode({
+              name: "systemProgram",
+              docs: ["System program"],
+              isSigner: false,
+              isWritable: false,
+              defaultValue: publicKeyValueNode(SYSTEM_PROGRAM_ADDRESS),
+            }),
+            instructionAccountNode({
+              name: "rentSysvar",
+              docs: ["Rent sysvar"],
+              isSigner: false,
+              isWritable: false,
+              defaultValue: publicKeyValueNode(SYSVAR_RENT_ADDRESS),
+            }),
+            instructionAccountNode({
+              name: "sourceMetadata",
+              docs: [
+                "Source metadata account. Required if unwrapped mint",
+                "is an SPL-Token or, if a Token-2022, its metadata pointer indicates",
+                "an external account.",
+              ],
+              isSigner: false,
+              isWritable: false,
+              isOptional: true,
+            }),
+            instructionAccountNode({
+              name: "ownerProgram",
+              docs: [
+                "Owner program. Required when metadata account is",
+                "owned by a third-party program.",
+              ],
+              isSigner: false,
+              isWritable: false,
+              isOptional: true,
+            }),
+          ],
+          discriminators: [fieldDiscriminatorNode("discriminator", 0)],
+          arguments: [
+            instructionArgumentNode({
+              name: "discriminator",
+              type: numberTypeNode("u8"),
+              defaultValue: numberValueNode(5),
+              defaultValueStrategy: "omitted",
+            }),
+          ],
+        }),
       ],
       pdas: [
         pdaNode({
@@ -437,6 +617,42 @@ const codama = createFromRoot(
           code: 8,
           message:
             "The escrow account is in a good state and cannot be recreated",
+        }),
+        errorNode({
+          name: "UnwrappedMintHasNoMetadata",
+          code: 9,
+          message: "Unwrapped mint does not have the TokenMetadata extension",
+        }),
+        errorNode({
+          name: "MetaplexMetadataMismatch",
+          code: 10,
+          message:
+            "Metaplex metadata account address does not match expected PDA",
+        }),
+        errorNode({
+          name: "MetadataPointerMissing",
+          code: 11,
+          message: "Metadata pointer extension missing on mint",
+        }),
+        errorNode({
+          name: "MetadataPointerUnset",
+          code: 12,
+          message: "Metadata pointer is unset (None)",
+        }),
+        errorNode({
+          name: "MetadataPointerMismatch",
+          code: 13,
+          message: "Provided source metadata account does not match pointer",
+        }),
+        errorNode({
+          name: "ExternalProgramReturnedNoData",
+          code: 14,
+          message: "External metadata program returned no data",
+        }),
+        errorNode({
+          name: "NoSyncingToToken2022",
+          code: 15,
+          message: "Instruction can only be used with spl-token wrapped mints",
         }),
       ],
     }),
