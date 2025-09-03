@@ -1,16 +1,5 @@
 # @solana-program/token-wrap
 
-## 2.2.0
-
-### Minor Changes
-
-- 6a36d97: Update idl for new metadata sync instructions
-- 7c4bc45: Bump deps to Kit 3.0
-
-### Patch Changes
-
-- 7c4bc45: Update CreateMint helper to support token-2022 extension sizing
-
 ## 2.1.0
 
 ### Minor Changes

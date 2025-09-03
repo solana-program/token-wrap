@@ -1,8 +1,2 @@
 packages:
   - clients/js
-
-onlyBuiltDependencies:
-  - bigint-buffer
-  - bufferutil
-  - esbuild
-  - utf-8-validate

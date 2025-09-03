@@ -26,8 +26,6 @@ import {
 } from "codama";
 import { writeFileSync } from "fs";
 import { SYSTEM_PROGRAM_ADDRESS } from "@solana-program/system";
-import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { SYSVAR_RENT_ADDRESS } from "@solana/sysvars";
 
 // Note: this is temporary until Codama macros are available: https://github.com/codama-idl/codama-rs
@@ -352,7 +350,7 @@ const codama = createFromRoot(
               isWritable: false,
               isOptional: true,
               defaultValue: publicKeyValueNode(
-                TOKEN_2022_PROGRAM_ID.toString(),
+                "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
               ),
             }),
           ],
@@ -411,7 +409,7 @@ const codama = createFromRoot(
               isSigner: false,
               isWritable: false,
               defaultValue: publicKeyValueNode(
-                TOKEN_2022_PROGRAM_ID.toString(),
+                "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
               ),
             }),
             instructionAccountNode({
@@ -495,7 +493,9 @@ const codama = createFromRoot(
               docs: ["`Metaplex` Token Metadata Program"],
               isSigner: false,
               isWritable: false,
-              defaultValue: publicKeyValueNode(MPL_TOKEN_METADATA_PROGRAM_ID),
+              defaultValue: publicKeyValueNode(
+                "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+              ),
             }),
             instructionAccountNode({
               name: "systemProgram",
