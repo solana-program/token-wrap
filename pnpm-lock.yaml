@@ -54,8 +54,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)
       '@solana/rpc-types':
-        specifier: ^3.0.1
-        version: 3.0.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)
+        specifier: ^3.0.2
+        version: 3.0.2(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)
     devDependencies:
       '@eslint/js':
         specifier: ^9.34.0
