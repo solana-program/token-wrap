@@ -9,6 +9,9 @@ use {
         sync_metadata_to_spl_token::{
             command_sync_metadata_to_spl_token, SyncMetadataToSplTokenArgs,
         },
+        sync_metadata_to_token2022::{
+            command_sync_metadata_to_token2022, SyncMetadataToToken2022Args,
+        },
         unwrap::{command_unwrap, UnwrapArgs},
         wrap::{command_wrap, WrapArgs},
         CommandResult,
@@ -107,6 +110,8 @@ pub enum Command {
     /// Sync metadata from unwrapped mint to wrapped SPL Token mint's `Metaplex`
     /// metadata account
     SyncMetadataToSplToken(SyncMetadataToSplTokenArgs),
+    /// Sync metadata from unwrapped mint to wrapped Token-2022 mint
+    SyncMetadataToToken2022(SyncMetadataToToken2022Args),
 }
 
 impl Command {
@@ -125,6 +130,9 @@ impl Command {
             Command::CloseStuckEscrow(args) => command_close_stuck_escrow(config, args).await,
             Command::SyncMetadataToSplToken(args) => {
                 command_sync_metadata_to_spl_token(config, args, matches, wallet_manager).await
+            }
+            Command::SyncMetadataToToken2022(args) => {
+                command_sync_metadata_to_token2022(config, args, matches, wallet_manager).await
             }
         }
     }
