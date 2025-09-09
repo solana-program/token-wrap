@@ -1,10 +1,16 @@
 # SPL Token Wrap Program
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/solana-program/token-wrap/main.yml?logo=GitHub)](https://github.com/solana-program/token-wrap/actions/workflows/main.yml)
+[![Crates.io](https://img.shields.io/crates/v/spl-token-wrap-cli)](https://crates.io/crates/spl-token-wrap-cli)
+[![npm](https://img.shields.io/npm/v/@solana-program/token-wrap)](https://www.npmjs.com/package/@solana-program/token-wrap)
 
-This program enables the creation of "wrapped" versions of existing SPL tokens, facilitating interoperability
-between different token standards. If you are building an app with a mint/token and find yourself wishing you could take
+This program enables the creation of "wrapped" versions of existing SPL tokens, facilitating interoperability between
+different token standards. If you are building an app with a mint/token and find yourself wishing you could take
 advantage of some of the latest features of a specific token program, this might be for you!
+
+- **Program ID:** `TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR`
+- **IDL:** [`./program/idl.json`](./program/idl.json)
+- **Docs & SDK Guide:** https://www.solana-program.com/docs/token-wrap
 
 ## Features
 
@@ -17,13 +23,15 @@ advantage of some of the latest features of a specific token program, this might
 * **Confidential Transfers by Default:** All wrapped tokens created under the Token-2022 standard automatically include
   the `ConfidentialTransferMint` extension, enabling the option for privacy-preserving transactions. This feature is
   immutable and requires no additional configuration.
-* **Transfer Hook Compatibility:**  Integrates with tokens that implement the SPL Transfer Hook interface,
+* **Transfer Hook Compatibility:** Integrates with tokens that implement the SPL Transfer Hook interface,
   enabling custom logic on token transfers.
 * **Multisignature Support:** Compatible with multisig signers for both wrapping and unwrapping operations.
+* **Metadata Synchronization:** Syncs metadata from unwrapped tokens (both Metaplex and Token-2022 standards) to their
+  wrapped counterparts.
 
 ## How It Works
 
-It supports four primary operations:
+It supports the following primary operations:
 
 1. **`CreateMint`:** This operation initializes a new wrapped token mint and its associated backpointer account. Note,
    the caller must pre-fund this account with lamports. This is to avoid requiring writer+signer privileges on this
@@ -59,6 +67,20 @@ It supports four primary operations:
     * This operation will only succeed if the current escrow has zero balance and has different extensions than the
       mint.
     * After closing the stuck escrow, the client is responsible for recreating the ATA with the correct extensions.
+
+5. **`SyncMetadataToToken2022`**: This operation copies metadata from an unwrapped mint to its wrapped Token-2022
+   mint's `TokenMetadata` extension.
+    * It initializes the `TokenMetadata` extension on the wrapped mint if it doesn't already exist.
+    * The caller is responsible for pre-funding the wrapped mint account with enough lamports to cover the rent for the
+      added space.
+    * Supports: `SPL Token -> Token-2022` and `Token-2022 -> Token-2022`.
+
+6. **`SyncMetadataToSplToken`**: This operation copies metadata from an unwrapped mint to the Metaplex metadata
+   account of its wrapped SPL Token mint.
+    * It can create the Metaplex metadata account if it doesn't exist or update an existing one.
+    * The `wrapped_mint_authority` PDA acts as the payer for the Metaplex program CPI and must be pre-funded with
+      sufficient lamports to cover rent for the Metaplex account.
+    * Supports: `Token-2022 -> SPL Token` and `SPL Token -> SPL Token`.
 
 The 1:1 relationship between wrapped and unwrapped tokens is maintained through the escrow mechanism, ensuring that
 wrapped tokens are always fully backed by their unwrapped counterparts.
