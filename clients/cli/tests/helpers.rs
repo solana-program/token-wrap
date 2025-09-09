@@ -35,12 +35,20 @@ pub async fn start_validator() -> (TestValidator, Keypair) {
     solana_logger::setup();
     let mut test_validator_genesis = TestValidatorGenesis::default();
 
-    test_validator_genesis.add_upgradeable_programs_with_path(&[UpgradeableProgramInfo {
-        program_id: spl_token_wrap::id(),
-        loader: bpf_loader_upgradeable::id(),
-        program_path: PathBuf::from("../../target/deploy/spl_token_wrap.so"),
-        upgrade_authority: Pubkey::default(),
-    }]);
+    test_validator_genesis.add_upgradeable_programs_with_path(&[
+        UpgradeableProgramInfo {
+            program_id: spl_token_wrap::id(),
+            loader: bpf_loader_upgradeable::id(),
+            program_path: PathBuf::from("../../target/deploy/spl_token_wrap.so"),
+            upgrade_authority: Pubkey::default(),
+        },
+        UpgradeableProgramInfo {
+            program_id: mpl_token_metadata::ID,
+            loader: bpf_loader_upgradeable::id(),
+            program_path: PathBuf::from("../../program/tests/fixtures/mpl_token_metadata.so"),
+            upgrade_authority: Pubkey::default(),
+        },
+    ]);
 
     test_validator_genesis.start_async().await
 }

@@ -10,6 +10,7 @@ edition = { workspace = true }
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+mpl-token-metadata = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_with = { workspace = true }
