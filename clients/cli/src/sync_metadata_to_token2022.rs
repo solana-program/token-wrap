@@ -6,6 +6,7 @@ use {
         CommandResult,
     },
     clap::{ArgMatches, Args},
+    mpl_token_metadata::accounts::Metadata as MetaplexMetadata,
     serde_derive::{Deserialize, Serialize},
     serde_with::{serde_as, DisplayFromStr},
     solana_cli_output::{display::writeln_name_value, QuietDisplay, VerboseDisplay},
@@ -30,15 +31,20 @@ pub struct SyncMetadataToToken2022Args {
     #[clap(value_parser = parse_pubkey)]
     pub unwrapped_mint: Pubkey,
 
+    /// Specify that the source metadata is from a `Metaplex` Token Metadata
+    /// account. The CLI will derive the PDA automatically.
+    #[clap(long)]
+    pub metaplex: bool,
+
     /// Optional source metadata account when the unwrapped mint's metadata
     /// pointer points to an external account or third-party program
-    #[clap(long, value_parser = parse_pubkey)]
-    pub source_metadata: Option<Pubkey>,
+    #[clap(long, value_parser = parse_pubkey, conflicts_with = "metaplex", requires = "program-id")]
+    pub metadata_account: Option<Pubkey>,
 
     /// Optional owner program for the source metadata account, when owned by a
     /// third-party program
     #[clap(long, value_parser = parse_pubkey)]
-    pub owner_program: Option<Pubkey>,
+    pub program_id: Option<Pubkey>,
 }
 
 #[serde_as]
@@ -106,6 +112,13 @@ pub async fn command_sync_metadata_to_token2022(
     let wrapped_mint = get_wrapped_mint_address(&args.unwrapped_mint, &spl_token_2022::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
 
+    let source_metadata = if args.metaplex {
+        let (metaplex_pda, _) = MetaplexMetadata::find_pda(&args.unwrapped_mint);
+        Some(metaplex_pda)
+    } else {
+        args.metadata_account
+    };
+
     println_display(
         config,
         format!(
@@ -119,8 +132,8 @@ pub async fn command_sync_metadata_to_token2022(
         &wrapped_mint,
         &wrapped_mint_authority,
         &args.unwrapped_mint,
-        args.source_metadata.as_ref(),
-        args.owner_program.as_ref(),
+        source_metadata.as_ref(),
+        args.program_id.as_ref(),
     );
 
     let blockhash = config.rpc_client.get_latest_blockhash().await?;
@@ -134,8 +147,8 @@ pub async fn command_sync_metadata_to_token2022(
         unwrapped_mint: args.unwrapped_mint,
         wrapped_mint,
         wrapped_mint_authority,
-        source_metadata: args.source_metadata,
-        owner_program: args.owner_program,
+        source_metadata,
+        owner_program: args.program_id,
         signatures: transaction.signatures,
     };
 

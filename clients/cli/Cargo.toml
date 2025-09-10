@@ -40,7 +40,6 @@ tokio = { workspace = true }
 
 [dev-dependencies]
 bytemuck = { workspace = true }
-mpl-token-metadata = { workspace = true }
 serde_json = { workspace = true }
 serial_test = { workspace = true }
 solana-keypair = { workspace = true }

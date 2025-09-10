@@ -101,8 +101,7 @@ async fn test_sync_metadata_from_spl_token_to_token2022() {
             "-C",
             &env.config_file_path,
             &unwrapped_mint.to_string(),
-            "--source-metadata",
-            &metaplex_pda.to_string(),
+            "--metaplex",
             "--output",
             "json",
         ])
