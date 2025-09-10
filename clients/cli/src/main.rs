@@ -7,6 +7,7 @@ mod create_mint;
 mod find_pdas;
 mod output;
 mod sync_metadata_to_spl_token;
+mod sync_metadata_to_token2022;
 mod unwrap;
 mod wrap;
 
