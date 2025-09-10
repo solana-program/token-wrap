@@ -6,6 +6,9 @@ use {
         create_mint::{command_create_mint, CreateMintArgs},
         find_pdas::{command_get_pdas, FindPdasArgs},
         output::parse_output_format,
+        sync_metadata_to_spl_token::{
+            command_sync_metadata_to_spl_token, SyncMetadataToSplTokenArgs,
+        },
         unwrap::{command_unwrap, UnwrapArgs},
         wrap::{command_wrap, WrapArgs},
         CommandResult,
@@ -101,6 +104,9 @@ pub enum Command {
     /// Close a stuck escrow account when a mint has closed and re-created with
     /// different mint extensions
     CloseStuckEscrow(CloseStuckEscrowArgs),
+    /// Sync metadata from unwrapped mint to wrapped SPL Token mint's `Metaplex`
+    /// metadata account
+    SyncMetadataToSplToken(SyncMetadataToSplTokenArgs),
 }
 
 impl Command {
@@ -117,6 +123,9 @@ impl Command {
             Command::Unwrap(args) => command_unwrap(config, args, matches, wallet_manager).await,
             Command::CreateEscrowAccount(args) => command_create_escrow_account(config, args).await,
             Command::CloseStuckEscrow(args) => command_close_stuck_escrow(config, args).await,
+            Command::SyncMetadataToSplToken(args) => {
+                command_sync_metadata_to_spl_token(config, args, matches, wallet_manager).await
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ mod create_escrow_account;
 mod create_mint;
 mod find_pdas;
 mod output;
+mod sync_metadata_to_spl_token;
 mod unwrap;
 mod wrap;
 
