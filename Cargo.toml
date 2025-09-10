@@ -88,7 +88,7 @@ spl-token-metadata-interface = "0.7.0"
 spl-token-wrap = { path = "program", features = ["no-entrypoint"] }
 spl-transfer-hook-interface = "0.10.0"
 spl-type-length-value = "0.8.0"
-tempfile = "3.21.0"
+tempfile = "3.22.0"
 test-case = "3.3.1"
 test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
 thiserror = "2.0.16"
