@@ -9827,6 +9827,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-token-wrap"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fedeedf8417f86136fa93df58a62793f11a9c7d692bf413106db06437b0a8d60"
+dependencies = [
+ "bytemuck",
+ "mpl-token-metadata",
+ "num-derive 0.4.2",
+ "num-traits",
+ "serde_json",
+ "solana-account-info",
+ "solana-cpi",
+ "solana-instruction",
+ "solana-msg",
+ "solana-program-entrypoint",
+ "solana-program-error",
+ "solana-program-pack",
+ "solana-pubkey",
+ "solana-rent",
+ "solana-system-interface",
+ "solana-sysvar",
+ "solana-zk-sdk",
+ "spl-associated-token-account-client",
+ "spl-pod",
+ "spl-token",
+ "spl-token-2022 9.0.0",
+ "spl-token-metadata-interface",
+ "spl-transfer-hook-interface",
+ "spl-type-length-value",
+ "thiserror 2.0.16",
+]
+
+[[package]]
 name = "spl-token-wrap-cli"
 version = "0.1.0"
 dependencies = [
@@ -9862,7 +9895,7 @@ dependencies = [
  "spl-token",
  "spl-token-2022 9.0.0",
  "spl-token-metadata-interface",
- "spl-token-wrap",
+ "spl-token-wrap 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
  "tokio",
 ]
