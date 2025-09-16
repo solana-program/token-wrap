@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.7
-        version: 2.29.7(@types/node@24.4.0)
+        version: 2.29.7(@types/node@24.5.0)
       '@codama/renderers-js':
         specifier: ^1.4.1
         version: 1.4.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)
@@ -24,8 +24,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)
       '@types/node':
-        specifier: ^24.4.0
-        version: 24.4.0
+        specifier: ^24.5.0
+        version: 24.5.0
       codama:
         specifier: ^1.3.6
         version: 1.3.6
@@ -67,8 +67,8 @@ importers:
         specifier: ^2.0.5
         version: 2.0.5
       '@types/node':
-        specifier: ^24.4.0
-        version: 24.4.0
+        specifier: ^24.5.0
+        version: 24.5.0
       eslint:
         specifier: ^9.35.0
         version: 9.35.0
@@ -824,8 +824,8 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
-  '@types/node@24.4.0':
-    resolution: {integrity: sha512-gUuVEAK4/u6F9wRLznPUU4WGUacSEBDPoC2TrBkw3GAnOLHBL45QdfHOXp1kJ4ypBGLxTOB+t7NJLpKoC3gznQ==}
+  '@types/node@24.5.0':
+    resolution: {integrity: sha512-y1dMvuvJspJiPSDZUQ+WMBvF7dpnEqN4x9DDC9ie5Fs/HUZJA3wFp7EhHoVaKX/iI0cRoECV8X2jL8zi0xrHCg==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -1829,8 +1829,8 @@ packages:
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
 
-  undici-types@7.11.0:
-    resolution: {integrity: sha512-kt1ZriHTi7MU+Z/r9DOdAI3ONdaR3M3csEaRc6ewa4f4dTvX4cQCbJ4NkEn0ohE4hHtq85+PhPSTY+pO/1PwgA==}
+  undici-types@7.12.0:
+    resolution: {integrity: sha512-goOacqME2GYyOZZfb5Lgtu+1IDmAlAEu5xnD3+xTzS10hT0vzpf0SPjkXwAw9Jm+4n/mQGDP3LO8CPbYROeBfQ==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -1928,7 +1928,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.29.7(@types/node@24.4.0)':
+  '@changesets/cli@2.29.7(@types/node@24.5.0)':
     dependencies:
       '@changesets/apply-release-plan': 7.0.13
       '@changesets/assemble-release-plan': 6.0.9
@@ -1944,7 +1944,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@changesets/write': 0.4.0
-      '@inquirer/external-editor': 1.0.1(@types/node@24.4.0)
+      '@inquirer/external-editor': 1.0.1(@types/node@24.5.0)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       ci-info: 3.9.0
@@ -2244,12 +2244,12 @@ snapshots:
 
   '@iarna/toml@2.2.5': {}
 
-  '@inquirer/external-editor@1.0.1(@types/node@24.4.0)':
+  '@inquirer/external-editor@1.0.1(@types/node@24.5.0)':
     dependencies:
       chardet: 2.1.0
       iconv-lite: 0.6.3
     optionalDependencies:
-      '@types/node': 24.4.0
+      '@types/node': 24.5.0
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -2777,9 +2777,9 @@ snapshots:
 
   '@types/node@12.20.55': {}
 
-  '@types/node@24.4.0':
+  '@types/node@24.5.0':
     dependencies:
-      undici-types: 7.11.0
+      undici-types: 7.12.0
 
   '@types/unist@3.0.3': {}
 
@@ -3800,7 +3800,7 @@ snapshots:
 
   ufo@1.6.1: {}
 
-  undici-types@7.11.0: {}
+  undici-types@7.12.0: {}
 
   undici-types@7.16.0: {}
 
