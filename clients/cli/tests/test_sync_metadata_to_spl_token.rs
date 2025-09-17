@@ -1,17 +1,12 @@
 use {
     crate::helpers::{
-        create_unwrapped_mint, execute_create_mint, setup_test_env, TOKEN_WRAP_CLI_BIN,
+        create_metaplex_metadata, create_unwrapped_mint, execute_create_mint, setup_test_env,
+        TOKEN_WRAP_CLI_BIN,
     },
-    mpl_token_metadata::{
-        accounts::Metadata as MetaplexMetadata,
-        instructions::{CreateMetadataAccountV3, CreateMetadataAccountV3InstructionArgs},
-        types::DataV2,
-        utils::clean,
-    },
+    mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, utils::clean},
     serde_json::Value,
     serial_test::serial,
     solana_keypair::Keypair,
-    solana_sdk_ids::system_program,
     solana_signer::Signer,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
@@ -215,44 +210,18 @@ async fn test_sync_metadata_from_spl_token_to_spl_token() {
     let unwrapped_mint = create_unwrapped_mint(&env, &spl_token::id()).await;
 
     // 2. Create Metaplex metadata for the unwrapped mint
-    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint);
     let name = "Unwrapped SPL".to_string();
     let symbol = "USPL".to_string();
     let uri = "http://uspl.com".to_string();
-
-    let create_meta_ix = CreateMetadataAccountV3 {
-        metadata: metaplex_pda,
-        mint: unwrapped_mint,
-        mint_authority: env.payer.pubkey(),
-        payer: env.payer.pubkey(),
-        update_authority: (env.payer.pubkey(), true),
-        system_program: system_program::id(),
-        rent: None,
-    }
-    .instruction(CreateMetadataAccountV3InstructionArgs {
-        data: DataV2 {
-            name: name.clone(),
-            symbol: symbol.clone(),
-            uri: uri.clone(),
-            seller_fee_basis_points: 0,
-            creators: None,
-            collection: None,
-            uses: None,
-        },
-        is_mutable: true,
-        collection_details: None,
-    });
-
-    let meta_tx = Transaction::new_signed_with_payer(
-        &[create_meta_ix],
-        Some(&env.payer.pubkey()),
-        &[&env.payer],
-        env.rpc_client.get_latest_blockhash().await.unwrap(),
-    );
-    env.rpc_client
-        .send_and_confirm_transaction(&meta_tx)
-        .await
-        .unwrap();
+    let metaplex_pda = create_metaplex_metadata(
+        &env,
+        &unwrapped_mint,
+        spl_token::id(),
+        name.clone(),
+        symbol.clone(),
+        uri.clone(),
+    )
+    .await;
 
     // 3. Create the corresponding wrapped SPL Token mint
     execute_create_mint(&env, &unwrapped_mint, &spl_token::id()).await;

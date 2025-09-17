@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
 use {
+    mpl_token_metadata::{
+        accounts::Metadata as MetaplexMetadata, instructions::CreateV1Builder, types::TokenStandard,
+    },
     serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
@@ -121,6 +124,49 @@ pub async fn create_unwrapped_mint(env: &TestEnv, token_program_addr: &Pubkey) -
         .await
         .unwrap();
     mint_account.pubkey()
+}
+
+pub async fn create_metaplex_metadata(
+    env: &TestEnv,
+    mint: &Pubkey,
+    token_program: Pubkey,
+    name: String,
+    symbol: String,
+    uri: String,
+) -> Pubkey {
+    let (metaplex_pda, _) = MetaplexMetadata::find_pda(mint);
+
+    let mut builder = CreateV1Builder::new();
+    let create_ix = builder
+        .metadata(metaplex_pda)
+        .master_edition(None)
+        .mint(*mint, false)
+        .authority(env.payer.pubkey())
+        .payer(env.payer.pubkey())
+        .update_authority(env.payer.pubkey(), true)
+        .spl_token_program(Some(token_program))
+        .name(name)
+        .symbol(symbol)
+        .uri(uri)
+        .seller_fee_basis_points(0)
+        .primary_sale_happened(false)
+        .is_mutable(true)
+        .token_standard(TokenStandard::Fungible)
+        .decimals(9)
+        .instruction();
+
+    let meta_tx = Transaction::new_signed_with_payer(
+        &[create_ix],
+        Some(&env.payer.pubkey()),
+        &[&env.payer],
+        env.rpc_client.get_latest_blockhash().await.unwrap(),
+    );
+    env.rpc_client
+        .send_and_confirm_transaction(&meta_tx)
+        .await
+        .unwrap();
+
+    metaplex_pda
 }
 
 pub async fn execute_create_mint(
