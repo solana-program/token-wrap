@@ -7,8 +7,9 @@ use {
         sync_to_token_2022_builder::SyncToToken2022Builder,
         token_account_builder::TokenAccountBuilder,
     },
+    borsh::BorshSerialize,
     mollusk_svm::result::Check,
-    mpl_token_metadata::accounts::Metadata as MetaplexMetadata,
+    mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, types::Key},
     solana_account::Account,
     solana_account_info::AccountInfo,
     solana_program_error::ProgramError,
@@ -159,7 +160,7 @@ fn test_fail_spl_token_with_invalid_metaplex_pda() {
 // --- Token-2022 Source Tests ---
 
 #[test]
-fn test_fail_pointer_missing() {
+fn test_fail_no_fallback_account_provided() {
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .build(); // No pointer extension
@@ -178,14 +179,125 @@ fn test_fail_pointer_missing() {
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
-    assert_eq!(
-        result.unwrap_err(),
-        TokenWrapError::MetadataPointerMissing.into()
+    assert_eq!(result.unwrap_err(), ProgramError::NotEnoughAccountKeys);
+}
+
+#[test]
+fn test_success_no_pointer_fallback_to_metaplex() {
+    // No pointer, but a valid Metaplex PDA is provided, should succeed.
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .build(); // No pointer
+
+    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint.key);
+    let mut source_metaplex_account = Account {
+        owner: mpl_token_metadata::ID,
+        lamports: 1_000_000_000,
+        ..Default::default()
+    };
+    let metaplex_metadata_obj = MetaplexMetadata {
+        key: Key::MetadataV1,
+        update_authority: Pubkey::new_unique(),
+        mint: unwrapped_mint.key,
+        name: "Metaplex Fallback".to_string(),
+        symbol: "FALL".to_string(),
+        uri: "uri.fallback".to_string(),
+        seller_fee_basis_points: 0,
+        creators: None,
+        primary_sale_happened: false,
+        is_mutable: true,
+        edition_nonce: None,
+        token_standard: None,
+        collection: None,
+        uses: None,
+        collection_details: None,
+        programmable_config: None,
+    };
+    source_metaplex_account.data = metaplex_metadata_obj.try_to_vec().unwrap();
+    let source_metadata = KeyedAccount {
+        key: metaplex_pda,
+        account: source_metaplex_account,
+    };
+
+    let mut mint_lamports = unwrapped_mint.account.lamports;
+    let mut mint_data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut mint_lamports,
+        &mut mint_data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
     );
+    let mut source_lamports = source_metadata.account.lamports;
+    let mut source_data = source_metadata.account.data.clone();
+    let source_metadata_info = AccountInfo::new(
+        &source_metadata.key,
+        false,
+        false,
+        &mut source_lamports,
+        &mut source_data,
+        &source_metadata.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
+    assert!(result.is_ok());
+    let token_metadata = result.unwrap();
+    assert_eq!(token_metadata.name, "Metaplex Fallback");
+}
+
+#[test]
+fn test_fail_no_pointer_fallback_wrong_owner() {
+    // No pointer, fallback provided, but its owner is not Metaplex.
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .build(); // No pointer
+
+    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint.key);
+    let source_metadata = KeyedAccount {
+        key: metaplex_pda,
+        account: Account {
+            owner: Pubkey::new_unique(), // Not Metaplex
+            ..Default::default()
+        },
+    };
+
+    let mut mint_lamports = unwrapped_mint.account.lamports;
+    let mut mint_data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut mint_lamports,
+        &mut mint_data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
+    );
+    let mut source_lamports = source_metadata.account.lamports;
+    let mut source_data = source_metadata.account.data.clone();
+    let source_metadata_info = AccountInfo::new(
+        &source_metadata.key,
+        false,
+        false,
+        &mut source_lamports,
+        &mut source_data,
+        &source_metadata.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
+    assert_eq!(result.unwrap_err(), ProgramError::InvalidAccountOwner);
 }
 
 #[test]
 fn test_fail_pointer_unset() {
+    // Pointer extension exists, but address is None.
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
@@ -213,7 +325,78 @@ fn test_fail_pointer_unset() {
 }
 
 #[test]
+fn test_success_self_referential_pointer() {
+    // Token-2022 mint with a self-referential pointer and metadata should succeed.
+    let unwrapped_mint_key = Pubkey::new_unique();
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_key(unwrapped_mint_key)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(unwrapped_mint_key),
+        })
+        .with_extension(MintExtension::TokenMetadata {
+            name: "Self Ref".to_string(),
+            symbol: "SELF".to_string(),
+            uri: "uri.self".to_string(),
+            additional_metadata: vec![],
+        })
+        .build();
+
+    let mut lamports = unwrapped_mint.account.lamports;
+    let mut data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut lamports,
+        &mut data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, None, None);
+    assert!(result.is_ok());
+    let token_metadata = result.unwrap();
+    assert_eq!(token_metadata.name, "Self Ref");
+    assert_eq!(token_metadata.symbol, "SELF");
+}
+
+#[test]
+fn test_fail_self_referential_pointer_no_metadata() {
+    // Self-referential pointer but no TokenMetadata extension should fail.
+    let unwrapped_mint_key = Pubkey::new_unique();
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_key(unwrapped_mint_key)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(unwrapped_mint_key),
+        })
+        // No TokenMetadata extension
+        .build();
+
+    let mut lamports = unwrapped_mint.account.lamports;
+    let mut data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut lamports,
+        &mut data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, None, None);
+    // The call to `get_variable_len_extension` should fail because the
+    // TokenMetadata extension is not present on the mint.
+    assert_eq!(result.unwrap_err(), ProgramError::InvalidAccountData);
+}
+
+#[test]
 fn test_fail_pointer_to_external_account_not_provided() {
+    // Pointer points to an external account, but it's not provided.
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
@@ -239,6 +422,7 @@ fn test_fail_pointer_to_external_account_not_provided() {
 
 #[test]
 fn test_fail_pointer_mismatch() {
+    // Pointer points to one account, but a different one is provided.
     let pointer_address = Pubkey::new_unique();
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
@@ -328,6 +512,195 @@ fn test_fail_pointer_to_token_2022_account_is_unsupported() {
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
     assert_eq!(result.unwrap_err(), ProgramError::InvalidAccountData);
+}
+
+#[test]
+fn test_success_pointer_to_metaplex() {
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .build();
+
+    // Re-derive PDA with actual mint key
+    let (metaplex_pda, _) = MetaplexMetadata::find_pda(&unwrapped_mint.key);
+    let mut metaplex_account = Account {
+        owner: mpl_token_metadata::ID,
+        lamports: 1_000_000_000,
+        ..Default::default()
+    };
+    let metaplex_metadata_obj = MetaplexMetadata {
+        name: "Pointed-to Metaplex".to_string(),
+        symbol: "PMP".to_string(),
+        uri: "uri.pmp".to_string(),
+        key: Key::MetadataV1,
+        update_authority: Pubkey::new_unique(),
+        mint: unwrapped_mint.key,
+        seller_fee_basis_points: 0,
+        creators: None,
+        primary_sale_happened: false,
+        is_mutable: true,
+        edition_nonce: None,
+        token_standard: None,
+        collection: None,
+        uses: None,
+        collection_details: None,
+        programmable_config: None,
+    };
+    metaplex_account.data = metaplex_metadata_obj.try_to_vec().unwrap();
+    let source_metadata = KeyedAccount {
+        key: metaplex_pda,
+        account: metaplex_account,
+    };
+
+    // Add pointer to the mint
+    let unwrapped_mint_with_pointer = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .mint_key(unwrapped_mint.key)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(metaplex_pda),
+        })
+        .build();
+
+    let mut mint_lamports = unwrapped_mint_with_pointer.account.lamports;
+    let mut mint_data = unwrapped_mint_with_pointer.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint_with_pointer.key,
+        false,
+        false,
+        &mut mint_lamports,
+        &mut mint_data,
+        &unwrapped_mint_with_pointer.account.owner,
+        false,
+        0,
+    );
+    let mut source_lamports = source_metadata.account.lamports;
+    let mut source_data = source_metadata.account.data.clone();
+    let source_metadata_info = AccountInfo::new(
+        &source_metadata.key,
+        false,
+        false,
+        &mut source_lamports,
+        &mut source_data,
+        &source_metadata.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
+    assert!(result.is_ok());
+    let token_metadata = result.unwrap();
+    assert_eq!(token_metadata.name, "Pointed-to Metaplex");
+}
+
+#[test]
+fn test_fail_pointer_to_third_party_missing_owner_program() {
+    // Pointer to third-party, but `owner_program_info` is missing.
+    let source_metadata = KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: Account {
+            owner: mock_metadata_owner::ID,
+            ..Default::default()
+        },
+    };
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(source_metadata.key),
+        })
+        .build();
+
+    let mut mint_lamports = unwrapped_mint.account.lamports;
+    let mut mint_data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut mint_lamports,
+        &mut mint_data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
+    );
+    let mut source_lamports = source_metadata.account.lamports;
+    let mut source_data = source_metadata.account.data.clone();
+    let source_metadata_info = AccountInfo::new(
+        &source_metadata.key,
+        false,
+        false,
+        &mut source_lamports,
+        &mut source_data,
+        &source_metadata.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
+    assert_eq!(result.unwrap_err(), ProgramError::NotEnoughAccountKeys);
+}
+
+#[test]
+fn test_fail_pointer_to_third_party_owner_program_mismatch() {
+    // Pointer to third-party, but `owner_program_info` key mismatches.
+    let source_metadata = KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: Account {
+            owner: mock_metadata_owner::ID, // Real owner
+            ..Default::default()
+        },
+    };
+    let unwrapped_mint = MintBuilder::new()
+        .token_program(TokenProgram::SplToken2022)
+        .with_extension(MintExtension::MetadataPointer {
+            metadata_address: Some(source_metadata.key),
+        })
+        .build();
+    let wrong_owner_program = KeyedAccount {
+        key: Pubkey::new_unique(), // Wrong program ID
+        account: Account::default(),
+    };
+
+    let mut mint_lamports = unwrapped_mint.account.lamports;
+    let mut mint_data = unwrapped_mint.account.data.clone();
+    let unwrapped_mint_info = AccountInfo::new(
+        &unwrapped_mint.key,
+        false,
+        false,
+        &mut mint_lamports,
+        &mut mint_data,
+        &unwrapped_mint.account.owner,
+        false,
+        0,
+    );
+    let mut source_lamports = source_metadata.account.lamports;
+    let mut source_data = source_metadata.account.data.clone();
+    let source_metadata_info = AccountInfo::new(
+        &source_metadata.key,
+        false,
+        false,
+        &mut source_lamports,
+        &mut source_data,
+        &source_metadata.account.owner,
+        false,
+        0,
+    );
+    let mut owner_lamports = wrong_owner_program.account.lamports;
+    let mut owner_data = wrong_owner_program.account.data.clone();
+    let wrong_owner_program_info = AccountInfo::new(
+        &wrong_owner_program.key,
+        false,
+        false,
+        &mut owner_lamports,
+        &mut owner_data,
+        &wrong_owner_program.account.owner,
+        false,
+        0,
+    );
+
+    let result = extract_token_metadata(
+        &unwrapped_mint_info,
+        Some(&source_metadata_info),
+        Some(&wrong_owner_program_info),
+    );
+    assert_eq!(result.unwrap_err(), ProgramError::InvalidAccountOwner);
 }
 
 // ====== Integration tests for CPI logic ======
