@@ -6,7 +6,6 @@ use {
     mpl_token_metadata::utils::clean,
     serde_json::Value,
     serial_test::serial,
-    solana_client::rpc_config::RpcAccountInfoConfig,
     solana_keypair::Keypair,
     solana_pubkey::Pubkey,
     solana_sdk_ids::system_program,
@@ -22,11 +21,7 @@ use {
     },
     spl_token_metadata_interface::state::TokenMetadata,
     spl_token_wrap::get_wrapped_mint_address,
-    std::{
-        process::Command,
-        time::{Duration, Instant},
-    },
-    tokio::time::sleep,
+    std::process::Command,
 };
 
 mod helpers;
@@ -335,31 +330,6 @@ async fn test_sync_from_token2022_with_self_referential_pointer() {
     assert_eq!(clean(token_metadata.uri), URI);
 }
 
-async fn wait_until_ready(env: &TestEnv, wrapped_mint_address: &Pubkey, expected_balance: u64) {
-    const POLL_EVERY: Duration = Duration::from_millis(500);
-    const TIMEOUT: Duration = Duration::from_secs(10);
-
-    let start_time = Instant::now();
-    let deadline = start_time.checked_add(TIMEOUT).unwrap();
-
-    while Instant::now() < deadline {
-        if let Ok(resp) = env
-            .rpc_client
-            .get_account_with_config(wrapped_mint_address, RpcAccountInfoConfig::default())
-            .await
-        {
-            if resp
-                .value
-                .as_ref()
-                .is_some_and(|a| a.lamports >= expected_balance)
-            {
-                break; // state visible, proceed
-            }
-        }
-        sleep(POLL_EVERY).await;
-    }
-}
-
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sync_from_token2022_with_external_metaplex_pointer() {
@@ -394,11 +364,6 @@ async fn test_sync_from_token2022_with_external_metaplex_pointer() {
     execute_create_mint(&env, &unwrapped_mint, &spl_token_2022::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
 
-    let initial_balance = env
-        .rpc_client
-        .get_balance(&wrapped_mint_address)
-        .await
-        .unwrap();
     let funding_amount = 1_000_000_000;
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
@@ -414,13 +379,6 @@ async fn test_sync_from_token2022_with_external_metaplex_pointer() {
         .send_and_confirm_transaction(&fund_tx)
         .await
         .unwrap();
-
-    // The test validator can sometimes have a race condition for this specific test
-    // where the state of an account is not immediately reflected in the bank
-    // used for the next transaction's simulation. For that reason, we'll wait when
-    // the balance is reflected in an RPC query.
-    let expected_balance = initial_balance.saturating_add(funding_amount);
-    wait_until_ready(&env, &wrapped_mint_address, expected_balance).await;
 
     // 4. Execute sync command
     let output = Command::new(TOKEN_WRAP_CLI_BIN)

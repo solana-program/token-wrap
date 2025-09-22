@@ -7,6 +7,7 @@ use {
     serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
+    solana_commitment_config::CommitmentConfig,
     solana_keypair::{write_keypair_file, Keypair},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
@@ -58,7 +59,10 @@ pub async fn start_validator() -> (TestValidator, Keypair) {
 
 pub async fn setup_test_env() -> TestEnv {
     let (validator, payer) = start_validator().await;
-    let rpc_client = Arc::new(validator.get_async_rpc_client());
+    let rpc_client = Arc::new(RpcClient::new_with_commitment(
+        validator.rpc_url(),
+        CommitmentConfig::confirmed(),
+    ));
 
     // Write payer keypair to a temporary file
     let keypair_file = NamedTempFile::new().unwrap();
