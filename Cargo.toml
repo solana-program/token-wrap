@@ -37,7 +37,7 @@ edition = "2021"
 [workspace.dependencies]
 anyhow = "1.0.100"
 borsh = "0.10.4"
-bytemuck = { version = "1.23.2", features = ["derive"] }
+bytemuck = { version = "1.24.0", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
 mock-metadata-owner = { path = "program/tests/programs/mock-metadata-owner" }
 mollusk-svm = "0.4.2"
