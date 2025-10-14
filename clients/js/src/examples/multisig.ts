@@ -2,6 +2,7 @@ import {
   address,
   appendTransactionMessageInstructions,
   assertIsSendableTransaction,
+  assertIsTransactionWithBlockhashLifetime,
   createKeyPairSignerFromBytes,
   createNoopSigner,
   createSolanaRpc,
@@ -80,6 +81,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(createMintTx);
+  assertIsTransactionWithBlockhashLifetime(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
   const createMintSignature = getSignatureFromTransaction(createMintTx);
 
@@ -108,6 +110,7 @@ async function main() {
       tx => signTransactionMessageWithSigners(tx),
     );
     assertIsSendableTransaction(createEscrowTx);
+    assertIsTransactionWithBlockhashLifetime(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
     const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
 
@@ -138,6 +141,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(recipientTokenAccountTx);
+  assertIsTransactionWithBlockhashLifetime(recipientTokenAccountTx);
   await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   const unwrappedTokenProgram = await getOwnerFromAccount(rpc, UNWRAPPED_TOKEN_ACCOUNT);
@@ -165,6 +169,7 @@ async function main() {
     blockhash: wrapBlockhash,
   });
   const signedWrapTxA = await partiallySignTransactionMessageWithSigners(wrapTxA);
+  assertIsTransactionWithBlockhashLifetime(signedWrapTxA);
 
   const wrapTxB = await multisigOfflineSignWrap({
     payer: createNoopSigner(payer.address),
@@ -181,6 +186,7 @@ async function main() {
     blockhash: wrapBlockhash,
   });
   const signedWrapTxB = await partiallySignTransactionMessageWithSigners(wrapTxB);
+  assertIsTransactionWithBlockhashLifetime(signedWrapTxB);
 
   const wrapTxC = await multisigOfflineSignWrap({
     payer,
@@ -197,6 +203,7 @@ async function main() {
     blockhash: wrapBlockhash,
   });
   const signedWrapTxC = await partiallySignTransactionMessageWithSigners(wrapTxC);
+  assertIsTransactionWithBlockhashLifetime(signedWrapTxC);
 
   // Lastly, all signatures are combined together and broadcast
 
@@ -235,6 +242,7 @@ async function main() {
     blockhash: unwrapBlockhash,
   });
   const signedUnwrapTxA = await partiallySignTransactionMessageWithSigners(unwrapTxA);
+  assertIsTransactionWithBlockhashLifetime(signedUnwrapTxA);
 
   const unwrapTxB = await multisigOfflineSignUnwrap({
     payer: createNoopSigner(payer.address),
@@ -251,6 +259,7 @@ async function main() {
     blockhash: unwrapBlockhash,
   });
   const signedUnwrapTxB = await partiallySignTransactionMessageWithSigners(unwrapTxB);
+  assertIsTransactionWithBlockhashLifetime(signedUnwrapTxB);
 
   const unwrapTxC = await multisigOfflineSignUnwrap({
     payer: payer,
@@ -267,6 +276,7 @@ async function main() {
     blockhash: unwrapBlockhash,
   });
   const signedUnwrapTxC = await partiallySignTransactionMessageWithSigners(unwrapTxC);
+  assertIsTransactionWithBlockhashLifetime(signedUnwrapTxC);
 
   const combinedUnwrapTx = combinedMultisigTx({
     signedTxs: [signedUnwrapTxA, signedUnwrapTxB, signedUnwrapTxC],

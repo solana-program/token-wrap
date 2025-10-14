@@ -2,6 +2,7 @@ import {
   address,
   appendTransactionMessageInstructions,
   assertIsSendableTransaction,
+  assertIsTransactionWithBlockhashLifetime,
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
@@ -58,6 +59,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(createMintTx);
+  assertIsTransactionWithBlockhashLifetime(createMintTx);
   await sendAndConfirm(createMintTx, { commitment: 'confirmed' });
   const createMintSignature = getSignatureFromTransaction(createMintTx);
 
@@ -86,6 +88,7 @@ async function main() {
       tx => signTransactionMessageWithSigners(tx),
     );
     assertIsSendableTransaction(createEscrowTx);
+    assertIsTransactionWithBlockhashLifetime(createEscrowTx);
     await sendAndConfirm(createEscrowTx, { commitment: 'confirmed' });
     const createEscrowSignature = getSignatureFromTransaction(createEscrowTx);
 
@@ -116,6 +119,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(recipientTokenAccountTx);
+  assertIsTransactionWithBlockhashLifetime(recipientTokenAccountTx);
   await sendAndConfirm(recipientTokenAccountTx, { commitment: 'confirmed' });
 
   // Execute wrap
@@ -137,6 +141,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(wrapTx);
+  assertIsTransactionWithBlockhashLifetime(wrapTx);
   await sendAndConfirm(wrapTx, { commitment: 'confirmed' });
   const wrapSignature = getSignatureFromTransaction(wrapTx);
 
@@ -164,6 +169,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(unwrapTx);
+  assertIsTransactionWithBlockhashLifetime(unwrapTx);
   await sendAndConfirm(unwrapTx, { commitment: 'confirmed' });
   const unwrapSignature = getSignatureFromTransaction(unwrapTx);
 

@@ -2,6 +2,7 @@ import {
   address,
   appendTransactionMessageInstructions,
   assertIsSendableTransaction,
+  assertIsTransactionWithBlockhashLifetime,
   createKeyPairSignerFromBytes,
   createSolanaRpc,
   createSolanaRpcSubscriptions,
@@ -89,6 +90,7 @@ async function main() {
     tx => signTransactionMessageWithSigners(tx),
   );
   assertIsSendableTransaction(transaction);
+  assertIsTransactionWithBlockhashLifetime(transaction);
   const signature = getSignatureFromTransaction(transaction);
   await sendAndConfirm(transaction, { commitment: 'confirmed' });
 
