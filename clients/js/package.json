@@ -42,7 +42,7 @@
     "url": "https://github.com/solana-program/token-wrap/issues"
   },
   "peerDependencies": {
-    "@solana/kit": "^3.0.3"
+    "@solana/kit": "^4.0.0"
   },
   "dependencies": {
     "@solana-program/system": "^0.8.1",
@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
-    "@solana/kit": "^3.0.3",
+    "@solana/kit": "^4.0.0",
     "@tsconfig/strictest": "^2.0.6",
     "@types/node": "^24.7.2",
     "eslint": "^9.37.0",
