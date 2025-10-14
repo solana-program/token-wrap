@@ -1,5 +1,11 @@
 # @solana-program/token-wrap
 
+## 2.3.0
+
+### Minor Changes
+
+- 3fe204d: Bump Kit to v4
+
 ## 2.2.0
 
 ### Minor Changes
