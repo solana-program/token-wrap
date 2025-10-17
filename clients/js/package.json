@@ -55,7 +55,7 @@
     "@eslint/js": "^9.37.0",
     "@solana/kit": "^4.0.0",
     "@tsconfig/strictest": "^2.0.6",
-    "@types/node": "^24.7.2",
+    "@types/node": "^24.8.1",
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.6.2",
