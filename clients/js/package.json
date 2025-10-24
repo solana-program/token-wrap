@@ -48,7 +48,7 @@
     "@solana-program/system": "^0.9.0",
     "@solana-program/token": "^0.7.0",
     "@solana-program/token-2022": "^0.6.0",
-    "@solana/accounts": "^4.0.0",
+    "@solana/accounts": "^5.0.0",
     "@solana/rpc-types": "^4.0.0"
   },
   "devDependencies": {
