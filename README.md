@@ -126,6 +126,7 @@ If the current wrapped mint config does not suit your needs, please fork! A few 
 |----------------------|------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Zellic               | 2025-05-16 | [75c5529](https://github.com/solana-program/token-wrap/tree/75c5529d5a191f12bd58b6b92ca0104ce3464763) | [PDF](https://github.com/anza-xyz/security-audits/blob/2294fc0e61c153c8aed174e9f63a1730683f1f2a/spl/ZellicTokenWrapAudit-2025-05-16.pdf)              |
 | Runtime Verification | 2025-06-11 | [dd71fc1](https://github.com/solana-program/token-wrap/tree/dd71fc10c651b07b7d62b151021216e5321b1789) | [PDF](https://github.com/anza-xyz/security-audits/blob/2294fc0e61c153c8aed174e9f63a1730683f1f2a/spl/RuntimeVerificationTokenWrapAudit-2025-06-11.pdf) |
+| Runtime Verification | 2025-10-30 | [228dc97](https://github.com/solana-program/token-wrap/tree/228dc976d454b766e649ea7759304e1fb457c76d) | [PDF](https://github.com/anza-xyz/security-audits/blob/80287adb867b83a394d62dd7ab88a693eb266539/spl/RuntimeVerificationTokenWrapAudit-2025-10-30.pdf) |
 
 ## Getting Started
 
