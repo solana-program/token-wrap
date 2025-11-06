@@ -189,8 +189,8 @@ pub enum TokenWrapInstruction {
     ///
     /// Accounts expected:
     /// 0. `[s]` Unwrapped mint authority
-    /// 1. `[w]` CanonicalPointer PDA account to create or update, address must
-    ///    be: `get_canonical_pointer_address(unwrapped_mint_address)`
+    /// 1. `[w]` `CanonicalPointer` PDA account to create or update, address
+    ///    must be: `get_canonical_pointer_address(unwrapped_mint_address)`
     /// 2. `[]` Unwrapped mint
     /// 3. `[]` System program
     SetCanonicalPointer {
