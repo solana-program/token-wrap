@@ -45,8 +45,8 @@ importers:
         specifier: ^0.10.0
         version: 0.10.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))
       '@solana-program/token':
-        specifier: ^0.7.0
-        version: 0.7.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))
+        specifier: ^0.8.0
+        version: 0.8.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))
       '@solana-program/token-2022':
         specifier: ^0.6.1
         version: 0.6.1(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))(@solana/sysvars@4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3))
@@ -736,10 +736,10 @@ packages:
       '@solana/kit': ^5.0
       '@solana/sysvars': ^5.0
 
-  '@solana-program/token@0.7.0':
-    resolution: {integrity: sha512-Rx9vTsU15lLbjLmzrnLhPG4ZBlzkvyr7sRAH5ciA3dtSocpprkMEHQslDteE9+5rKkuYoIUl7Qki4l2IMY0P2w==}
+  '@solana-program/token@0.8.0':
+    resolution: {integrity: sha512-nXUCImHhNv2i052v1WRcJSSOXPBmCv0gg0MbuwThQN/aNKRf8PNQQjAS+UY7ukvIpdtZOnpq9w9pqepegxONzQ==}
     peerDependencies:
-      '@solana/kit': ^4.0
+      '@solana/kit': ^5.0
 
   '@solana/accounts@4.0.0':
     resolution: {integrity: sha512-fxTtTk7PCJrigdzqhkc0eZYACVZpONKJZy4MkGvZzx5tCC7rUeDJvzau3IYACUCRaaAGPpkINHwYtp8weKsn8w==}
@@ -2733,7 +2733,7 @@ snapshots:
       '@solana/kit': 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))
       '@solana/sysvars': 4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
 
-  '@solana-program/token@0.7.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))':
+  '@solana-program/token@0.8.0(@solana/kit@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))':
     dependencies:
       '@solana/kit': 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))
 
