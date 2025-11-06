@@ -170,6 +170,31 @@ pub enum TokenWrapInstruction {
     /// 8. `[]` (Optional) Owner program. Required when metadata account is
     ///    owned by a third-party program.
     SyncMetadataToSplToken,
+
+    /// Creates or updates the canonical program pointer for a mint.
+    ///
+    /// The mint authority of an unwrapped mint may desire to deploy a forked
+    /// version of the Token Wrap program themselves. Likely in the case they
+    /// prefer a certain set of extensions or a particular config for
+    /// token-2022s. In this case, they may even freeze the escrow account
+    /// and want some way to signal another Token Wrap deployment is the
+    /// "canonical" one. This PDA allows them to indicate that on-chain.
+    ///
+    /// If creating, the client is responsible for pre-funding the rent for the
+    /// PDA that will be allocated.
+    ///
+    /// If no mint authority exists on the unwrapped mint, this instruction will
+    /// fail.
+    ///
+    /// Accounts expected:
+    /// 0. `[s]` Unwrapped mint authority
+    /// 1. `[w]` CanonicalPointer PDA account to create or update, address must
+    ///    be: `get_canonical_pointer_address(unwrapped_mint_address)`
+    /// 2. `[]` Unwrapped mint
+    SetCanonicalPointer {
+        /// The program ID to set as canonical
+        program_id: Pubkey,
+    },
 }
 
 impl TokenWrapInstruction {
@@ -200,6 +225,10 @@ impl TokenWrapInstruction {
             TokenWrapInstruction::SyncMetadataToSplToken => {
                 buf.push(5);
             }
+            TokenWrapInstruction::SetCanonicalPointer { program_id } => {
+                buf.push(6);
+                buf.extend_from_slice(program_id.as_ref());
+            }
         }
         buf
     }
@@ -227,6 +256,10 @@ impl TokenWrapInstruction {
             Some((&3, [])) => Ok(TokenWrapInstruction::CloseStuckEscrow),
             Some((&4, [])) => Ok(TokenWrapInstruction::SyncMetadataToToken2022),
             Some((&5, [])) => Ok(TokenWrapInstruction::SyncMetadataToSplToken),
+            Some((&6, rest)) if rest.len() == 32 => {
+                let program_id = Pubkey::new_from_array(rest.try_into().unwrap());
+                Ok(TokenWrapInstruction::SetCanonicalPointer { program_id })
+            }
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -406,5 +439,28 @@ pub fn sync_metadata_to_spl_token(
     }
 
     let data = TokenWrapInstruction::SyncMetadataToSplToken.pack();
+    Instruction::new_with_bytes(*program_id, &data, accounts)
+}
+
+/// Creates `SetCanonicalPointer` instruction.
+pub fn set_canonical_pointer(
+    program_id: &Pubkey,
+    pointer_address: &Pubkey,
+    unwrapped_mint: &Pubkey,
+    mint_authority: &Pubkey,
+    payer: &Pubkey,
+    canonical_program_id: &Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*pointer_address, false),
+        AccountMeta::new_readonly(*unwrapped_mint, false),
+        AccountMeta::new_readonly(*mint_authority, true),
+        AccountMeta::new(*payer, true),
+        AccountMeta::new_readonly(solana_system_interface::program::id(), false),
+    ];
+    let data = TokenWrapInstruction::SetCanonicalPointer {
+        program_id: *canonical_program_id,
+    }
+    .pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
 }
