@@ -1,7 +1,4 @@
-use {
-    solana_pubkey::Pubkey,
-    spl_token_wrap::instruction::TokenWrapInstruction,
-};
+use {solana_pubkey::Pubkey, spl_token_wrap::instruction::TokenWrapInstruction};
 
 #[test]
 fn test_pack_unpack_create_mint() {
@@ -41,6 +38,17 @@ fn test_pack_unpack_unwrap() {
 }
 
 #[test]
+fn test_pack_unpack_set_canonical_pointer() {
+    let canonical_program_id = Pubkey::new_unique();
+    let instruction = TokenWrapInstruction::SetCanonicalPointer {
+        program_id: canonical_program_id,
+    };
+    let packed = instruction.pack();
+    let unpacked = TokenWrapInstruction::unpack(&packed).unwrap();
+    assert_eq!(unpacked, instruction);
+}
+
+#[test]
 fn test_unpack_invalid_data() {
     assert!(TokenWrapInstruction::unpack(&[]).is_err());
     assert!(TokenWrapInstruction::unpack(&[6]).is_err());
@@ -49,14 +57,4 @@ fn test_unpack_invalid_data() {
     assert!(TokenWrapInstruction::unpack(&[2, 0, 0, 0]).is_err());
     assert!(TokenWrapInstruction::unpack(&[0]).is_err());
     assert!(TokenWrapInstruction::unpack(&[0, 1, 0]).is_err());
-}
-
-#[test]
-fn test_pack_unpack_set_canonical_pointer() {
-    let canonical_program_id = Pubkey::new_unique();
-    let instruction =
-        TokenWrapInstruction::SetCanonicalPointer { program_id: canonical_program_id };
-    let packed = instruction.pack();
-    let unpacked = TokenWrapInstruction::unpack(&packed).unwrap();
-    assert_eq!(unpacked, instruction);
 }

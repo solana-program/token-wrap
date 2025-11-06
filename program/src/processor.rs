@@ -30,7 +30,7 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    solana_system_interface::instruction::{allocate, assign, create_account},
+    solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::{clock::Clock, Sysvar},
     spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
@@ -805,6 +805,7 @@ pub fn process_set_canonical_pointer(
     let unwrapped_mint_authority_info = next_account_info(account_info_iter)?;
     let canonical_pointer_info = next_account_info(account_info_iter)?;
     let unwrapped_mint_info = next_account_info(account_info_iter)?;
+    let _system_program_info = next_account_info(account_info_iter)?;
 
     if !unwrapped_mint_authority_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);

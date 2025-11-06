@@ -174,14 +174,15 @@ pub enum TokenWrapInstruction {
     /// Creates or updates the canonical program pointer for a mint.
     ///
     /// The mint authority of an unwrapped mint may desire to deploy a forked
-    /// version of the Token Wrap program themselves. Likely in the case they
-    /// prefer a certain set of extensions or a particular config for
-    /// token-2022s. In this case, they may even freeze the escrow account
-    /// and want some way to signal another Token Wrap deployment is the
-    /// "canonical" one. This PDA allows them to indicate that on-chain.
+    /// version of the Token Wrap program themselves. It's likely the case they
+    /// prefer a certain set of extensions or a particular config for the
+    /// wrapped token-2022s. They may even freeze the unwrapped mint's
+    /// escrow account in the original deployment to force the use of the fork.
+    /// A `CanonicalPointer` PDA allows a mint authority to signal on-chain
+    /// another Token Wrap deployment is the "canonical" one for the mint.
     ///
-    /// If creating, the client is responsible for pre-funding the rent for the
-    /// PDA that will be allocated.
+    /// If calling for the first time, the client is responsible for pre-funding
+    /// the rent for the PDA that will be initialized.
     ///
     /// If no mint authority exists on the unwrapped mint, this instruction will
     /// fail.
@@ -191,6 +192,7 @@ pub enum TokenWrapInstruction {
     /// 1. `[w]` CanonicalPointer PDA account to create or update, address must
     ///    be: `get_canonical_pointer_address(unwrapped_mint_address)`
     /// 2. `[]` Unwrapped mint
+    /// 3. `[]` System program
     SetCanonicalPointer {
         /// The program ID to set as canonical
         program_id: Pubkey,
@@ -445,17 +447,15 @@ pub fn sync_metadata_to_spl_token(
 /// Creates `SetCanonicalPointer` instruction.
 pub fn set_canonical_pointer(
     program_id: &Pubkey,
+    mint_authority: &Pubkey,
     pointer_address: &Pubkey,
     unwrapped_mint: &Pubkey,
-    mint_authority: &Pubkey,
-    payer: &Pubkey,
     canonical_program_id: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
+        AccountMeta::new_readonly(*mint_authority, true),
         AccountMeta::new(*pointer_address, false),
         AccountMeta::new_readonly(*unwrapped_mint, false),
-        AccountMeta::new_readonly(*mint_authority, true),
-        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(solana_system_interface::program::id(), false),
     ];
     let data = TokenWrapInstruction::SetCanonicalPointer {
