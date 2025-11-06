@@ -4,7 +4,6 @@ use {
         mint_builder::MintBuilder,
         set_canonical_pointer_builder::SetCanonicalPointerBuilder,
     },
-    bytemuck,
     mollusk_svm::result::Check,
     solana_account::Account,
     solana_program_error::ProgramError,
@@ -17,7 +16,7 @@ pub mod helpers;
 
 #[test]
 fn test_fail_missing_authority_signature() {
-    SetCanonicalPointerBuilder::new()
+    SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(Pubkey::new_unique())
         .authority_not_signer()
         .check(Check::err(ProgramError::MissingRequiredSignature))
@@ -31,7 +30,7 @@ fn test_fail_mint_has_no_authority() {
         .no_mint_authority()
         .build();
 
-    SetCanonicalPointerBuilder::new()
+    SetCanonicalPointerBuilder::default()
         .unwrapped_mint(mint_without_authority)
         .check(Check::err(ProgramError::InvalidAccountData))
         .execute();
@@ -46,7 +45,7 @@ fn test_fail_incorrect_authority() {
         .mint_authority(correct_authority)
         .build();
 
-    SetCanonicalPointerBuilder::new()
+    SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(incorrect_authority)
         .unwrapped_mint(mint)
         .check(Check::err(ProgramError::IncorrectAuthority))
@@ -64,7 +63,7 @@ fn test_fail_incorrect_pointer_address() {
         key: Pubkey::new_unique(), // Not the derived PDA
         account: Account::default(),
     };
-    SetCanonicalPointerBuilder::new()
+    SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(authority)
         .unwrapped_mint(mint)
         .canonical_pointer(incorrect_pointer)
@@ -91,7 +90,7 @@ fn test_fail_insufficient_funds_for_new_pointer() {
         },
     };
 
-    SetCanonicalPointerBuilder::new()
+    SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(authority)
         .unwrapped_mint(mint)
         .canonical_pointer(pointer_account_not_rent_exempt)
@@ -117,7 +116,7 @@ fn test_success_create_new_pointer() {
         },
     };
 
-    let result = SetCanonicalPointerBuilder::new()
+    let result = SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(authority)
         .unwrapped_mint(mint)
         .canonical_pointer(pointer_account_uninitialized)
@@ -156,7 +155,7 @@ fn test_success_update_existing_pointer() {
         },
     };
 
-    let result = SetCanonicalPointerBuilder::new()
+    let result = SetCanonicalPointerBuilder::default()
         .unwrapped_mint_authority(authority)
         .unwrapped_mint(mint)
         .canonical_pointer(pointer_account_initialized)

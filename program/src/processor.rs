@@ -817,9 +817,8 @@ pub fn process_set_canonical_pointer(
         .base
         .mint_authority
         .ok_or(ProgramError::InvalidAccountData)
-        .map_err(|e| {
+        .inspect_err(|_| {
             msg!("Cannot create/update pointer for unwrapped mint if does not have an authority");
-            e
         })?;
 
     if mint_authority != *unwrapped_mint_authority_info.key {
@@ -854,12 +853,12 @@ pub fn process_set_canonical_pointer(
         let signer_seeds =
             get_canonical_pointer_address_signer_seeds(unwrapped_mint_info.key, &bump_seed);
         invoke_signed(
-            &allocate(&canonical_pointer_info.key, space as u64),
+            &allocate(canonical_pointer_info.key, space as u64),
             &[canonical_pointer_info.clone()],
             &[&signer_seeds],
         )?;
         invoke_signed(
-            &assign(&canonical_pointer_info.key, program_id),
+            &assign(canonical_pointer_info.key, program_id),
             &[canonical_pointer_info.clone()],
             &[&signer_seeds],
         )?;

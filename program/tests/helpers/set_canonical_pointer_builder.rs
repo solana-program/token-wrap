@@ -24,8 +24,8 @@ pub struct SetCanonicalPointerBuilder<'a> {
     new_program_id: Option<Pubkey>,
 }
 
-impl<'a> SetCanonicalPointerBuilder<'a> {
-    pub fn new() -> Self {
+impl Default for SetCanonicalPointerBuilder<'_> {
+    fn default() -> Self {
         Self {
             mollusk: init_mollusk(),
             checks: vec![],
@@ -36,7 +36,9 @@ impl<'a> SetCanonicalPointerBuilder<'a> {
             new_program_id: None,
         }
     }
+}
 
+impl<'a> SetCanonicalPointerBuilder<'a> {
     pub fn unwrapped_mint_authority(mut self, key: Pubkey) -> Self {
         self.unwrapped_mint_authority = Some(key);
         self
@@ -70,7 +72,7 @@ impl<'a> SetCanonicalPointerBuilder<'a> {
     pub fn execute(mut self) -> SetCanonicalPointerResult {
         let unwrapped_mint_authority_key = self
             .unwrapped_mint_authority
-            .unwrap_or_else(|| Pubkey::new_unique());
+            .unwrap_or_else(Pubkey::new_unique);
 
         let unwrapped_mint = self.unwrapped_mint.unwrap_or_else(|| {
             MintBuilder::new()
