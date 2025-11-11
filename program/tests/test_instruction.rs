@@ -1,4 +1,4 @@
-use spl_token_wrap::instruction::TokenWrapInstruction;
+use {solana_pubkey::Pubkey, spl_token_wrap::instruction::TokenWrapInstruction};
 
 #[test]
 fn test_pack_unpack_create_mint() {
@@ -33,6 +33,17 @@ fn test_pack_unpack_unwrap() {
     let packed = instruction.pack();
     assert_eq!(packed, vec![2, 100, 0, 0, 0, 0, 0, 0, 0]);
 
+    let unpacked = TokenWrapInstruction::unpack(&packed).unwrap();
+    assert_eq!(unpacked, instruction);
+}
+
+#[test]
+fn test_pack_unpack_set_canonical_pointer() {
+    let canonical_program_id = Pubkey::new_unique();
+    let instruction = TokenWrapInstruction::SetCanonicalPointer {
+        program_id: canonical_program_id,
+    };
+    let packed = instruction.pack();
     let unpacked = TokenWrapInstruction::unpack(&packed).unwrap();
     assert_eq!(unpacked, instruction);
 }

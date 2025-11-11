@@ -17,7 +17,7 @@ use {
 
 pub struct MintBuilder {
     token_program: TokenProgram,
-    mint_authority: Option<Pubkey>,
+    mint_authority: Option<Option<Pubkey>>,
     freeze_authority: Option<Pubkey>,
     supply: u64,
     decimals: u8,
@@ -52,7 +52,12 @@ impl MintBuilder {
     }
 
     pub fn mint_authority(mut self, authority: Pubkey) -> Self {
-        self.mint_authority = Some(authority);
+        self.mint_authority = Some(Some(authority));
+        self
+    }
+
+    pub fn no_mint_authority(mut self) -> Self {
+        self.mint_authority = Some(None);
         self
     }
 
@@ -106,8 +111,11 @@ impl MintBuilder {
         state.base.decimals = self.decimals;
         state.base.is_initialized = PodBool::from_bool(true);
         state.base.supply = PodU64::from(self.supply);
-        let mint_authority = self.mint_authority.unwrap_or_else(Pubkey::new_unique);
-        state.base.mint_authority = PodCOption::some(mint_authority);
+        state.base.mint_authority = match self.mint_authority {
+            Some(Some(authority)) => PodCOption::some(authority),
+            Some(None) => PodCOption::none(),
+            None => PodCOption::some(Pubkey::new_unique()), // Default to random authority
+        };
         state.base.freeze_authority = self
             .freeze_authority
             .map(PodCOption::some)

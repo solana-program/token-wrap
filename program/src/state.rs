@@ -22,3 +22,13 @@ pub struct Backpointer {
     /// Address that the wrapped mint is wrapping
     pub unwrapped_mint: Pubkey,
 }
+
+/// The mint authority of an unwrapped mint's on-chain signal another token-wrap
+/// deployment is the "canonical" one.
+#[derive(Copy, Clone, Debug, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+pub struct CanonicalDeploymentPointer {
+    /// The program ID of the canonical token-wrap deployment as determined by
+    /// the unwrapped mint authority.
+    pub program_id: Pubkey,
+}

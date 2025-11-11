@@ -4,6 +4,7 @@ pub mod create_mint_builder;
 pub mod extensions;
 pub mod metadata;
 pub mod mint_builder;
+pub mod set_canonical_pointer_builder;
 pub mod sync_to_spl_token_builder;
 pub mod sync_to_token_2022_builder;
 pub mod token_account_builder;
