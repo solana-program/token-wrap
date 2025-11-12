@@ -27,7 +27,7 @@
     "@iarna/toml": "^2.2.5",
     "@solana-program/system": "^0.10.0",
     "@solana/sysvars": "^5.0.0",
-    "@types/node": "^24.10.0",
+    "@types/node": "^24.10.1",
     "codama": "^1.3.7",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
