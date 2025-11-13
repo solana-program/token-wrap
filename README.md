@@ -14,11 +14,11 @@ advantage of some of the latest features of a specific token program, this might
 
 ## Features
 
-* **Bidirectional Wrapping:** Convert tokens between SPL Token and SPL Token 2022 standards in either direction,
-  including conversions between different SPL Token 2022 mints.
+* **Bidirectional Wrapping:** Convert tokens between SPL Token and SPL Token-2022 standards in either direction,
+  including conversions between different SPL Token-2022 mints.
 * **Extensible Mint Creation:** The `CreateMint` instruction is designed to be extensible through the `MintCustomizer`
   trait. By forking the program and implementing this trait, developers can add custom logic to:
-    * Include any SPL Token 2022 extensions on the new wrapped mint.
+    * Include any SPL Token-2022 extensions on the new wrapped mint.
     * Modify default properties like the `freeze_authority` and `decimals`.
 * **Confidential Transfers by Default:** All wrapped tokens created under the Token-2022 standard automatically include
   the `ConfidentialTransferMint` extension, enabling the option for privacy-preserving transactions. This feature is
@@ -37,7 +37,7 @@ It supports the following primary operations:
    the caller must pre-fund this account with lamports. This is to avoid requiring writer+signer privileges on this
    instruction.
 
-    * **Wrapped Mint:** An SPL Token or SPL Token 2022 mint account is created. The address of this mint is a
+    * **Wrapped Mint:** An SPL Token or SPL Token-2022 mint account is created. The address of this mint is a
       PDA derived from the *unwrapped* token's mint address and the *wrapped* token program ID. This ensures a unique,
       deterministic relationship between the wrapped and unwrapped tokens. The wrapped mint's authority is also a PDA,
       controlled by the Token Wrap program.
