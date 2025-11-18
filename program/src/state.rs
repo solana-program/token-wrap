@@ -23,8 +23,12 @@ pub struct Backpointer {
     pub unwrapped_mint: Pubkey,
 }
 
-/// The mint authority of an unwrapped mint's on-chain signal another token-wrap
-/// deployment is the "canonical" one.
+/// An on-chain pointer to a canonical token-wrap program deployment.
+///
+/// The authority of an unwrapped mint can create this account to signal which
+/// deployment of the token-wrap program is the "official" one for their mint.
+/// This guides users and apps especially when custom forks of the
+/// program exist.
 #[derive(Copy, Clone, Debug, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct CanonicalDeploymentPointer {

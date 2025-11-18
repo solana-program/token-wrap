@@ -24,6 +24,22 @@ fn test_fail_missing_authority_signature() {
 }
 
 #[test]
+fn test_fail_invalid_mint_owner() {
+    let authority = Pubkey::new_unique();
+    let mut mint_keyed_account = MintBuilder::new()
+        .token_program(TokenProgram::SplToken)
+        .mint_authority(authority)
+        .build();
+    mint_keyed_account.account.owner = Pubkey::new_unique(); // wrong owner
+
+    SetCanonicalPointerBuilder::default()
+        .unwrapped_mint_authority(authority)
+        .unwrapped_mint(mint_keyed_account)
+        .check(Check::err(ProgramError::InvalidAccountOwner))
+        .execute();
+}
+
+#[test]
 fn test_fail_mint_has_no_authority() {
     let mint_without_authority = MintBuilder::new()
         .token_program(TokenProgram::SplToken)

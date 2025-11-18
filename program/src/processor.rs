@@ -811,6 +811,12 @@ pub fn process_set_canonical_pointer(
         return Err(ProgramError::MissingRequiredSignature);
     }
 
+    if unwrapped_mint_info.owner != &spl_token::id()
+        && unwrapped_mint_info.owner != &spl_token_2022::id()
+    {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
     let mint_data = unwrapped_mint_info.try_borrow_data()?;
     let mint_state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
     let mint_authority = mint_state
