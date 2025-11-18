@@ -3,6 +3,7 @@
 use {
     crate::{
         error::TokenWrapError,
+        get_canonical_pointer_address_signer_seeds, get_canonical_pointer_address_with_seed,
         get_wrapped_mint_address, get_wrapped_mint_address_with_seed, get_wrapped_mint_authority,
         get_wrapped_mint_authority_signer_seeds, get_wrapped_mint_authority_with_seed,
         get_wrapped_mint_backpointer_address_signer_seeds,
@@ -13,7 +14,7 @@ use {
         mint_customizer::{
             default_token_2022::DefaultToken2022Customizer, interface::MintCustomizer,
         },
-        state::Backpointer,
+        state::{Backpointer, CanonicalDeploymentPointer},
     },
     mpl_token_metadata::{
         accounts::Metadata as MetaplexMetadata,
@@ -48,7 +49,7 @@ use {
         instruction::{initialize as initialize_token_metadata, remove_key, update_field},
         state::{Field, TokenMetadata},
     },
-    std::collections::HashMap,
+    std::{collections::HashMap, mem},
 };
 
 /// Processes [`CreateMint`](enum.TokenWrapInstruction.html) instruction.
@@ -793,6 +794,91 @@ pub fn process_sync_metadata_to_spl_token(accounts: &[AccountInfo]) -> ProgramRe
     Ok(())
 }
 
+/// Processes [`SetCanonicalPointer`](enum.TokenWrapInstruction.html)
+/// instruction.
+pub fn process_set_canonical_pointer(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    new_program_id: Pubkey,
+) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+    let unwrapped_mint_authority_info = next_account_info(account_info_iter)?;
+    let canonical_pointer_info = next_account_info(account_info_iter)?;
+    let unwrapped_mint_info = next_account_info(account_info_iter)?;
+    let _system_program_info = next_account_info(account_info_iter)?;
+
+    if !unwrapped_mint_authority_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+
+    if unwrapped_mint_info.owner != &spl_token::id()
+        && unwrapped_mint_info.owner != &spl_token_2022::id()
+    {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    let mint_data = unwrapped_mint_info.try_borrow_data()?;
+    let mint_state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
+    let mint_authority = mint_state
+        .base
+        .mint_authority
+        .ok_or(ProgramError::InvalidAccountData)
+        .inspect_err(|_| {
+            msg!("Cannot create/update pointer for unwrapped mint if does not have an authority");
+        })?;
+
+    if mint_authority != *unwrapped_mint_authority_info.key {
+        return Err(ProgramError::IncorrectAuthority);
+    }
+
+    let (expected_pointer_address, bump) =
+        get_canonical_pointer_address_with_seed(unwrapped_mint_info.key);
+    if *canonical_pointer_info.key != expected_pointer_address {
+        msg!(
+            "Error: canonical pointer address {} does not match expected address {}",
+            canonical_pointer_info.key,
+            expected_pointer_address
+        );
+        return Err(ProgramError::InvalidArgument);
+    }
+
+    // If pointer does not exist, initialize it
+    if canonical_pointer_info.data_is_empty() {
+        let space = mem::size_of::<CanonicalDeploymentPointer>();
+        let rent_required = Rent::get()?.minimum_balance(space);
+
+        if canonical_pointer_info.lamports() < rent_required {
+            msg!(
+                "Error: canonical pointer PDA requires pre-funding of {} lamports",
+                rent_required
+            );
+            Err(ProgramError::AccountNotRentExempt)?
+        }
+
+        let bump_seed = [bump];
+        let signer_seeds =
+            get_canonical_pointer_address_signer_seeds(unwrapped_mint_info.key, &bump_seed);
+        invoke_signed(
+            &allocate(canonical_pointer_info.key, space as u64),
+            &[canonical_pointer_info.clone()],
+            &[&signer_seeds],
+        )?;
+        invoke_signed(
+            &assign(canonical_pointer_info.key, program_id),
+            &[canonical_pointer_info.clone()],
+            &[&signer_seeds],
+        )?;
+    }
+
+    // Set data within canonical pointer PDA
+
+    let mut pointer_data = canonical_pointer_info.try_borrow_mut_data()?;
+    let state = bytemuck::from_bytes_mut::<CanonicalDeploymentPointer>(&mut pointer_data);
+    state.program_id = new_program_id;
+
+    Ok(())
+}
+
 /// Instruction processor
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -825,6 +911,12 @@ pub fn process_instruction(
         TokenWrapInstruction::SyncMetadataToSplToken => {
             msg!("Instruction: SyncMetadataToSplToken");
             process_sync_metadata_to_spl_token(accounts)
+        }
+        TokenWrapInstruction::SetCanonicalPointer {
+            program_id: new_program_id,
+        } => {
+            msg!("Instruction: SetCanonicalPointer");
+            process_set_canonical_pointer(program_id, accounts, new_program_id)
         }
     }
 }
