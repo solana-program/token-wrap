@@ -76,8 +76,8 @@ importers:
         specifier: ^10.1.8
         version: 10.1.8(eslint@9.39.1)
       prettier:
-        specifier: ^3.7.0
-        version: 3.7.0
+        specifier: ^3.7.1
+        version: 3.7.1
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -1723,8 +1723,8 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  prettier@3.7.0:
-    resolution: {integrity: sha512-pBiBj/gjRY9Qpk1b7cDda6Rbwvkaggos779AHQ0Ek/odwDx6xG6DRBxtnp1QmxbuD7pAO8/SQ8vuhtGv9LoLWA==}
+  prettier@3.7.1:
+    resolution: {integrity: sha512-RWKXE4qB3u5Z6yz7omJkjWwmTfLdcbv44jUVHC5NpfXwFGzvpQM798FGv/6WNK879tc+Cn0AAyherCl1KjbyZQ==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -2177,7 +2177,7 @@ snapshots:
       '@codama/renderers-core': 1.3.0
       '@codama/visitors-core': 1.4.1
       '@solana/codecs-strings': 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      prettier: 3.7.0
+      prettier: 3.7.1
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
       - typescript
@@ -3721,7 +3721,7 @@ snapshots:
 
   prettier@2.8.8: {}
 
-  prettier@3.7.0: {}
+  prettier@3.7.1: {}
 
   prompts@2.4.2:
     dependencies:
