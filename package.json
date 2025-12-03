@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
-    "@codama/renderers-js": "^1.5.1",
+    "@codama/renderers-js": "^1.5.4",
     "@iarna/toml": "^2.2.5",
     "@solana-program/system": "^0.10.0",
     "@solana/sysvars": "^5.0.0",
