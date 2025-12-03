@@ -28,7 +28,7 @@
     "@solana-program/system": "^0.10.0",
     "@solana/sysvars": "^5.0.0",
     "@types/node": "^24.10.1",
-    "codama": "^1.4.2",
+    "codama": "^1.4.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "zx": "^8.8.5"
