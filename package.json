@@ -22,7 +22,7 @@
     "clients:cli:lint": "zx ./scripts/rust/lint.mjs clients/cli"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
+    "@changesets/cli": "^2.29.8",
     "@codama/renderers-js": "^1.5.4",
     "@iarna/toml": "^2.2.5",
     "@solana-program/system": "^0.10.0",
