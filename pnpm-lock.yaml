@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.8
-        version: 2.29.8(@types/node@24.10.2)
+        version: 2.29.8(@types/node@25.0.0)
       '@codama/renderers-js':
         specifier: ^1.5.5
         version: 1.5.5(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
@@ -24,8 +24,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@types/node':
-        specifier: ^24.10.2
-        version: 24.10.2
+        specifier: ^25.0.0
+        version: 25.0.0
       codama:
         specifier: ^1.4.4
         version: 1.4.4
@@ -67,8 +67,8 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7
       '@types/node':
-        specifier: ^24.10.2
-        version: 24.10.2
+        specifier: ^25.0.0
+        version: 25.0.0
       eslint:
         specifier: ^9.39.1
         version: 9.39.1
@@ -822,8 +822,8 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
-  '@types/node@24.10.2':
-    resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
+  '@types/node@25.0.0':
+    resolution: {integrity: sha512-rl78HwuZlaDIUSeUKkmogkhebA+8K1Hy7tddZuJ3D0xV8pZSfsYGTsliGUol1JPzu9EKnTxPC4L1fiWouStRew==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -1836,7 +1836,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.29.8(@types/node@24.10.2)':
+  '@changesets/cli@2.29.8(@types/node@25.0.0)':
     dependencies:
       '@changesets/apply-release-plan': 7.0.14
       '@changesets/assemble-release-plan': 6.0.9
@@ -1852,7 +1852,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@changesets/write': 0.4.0
-      '@inquirer/external-editor': 1.0.3(@types/node@24.10.2)
+      '@inquirer/external-editor': 1.0.3(@types/node@25.0.0)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       ci-info: 3.9.0
@@ -2155,12 +2155,12 @@ snapshots:
 
   '@iarna/toml@2.2.5': {}
 
-  '@inquirer/external-editor@1.0.3(@types/node@24.10.2)':
+  '@inquirer/external-editor@1.0.3(@types/node@25.0.0)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.0
     optionalDependencies:
-      '@types/node': 24.10.2
+      '@types/node': 25.0.0
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -2679,7 +2679,7 @@ snapshots:
 
   '@types/node@12.20.55': {}
 
-  '@types/node@24.10.2':
+  '@types/node@25.0.0':
     dependencies:
       undici-types: 7.16.0
 
