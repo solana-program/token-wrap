@@ -51,8 +51,8 @@ importers:
         specifier: ^0.6.1
         version: 0.6.1(@solana/kit@5.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)))(@solana/sysvars@5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3))
       '@solana/accounts':
-        specifier: ^5.0.0
-        version: 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
+        specifier: ^5.1.0
+        version: 5.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/rpc-types':
         specifier: ^5.0.0
         version: 5.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
