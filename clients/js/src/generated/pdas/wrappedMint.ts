@@ -7,31 +7,31 @@
  */
 
 import {
-  getAddressEncoder,
-  getProgramDerivedAddress,
-  getUtf8Encoder,
-  type Address,
-  type ProgramDerivedAddress,
+    getAddressEncoder,
+    getProgramDerivedAddress,
+    getUtf8Encoder,
+    type Address,
+    type ProgramDerivedAddress,
 } from '@solana/kit';
 
 export type WrappedMintSeeds = {
-  unwrappedMint: Address;
-  wrappedTokenProgram: Address;
+    unwrappedMint: Address;
+    wrappedTokenProgram: Address;
 };
 
 export async function findWrappedMintPda(
-  seeds: WrappedMintSeeds,
-  config: { programAddress?: Address | undefined } = {}
+    seeds: WrappedMintSeeds,
+    config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
-  const {
-    programAddress = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
-  } = config;
-  return await getProgramDerivedAddress({
-    programAddress,
-    seeds: [
-      getUtf8Encoder().encode('mint'),
-      getAddressEncoder().encode(seeds.unwrappedMint),
-      getAddressEncoder().encode(seeds.wrappedTokenProgram),
-    ],
-  });
+    const {
+        programAddress = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
+    } = config;
+    return await getProgramDerivedAddress({
+        programAddress,
+        seeds: [
+            getUtf8Encoder().encode('mint'),
+            getAddressEncoder().encode(seeds.unwrappedMint),
+            getAddressEncoder().encode(seeds.wrappedTokenProgram),
+        ],
+    });
 }

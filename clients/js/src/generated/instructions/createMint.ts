@@ -7,25 +7,25 @@
  */
 
 import {
-  combineCodec,
-  getBooleanDecoder,
-  getBooleanEncoder,
-  getStructDecoder,
-  getStructEncoder,
-  getU8Decoder,
-  getU8Encoder,
-  transformEncoder,
-  type AccountMeta,
-  type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
-  type Instruction,
-  type InstructionWithAccounts,
-  type InstructionWithData,
-  type ReadonlyAccount,
-  type ReadonlyUint8Array,
-  type WritableAccount,
+    combineCodec,
+    getBooleanDecoder,
+    getBooleanEncoder,
+    getStructDecoder,
+    getStructEncoder,
+    getU8Decoder,
+    getU8Encoder,
+    transformEncoder,
+    type AccountMeta,
+    type Address,
+    type FixedSizeCodec,
+    type FixedSizeDecoder,
+    type FixedSizeEncoder,
+    type Instruction,
+    type InstructionWithAccounts,
+    type InstructionWithData,
+    type ReadonlyAccount,
+    type ReadonlyUint8Array,
+    type WritableAccount,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
@@ -33,244 +33,214 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export const CREATE_MINT_DISCRIMINATOR = 0;
 
 export function getCreateMintDiscriminatorBytes() {
-  return getU8Encoder().encode(CREATE_MINT_DISCRIMINATOR);
+    return getU8Encoder().encode(CREATE_MINT_DISCRIMINATOR);
 }
 
 export type CreateMintInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountWrappedMint extends string | AccountMeta<string> = string,
-  TAccountBackpointer extends string | AccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends
-    | string
-    | AccountMeta<string> = '11111111111111111111111111111111',
-  TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
-  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountWrappedMint extends string | AccountMeta<string> = string,
+    TAccountBackpointer extends string | AccountMeta<string> = string,
+    TAccountUnwrappedMint extends string | AccountMeta<string> = string,
+    TAccountSystemProgram extends string | AccountMeta<string> = '11111111111111111111111111111111',
+    TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
+    TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
-  InstructionWithData<ReadonlyUint8Array> &
-  InstructionWithAccounts<
-    [
-      TAccountWrappedMint extends string
-        ? WritableAccount<TAccountWrappedMint>
-        : TAccountWrappedMint,
-      TAccountBackpointer extends string
-        ? WritableAccount<TAccountBackpointer>
-        : TAccountBackpointer,
-      TAccountUnwrappedMint extends string
-        ? ReadonlyAccount<TAccountUnwrappedMint>
-        : TAccountUnwrappedMint,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
-      TAccountWrappedTokenProgram extends string
-        ? ReadonlyAccount<TAccountWrappedTokenProgram>
-        : TAccountWrappedTokenProgram,
-      ...TRemainingAccounts,
-    ]
-  >;
+    InstructionWithData<ReadonlyUint8Array> &
+    InstructionWithAccounts<
+        [
+            TAccountWrappedMint extends string ? WritableAccount<TAccountWrappedMint> : TAccountWrappedMint,
+            TAccountBackpointer extends string ? WritableAccount<TAccountBackpointer> : TAccountBackpointer,
+            TAccountUnwrappedMint extends string ? ReadonlyAccount<TAccountUnwrappedMint> : TAccountUnwrappedMint,
+            TAccountSystemProgram extends string ? ReadonlyAccount<TAccountSystemProgram> : TAccountSystemProgram,
+            TAccountWrappedTokenProgram extends string
+                ? ReadonlyAccount<TAccountWrappedTokenProgram>
+                : TAccountWrappedTokenProgram,
+            ...TRemainingAccounts,
+        ]
+    >;
 
 export type CreateMintInstructionData = {
-  discriminator: number;
-  /** Whether the creation should fail if the wrapped mint already exists. */
-  idempotent: boolean;
+    discriminator: number;
+    /** Whether the creation should fail if the wrapped mint already exists. */
+    idempotent: boolean;
 };
 
 export type CreateMintInstructionDataArgs = {
-  /** Whether the creation should fail if the wrapped mint already exists. */
-  idempotent?: boolean;
+    /** Whether the creation should fail if the wrapped mint already exists. */
+    idempotent?: boolean;
 };
 
 export function getCreateMintInstructionDataEncoder(): FixedSizeEncoder<CreateMintInstructionDataArgs> {
-  return transformEncoder(
-    getStructEncoder([
-      ['discriminator', getU8Encoder()],
-      ['idempotent', getBooleanEncoder()],
-    ]),
-    (value) => ({
-      ...value,
-      discriminator: CREATE_MINT_DISCRIMINATOR,
-      idempotent: value.idempotent ?? false,
-    })
-  );
+    return transformEncoder(
+        getStructEncoder([
+            ['discriminator', getU8Encoder()],
+            ['idempotent', getBooleanEncoder()],
+        ]),
+        value => ({ ...value, discriminator: CREATE_MINT_DISCRIMINATOR, idempotent: value.idempotent ?? false }),
+    );
 }
 
 export function getCreateMintInstructionDataDecoder(): FixedSizeDecoder<CreateMintInstructionData> {
-  return getStructDecoder([
-    ['discriminator', getU8Decoder()],
-    ['idempotent', getBooleanDecoder()],
-  ]);
+    return getStructDecoder([
+        ['discriminator', getU8Decoder()],
+        ['idempotent', getBooleanDecoder()],
+    ]);
 }
 
 export function getCreateMintInstructionDataCodec(): FixedSizeCodec<
-  CreateMintInstructionDataArgs,
-  CreateMintInstructionData
+    CreateMintInstructionDataArgs,
+    CreateMintInstructionData
 > {
-  return combineCodec(
-    getCreateMintInstructionDataEncoder(),
-    getCreateMintInstructionDataDecoder()
-  );
+    return combineCodec(getCreateMintInstructionDataEncoder(), getCreateMintInstructionDataDecoder());
 }
 
 export type CreateMintInput<
-  TAccountWrappedMint extends string = string,
-  TAccountBackpointer extends string = string,
-  TAccountUnwrappedMint extends string = string,
-  TAccountSystemProgram extends string = string,
-  TAccountWrappedTokenProgram extends string = string,
+    TAccountWrappedMint extends string = string,
+    TAccountBackpointer extends string = string,
+    TAccountUnwrappedMint extends string = string,
+    TAccountSystemProgram extends string = string,
+    TAccountWrappedTokenProgram extends string = string,
 > = {
-  /**
-   *  Unallocated wrapped mint account to create (PDA), address must be:
-   * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
-   */
-  wrappedMint: Address<TAccountWrappedMint>;
-  /**
-   * Unallocated wrapped backpointer account to create (PDA)
-   * `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
-   */
-  backpointer: Address<TAccountBackpointer>;
-  /** The existing mint */
-  unwrappedMint: Address<TAccountUnwrappedMint>;
-  /** The system program */
-  systemProgram?: Address<TAccountSystemProgram>;
-  /** The token program used to create the wrapped mint */
-  wrappedTokenProgram: Address<TAccountWrappedTokenProgram>;
-  idempotent?: CreateMintInstructionDataArgs['idempotent'];
+    /**
+     *  Unallocated wrapped mint account to create (PDA), address must be:
+     * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
+     */
+    wrappedMint: Address<TAccountWrappedMint>;
+    /**
+     * Unallocated wrapped backpointer account to create (PDA)
+     * `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
+     */
+    backpointer: Address<TAccountBackpointer>;
+    /** The existing mint */
+    unwrappedMint: Address<TAccountUnwrappedMint>;
+    /** The system program */
+    systemProgram?: Address<TAccountSystemProgram>;
+    /** The token program used to create the wrapped mint */
+    wrappedTokenProgram: Address<TAccountWrappedTokenProgram>;
+    idempotent?: CreateMintInstructionDataArgs['idempotent'];
 };
 
 export function getCreateMintInstruction<
-  TAccountWrappedMint extends string,
-  TAccountBackpointer extends string,
-  TAccountUnwrappedMint extends string,
-  TAccountSystemProgram extends string,
-  TAccountWrappedTokenProgram extends string,
-  TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountWrappedMint extends string,
+    TAccountBackpointer extends string,
+    TAccountUnwrappedMint extends string,
+    TAccountSystemProgram extends string,
+    TAccountWrappedTokenProgram extends string,
+    TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
-  input: CreateMintInput<
-    TAccountWrappedMint,
-    TAccountBackpointer,
-    TAccountUnwrappedMint,
-    TAccountSystemProgram,
-    TAccountWrappedTokenProgram
-  >,
-  config?: { programAddress?: TProgramAddress }
+    input: CreateMintInput<
+        TAccountWrappedMint,
+        TAccountBackpointer,
+        TAccountUnwrappedMint,
+        TAccountSystemProgram,
+        TAccountWrappedTokenProgram
+    >,
+    config?: { programAddress?: TProgramAddress },
 ): CreateMintInstruction<
-  TProgramAddress,
-  TAccountWrappedMint,
-  TAccountBackpointer,
-  TAccountUnwrappedMint,
-  TAccountSystemProgram,
-  TAccountWrappedTokenProgram
-> {
-  // Program address.
-  const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
-    backpointer: { value: input.backpointer ?? null, isWritable: true },
-    unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    wrappedTokenProgram: {
-      value: input.wrappedTokenProgram ?? null,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Resolve default values.
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      '11111111111111111111111111111111' as Address<'11111111111111111111111111111111'>;
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
-  return Object.freeze({
-    accounts: [
-      getAccountMeta(accounts.wrappedMint),
-      getAccountMeta(accounts.backpointer),
-      getAccountMeta(accounts.unwrappedMint),
-      getAccountMeta(accounts.systemProgram),
-      getAccountMeta(accounts.wrappedTokenProgram),
-    ],
-    data: getCreateMintInstructionDataEncoder().encode(
-      args as CreateMintInstructionDataArgs
-    ),
-    programAddress,
-  } as CreateMintInstruction<
     TProgramAddress,
     TAccountWrappedMint,
     TAccountBackpointer,
     TAccountUnwrappedMint,
     TAccountSystemProgram,
     TAccountWrappedTokenProgram
-  >);
+> {
+    // Program address.
+    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+
+    // Original accounts.
+    const originalAccounts = {
+        wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
+        backpointer: { value: input.backpointer ?? null, isWritable: true },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
+        systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+        wrappedTokenProgram: { value: input.wrappedTokenProgram ?? null, isWritable: false },
+    };
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+
+    // Original args.
+    const args = { ...input };
+
+    // Resolve default values.
+    if (!accounts.systemProgram.value) {
+        accounts.systemProgram.value =
+            '11111111111111111111111111111111' as Address<'11111111111111111111111111111111'>;
+    }
+
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
+    return Object.freeze({
+        accounts: [
+            getAccountMeta(accounts.wrappedMint),
+            getAccountMeta(accounts.backpointer),
+            getAccountMeta(accounts.unwrappedMint),
+            getAccountMeta(accounts.systemProgram),
+            getAccountMeta(accounts.wrappedTokenProgram),
+        ],
+        data: getCreateMintInstructionDataEncoder().encode(args as CreateMintInstructionDataArgs),
+        programAddress,
+    } as CreateMintInstruction<
+        TProgramAddress,
+        TAccountWrappedMint,
+        TAccountBackpointer,
+        TAccountUnwrappedMint,
+        TAccountSystemProgram,
+        TAccountWrappedTokenProgram
+    >);
 }
 
 export type ParsedCreateMintInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
-  programAddress: Address<TProgram>;
-  accounts: {
-    /**
-     *  Unallocated wrapped mint account to create (PDA), address must be:
-     * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
-     */
-    wrappedMint: TAccountMetas[0];
-    /**
-     * Unallocated wrapped backpointer account to create (PDA)
-     * `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
-     */
-    backpointer: TAccountMetas[1];
-    /** The existing mint */
-    unwrappedMint: TAccountMetas[2];
-    /** The system program */
-    systemProgram?: TAccountMetas[3] | undefined;
-    /** The token program used to create the wrapped mint */
-    wrappedTokenProgram: TAccountMetas[4];
-  };
-  data: CreateMintInstructionData;
+    programAddress: Address<TProgram>;
+    accounts: {
+        /**
+         *  Unallocated wrapped mint account to create (PDA), address must be:
+         * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
+         */
+        wrappedMint: TAccountMetas[0];
+        /**
+         * Unallocated wrapped backpointer account to create (PDA)
+         * `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
+         */
+        backpointer: TAccountMetas[1];
+        /** The existing mint */
+        unwrappedMint: TAccountMetas[2];
+        /** The system program */
+        systemProgram?: TAccountMetas[3] | undefined;
+        /** The token program used to create the wrapped mint */
+        wrappedTokenProgram: TAccountMetas[4];
+    };
+    data: CreateMintInstructionData;
 };
 
-export function parseCreateMintInstruction<
-  TProgram extends string,
-  TAccountMetas extends readonly AccountMeta[],
->(
-  instruction: Instruction<TProgram> &
-    InstructionWithAccounts<TAccountMetas> &
-    InstructionWithData<ReadonlyUint8Array>
+export function parseCreateMintInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(
+    instruction: Instruction<TProgram> &
+        InstructionWithAccounts<TAccountMetas> &
+        InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateMintInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
-    // TODO: Coded error.
-    throw new Error('Not enough accounts');
-  }
-  let accountIndex = 0;
-  const getNextAccount = () => {
-    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
-    accountIndex += 1;
-    return accountMeta;
-  };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === TOKEN_WRAP_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
-  return {
-    programAddress: instruction.programAddress,
-    accounts: {
-      wrappedMint: getNextAccount(),
-      backpointer: getNextAccount(),
-      unwrappedMint: getNextAccount(),
-      systemProgram: getNextOptionalAccount(),
-      wrappedTokenProgram: getNextAccount(),
-    },
-    data: getCreateMintInstructionDataDecoder().decode(instruction.data),
-  };
+    if (instruction.accounts.length < 5) {
+        // TODO: Coded error.
+        throw new Error('Not enough accounts');
+    }
+    let accountIndex = 0;
+    const getNextAccount = () => {
+        const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
+        accountIndex += 1;
+        return accountMeta;
+    };
+    const getNextOptionalAccount = () => {
+        const accountMeta = getNextAccount();
+        return accountMeta.address === TOKEN_WRAP_PROGRAM_ADDRESS ? undefined : accountMeta;
+    };
+    return {
+        programAddress: instruction.programAddress,
+        accounts: {
+            wrappedMint: getNextAccount(),
+            backpointer: getNextAccount(),
+            unwrappedMint: getNextAccount(),
+            systemProgram: getNextOptionalAccount(),
+            wrappedTokenProgram: getNextAccount(),
+        },
+        data: getCreateMintInstructionDataDecoder().decode(instruction.data),
+    };
 }

@@ -7,23 +7,23 @@
  */
 
 import {
-  combineCodec,
-  getStructDecoder,
-  getStructEncoder,
-  getU8Decoder,
-  getU8Encoder,
-  transformEncoder,
-  type AccountMeta,
-  type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
-  type Instruction,
-  type InstructionWithAccounts,
-  type InstructionWithData,
-  type ReadonlyAccount,
-  type ReadonlyUint8Array,
-  type WritableAccount,
+    combineCodec,
+    getStructDecoder,
+    getStructEncoder,
+    getU8Decoder,
+    getU8Encoder,
+    transformEncoder,
+    type AccountMeta,
+    type Address,
+    type FixedSizeCodec,
+    type FixedSizeDecoder,
+    type FixedSizeEncoder,
+    type Instruction,
+    type InstructionWithAccounts,
+    type InstructionWithData,
+    type ReadonlyAccount,
+    type ReadonlyUint8Array,
+    type WritableAccount,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
@@ -31,162 +31,99 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export const CLOSE_STUCK_ESCROW_DISCRIMINATOR = 3;
 
 export function getCloseStuckEscrowDiscriminatorBytes() {
-  return getU8Encoder().encode(CLOSE_STUCK_ESCROW_DISCRIMINATOR);
+    return getU8Encoder().encode(CLOSE_STUCK_ESCROW_DISCRIMINATOR);
 }
 
 export type CloseStuckEscrowInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountEscrow extends string | AccountMeta<string> = string,
-  TAccountDestination extends string | AccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
-  TAccountWrappedMint extends string | AccountMeta<string> = string,
-  TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
-  TAccountToken2022Program extends
-    | string
-    | AccountMeta<string> = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
-  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountEscrow extends string | AccountMeta<string> = string,
+    TAccountDestination extends string | AccountMeta<string> = string,
+    TAccountUnwrappedMint extends string | AccountMeta<string> = string,
+    TAccountWrappedMint extends string | AccountMeta<string> = string,
+    TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
+    TAccountToken2022Program extends string | AccountMeta<string> = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb',
+    TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
-  InstructionWithData<ReadonlyUint8Array> &
-  InstructionWithAccounts<
-    [
-      TAccountEscrow extends string
-        ? WritableAccount<TAccountEscrow>
-        : TAccountEscrow,
-      TAccountDestination extends string
-        ? WritableAccount<TAccountDestination>
-        : TAccountDestination,
-      TAccountUnwrappedMint extends string
-        ? ReadonlyAccount<TAccountUnwrappedMint>
-        : TAccountUnwrappedMint,
-      TAccountWrappedMint extends string
-        ? ReadonlyAccount<TAccountWrappedMint>
-        : TAccountWrappedMint,
-      TAccountWrappedMintAuthority extends string
-        ? ReadonlyAccount<TAccountWrappedMintAuthority>
-        : TAccountWrappedMintAuthority,
-      TAccountToken2022Program extends string
-        ? ReadonlyAccount<TAccountToken2022Program>
-        : TAccountToken2022Program,
-      ...TRemainingAccounts,
-    ]
-  >;
+    InstructionWithData<ReadonlyUint8Array> &
+    InstructionWithAccounts<
+        [
+            TAccountEscrow extends string ? WritableAccount<TAccountEscrow> : TAccountEscrow,
+            TAccountDestination extends string ? WritableAccount<TAccountDestination> : TAccountDestination,
+            TAccountUnwrappedMint extends string ? ReadonlyAccount<TAccountUnwrappedMint> : TAccountUnwrappedMint,
+            TAccountWrappedMint extends string ? ReadonlyAccount<TAccountWrappedMint> : TAccountWrappedMint,
+            TAccountWrappedMintAuthority extends string
+                ? ReadonlyAccount<TAccountWrappedMintAuthority>
+                : TAccountWrappedMintAuthority,
+            TAccountToken2022Program extends string
+                ? ReadonlyAccount<TAccountToken2022Program>
+                : TAccountToken2022Program,
+            ...TRemainingAccounts,
+        ]
+    >;
 
 export type CloseStuckEscrowInstructionData = { discriminator: number };
 
 export type CloseStuckEscrowInstructionDataArgs = {};
 
 export function getCloseStuckEscrowInstructionDataEncoder(): FixedSizeEncoder<CloseStuckEscrowInstructionDataArgs> {
-  return transformEncoder(
-    getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: CLOSE_STUCK_ESCROW_DISCRIMINATOR })
-  );
+    return transformEncoder(getStructEncoder([['discriminator', getU8Encoder()]]), value => ({
+        ...value,
+        discriminator: CLOSE_STUCK_ESCROW_DISCRIMINATOR,
+    }));
 }
 
 export function getCloseStuckEscrowInstructionDataDecoder(): FixedSizeDecoder<CloseStuckEscrowInstructionData> {
-  return getStructDecoder([['discriminator', getU8Decoder()]]);
+    return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
 export function getCloseStuckEscrowInstructionDataCodec(): FixedSizeCodec<
-  CloseStuckEscrowInstructionDataArgs,
-  CloseStuckEscrowInstructionData
+    CloseStuckEscrowInstructionDataArgs,
+    CloseStuckEscrowInstructionData
 > {
-  return combineCodec(
-    getCloseStuckEscrowInstructionDataEncoder(),
-    getCloseStuckEscrowInstructionDataDecoder()
-  );
+    return combineCodec(getCloseStuckEscrowInstructionDataEncoder(), getCloseStuckEscrowInstructionDataDecoder());
 }
 
 export type CloseStuckEscrowInput<
-  TAccountEscrow extends string = string,
-  TAccountDestination extends string = string,
-  TAccountUnwrappedMint extends string = string,
-  TAccountWrappedMint extends string = string,
-  TAccountWrappedMintAuthority extends string = string,
-  TAccountToken2022Program extends string = string,
+    TAccountEscrow extends string = string,
+    TAccountDestination extends string = string,
+    TAccountUnwrappedMint extends string = string,
+    TAccountWrappedMint extends string = string,
+    TAccountWrappedMintAuthority extends string = string,
+    TAccountToken2022Program extends string = string,
 > = {
-  /** Escrow account to close (ATA) */
-  escrow: Address<TAccountEscrow>;
-  /** Destination for lamports from closed account */
-  destination: Address<TAccountDestination>;
-  /** Unwrapped mint */
-  unwrappedMint: Address<TAccountUnwrappedMint>;
-  /** Wrapped mint */
-  wrappedMint: Address<TAccountWrappedMint>;
-  /** Wrapped mint authority (PDA) */
-  wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
-  /** Token-2022 program */
-  token2022Program?: Address<TAccountToken2022Program>;
+    /** Escrow account to close (ATA) */
+    escrow: Address<TAccountEscrow>;
+    /** Destination for lamports from closed account */
+    destination: Address<TAccountDestination>;
+    /** Unwrapped mint */
+    unwrappedMint: Address<TAccountUnwrappedMint>;
+    /** Wrapped mint */
+    wrappedMint: Address<TAccountWrappedMint>;
+    /** Wrapped mint authority (PDA) */
+    wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
+    /** Token-2022 program */
+    token2022Program?: Address<TAccountToken2022Program>;
 };
 
 export function getCloseStuckEscrowInstruction<
-  TAccountEscrow extends string,
-  TAccountDestination extends string,
-  TAccountUnwrappedMint extends string,
-  TAccountWrappedMint extends string,
-  TAccountWrappedMintAuthority extends string,
-  TAccountToken2022Program extends string,
-  TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountEscrow extends string,
+    TAccountDestination extends string,
+    TAccountUnwrappedMint extends string,
+    TAccountWrappedMint extends string,
+    TAccountWrappedMintAuthority extends string,
+    TAccountToken2022Program extends string,
+    TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
-  input: CloseStuckEscrowInput<
-    TAccountEscrow,
-    TAccountDestination,
-    TAccountUnwrappedMint,
-    TAccountWrappedMint,
-    TAccountWrappedMintAuthority,
-    TAccountToken2022Program
-  >,
-  config?: { programAddress?: TProgramAddress }
+    input: CloseStuckEscrowInput<
+        TAccountEscrow,
+        TAccountDestination,
+        TAccountUnwrappedMint,
+        TAccountWrappedMint,
+        TAccountWrappedMintAuthority,
+        TAccountToken2022Program
+    >,
+    config?: { programAddress?: TProgramAddress },
 ): CloseStuckEscrowInstruction<
-  TProgramAddress,
-  TAccountEscrow,
-  TAccountDestination,
-  TAccountUnwrappedMint,
-  TAccountWrappedMint,
-  TAccountWrappedMintAuthority,
-  TAccountToken2022Program
-> {
-  // Program address.
-  const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    escrow: { value: input.escrow ?? null, isWritable: true },
-    destination: { value: input.destination ?? null, isWritable: true },
-    unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-    wrappedMint: { value: input.wrappedMint ?? null, isWritable: false },
-    wrappedMintAuthority: {
-      value: input.wrappedMintAuthority ?? null,
-      isWritable: false,
-    },
-    token2022Program: {
-      value: input.token2022Program ?? null,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedAccount
-  >;
-
-  // Resolve default values.
-  if (!accounts.token2022Program.value) {
-    accounts.token2022Program.value =
-      'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' as Address<'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'>;
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
-  return Object.freeze({
-    accounts: [
-      getAccountMeta(accounts.escrow),
-      getAccountMeta(accounts.destination),
-      getAccountMeta(accounts.unwrappedMint),
-      getAccountMeta(accounts.wrappedMint),
-      getAccountMeta(accounts.wrappedMintAuthority),
-      getAccountMeta(accounts.token2022Program),
-    ],
-    data: getCloseStuckEscrowInstructionDataEncoder().encode({}),
-    programAddress,
-  } as CloseStuckEscrowInstruction<
     TProgramAddress,
     TAccountEscrow,
     TAccountDestination,
@@ -194,65 +131,101 @@ export function getCloseStuckEscrowInstruction<
     TAccountWrappedMint,
     TAccountWrappedMintAuthority,
     TAccountToken2022Program
-  >);
+> {
+    // Program address.
+    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+
+    // Original accounts.
+    const originalAccounts = {
+        escrow: { value: input.escrow ?? null, isWritable: true },
+        destination: { value: input.destination ?? null, isWritable: true },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
+        wrappedMint: { value: input.wrappedMint ?? null, isWritable: false },
+        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: false },
+        token2022Program: { value: input.token2022Program ?? null, isWritable: false },
+    };
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+
+    // Resolve default values.
+    if (!accounts.token2022Program.value) {
+        accounts.token2022Program.value =
+            'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' as Address<'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'>;
+    }
+
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
+    return Object.freeze({
+        accounts: [
+            getAccountMeta(accounts.escrow),
+            getAccountMeta(accounts.destination),
+            getAccountMeta(accounts.unwrappedMint),
+            getAccountMeta(accounts.wrappedMint),
+            getAccountMeta(accounts.wrappedMintAuthority),
+            getAccountMeta(accounts.token2022Program),
+        ],
+        data: getCloseStuckEscrowInstructionDataEncoder().encode({}),
+        programAddress,
+    } as CloseStuckEscrowInstruction<
+        TProgramAddress,
+        TAccountEscrow,
+        TAccountDestination,
+        TAccountUnwrappedMint,
+        TAccountWrappedMint,
+        TAccountWrappedMintAuthority,
+        TAccountToken2022Program
+    >);
 }
 
 export type ParsedCloseStuckEscrowInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
-  programAddress: Address<TProgram>;
-  accounts: {
-    /** Escrow account to close (ATA) */
-    escrow: TAccountMetas[0];
-    /** Destination for lamports from closed account */
-    destination: TAccountMetas[1];
-    /** Unwrapped mint */
-    unwrappedMint: TAccountMetas[2];
-    /** Wrapped mint */
-    wrappedMint: TAccountMetas[3];
-    /** Wrapped mint authority (PDA) */
-    wrappedMintAuthority: TAccountMetas[4];
-    /** Token-2022 program */
-    token2022Program?: TAccountMetas[5] | undefined;
-  };
-  data: CloseStuckEscrowInstructionData;
+    programAddress: Address<TProgram>;
+    accounts: {
+        /** Escrow account to close (ATA) */
+        escrow: TAccountMetas[0];
+        /** Destination for lamports from closed account */
+        destination: TAccountMetas[1];
+        /** Unwrapped mint */
+        unwrappedMint: TAccountMetas[2];
+        /** Wrapped mint */
+        wrappedMint: TAccountMetas[3];
+        /** Wrapped mint authority (PDA) */
+        wrappedMintAuthority: TAccountMetas[4];
+        /** Token-2022 program */
+        token2022Program?: TAccountMetas[5] | undefined;
+    };
+    data: CloseStuckEscrowInstructionData;
 };
 
-export function parseCloseStuckEscrowInstruction<
-  TProgram extends string,
-  TAccountMetas extends readonly AccountMeta[],
->(
-  instruction: Instruction<TProgram> &
-    InstructionWithAccounts<TAccountMetas> &
-    InstructionWithData<ReadonlyUint8Array>
+export function parseCloseStuckEscrowInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(
+    instruction: Instruction<TProgram> &
+        InstructionWithAccounts<TAccountMetas> &
+        InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCloseStuckEscrowInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
-    // TODO: Coded error.
-    throw new Error('Not enough accounts');
-  }
-  let accountIndex = 0;
-  const getNextAccount = () => {
-    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
-    accountIndex += 1;
-    return accountMeta;
-  };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === TOKEN_WRAP_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
-  return {
-    programAddress: instruction.programAddress,
-    accounts: {
-      escrow: getNextAccount(),
-      destination: getNextAccount(),
-      unwrappedMint: getNextAccount(),
-      wrappedMint: getNextAccount(),
-      wrappedMintAuthority: getNextAccount(),
-      token2022Program: getNextOptionalAccount(),
-    },
-    data: getCloseStuckEscrowInstructionDataDecoder().decode(instruction.data),
-  };
+    if (instruction.accounts.length < 6) {
+        // TODO: Coded error.
+        throw new Error('Not enough accounts');
+    }
+    let accountIndex = 0;
+    const getNextAccount = () => {
+        const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
+        accountIndex += 1;
+        return accountMeta;
+    };
+    const getNextOptionalAccount = () => {
+        const accountMeta = getNextAccount();
+        return accountMeta.address === TOKEN_WRAP_PROGRAM_ADDRESS ? undefined : accountMeta;
+    };
+    return {
+        programAddress: instruction.programAddress,
+        accounts: {
+            escrow: getNextAccount(),
+            destination: getNextAccount(),
+            unwrappedMint: getNextAccount(),
+            wrappedMint: getNextAccount(),
+            wrappedMintAuthority: getNextAccount(),
+            token2022Program: getNextOptionalAccount(),
+        },
+        data: getCloseStuckEscrowInstructionDataDecoder().decode(instruction.data),
+    };
 }
