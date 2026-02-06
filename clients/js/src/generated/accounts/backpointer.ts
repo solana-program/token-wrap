@@ -7,121 +7,119 @@
  */
 
 import {
-  assertAccountExists,
-  assertAccountsExist,
-  combineCodec,
-  decodeAccount,
-  fetchEncodedAccount,
-  fetchEncodedAccounts,
-  getAddressDecoder,
-  getAddressEncoder,
-  getStructDecoder,
-  getStructEncoder,
-  type Account,
-  type Address,
-  type EncodedAccount,
-  type FetchAccountConfig,
-  type FetchAccountsConfig,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
-  type MaybeAccount,
-  type MaybeEncodedAccount,
+    assertAccountExists,
+    assertAccountsExist,
+    combineCodec,
+    decodeAccount,
+    fetchEncodedAccount,
+    fetchEncodedAccounts,
+    getAddressDecoder,
+    getAddressEncoder,
+    getStructDecoder,
+    getStructEncoder,
+    type Account,
+    type Address,
+    type EncodedAccount,
+    type FetchAccountConfig,
+    type FetchAccountsConfig,
+    type FixedSizeCodec,
+    type FixedSizeDecoder,
+    type FixedSizeEncoder,
+    type MaybeAccount,
+    type MaybeEncodedAccount,
 } from '@solana/kit';
 import { BackpointerSeeds, findBackpointerPda } from '../pdas';
 
+/** Account to store the address of the unwrapped mint. */
 export type Backpointer = { unwrappedMint: Address };
 
 export type BackpointerArgs = Backpointer;
 
+/** Gets the encoder for {@link BackpointerArgs} account data. */
 export function getBackpointerEncoder(): FixedSizeEncoder<BackpointerArgs> {
-  return getStructEncoder([['unwrappedMint', getAddressEncoder()]]);
+    return getStructEncoder([['unwrappedMint', getAddressEncoder()]]);
 }
 
+/** Gets the decoder for {@link Backpointer} account data. */
 export function getBackpointerDecoder(): FixedSizeDecoder<Backpointer> {
-  return getStructDecoder([['unwrappedMint', getAddressDecoder()]]);
+    return getStructDecoder([['unwrappedMint', getAddressDecoder()]]);
 }
 
-export function getBackpointerCodec(): FixedSizeCodec<
-  BackpointerArgs,
-  Backpointer
-> {
-  return combineCodec(getBackpointerEncoder(), getBackpointerDecoder());
+/** Gets the codec for {@link Backpointer} account data. */
+export function getBackpointerCodec(): FixedSizeCodec<BackpointerArgs, Backpointer> {
+    return combineCodec(getBackpointerEncoder(), getBackpointerDecoder());
 }
 
 export function decodeBackpointer<TAddress extends string = string>(
-  encodedAccount: EncodedAccount<TAddress>
+    encodedAccount: EncodedAccount<TAddress>,
 ): Account<Backpointer, TAddress>;
 export function decodeBackpointer<TAddress extends string = string>(
-  encodedAccount: MaybeEncodedAccount<TAddress>
+    encodedAccount: MaybeEncodedAccount<TAddress>,
 ): MaybeAccount<Backpointer, TAddress>;
 export function decodeBackpointer<TAddress extends string = string>(
-  encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>
+    encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
 ): Account<Backpointer, TAddress> | MaybeAccount<Backpointer, TAddress> {
-  return decodeAccount(
-    encodedAccount as MaybeEncodedAccount<TAddress>,
-    getBackpointerDecoder()
-  );
+    return decodeAccount(encodedAccount as MaybeEncodedAccount<TAddress>, getBackpointerDecoder());
 }
 
 export async function fetchBackpointer<TAddress extends string = string>(
-  rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
-  config?: FetchAccountConfig
+    rpc: Parameters<typeof fetchEncodedAccount>[0],
+    address: Address<TAddress>,
+    config?: FetchAccountConfig,
 ): Promise<Account<Backpointer, TAddress>> {
-  const maybeAccount = await fetchMaybeBackpointer(rpc, address, config);
-  assertAccountExists(maybeAccount);
-  return maybeAccount;
+    const maybeAccount = await fetchMaybeBackpointer(rpc, address, config);
+    assertAccountExists(maybeAccount);
+    return maybeAccount;
 }
 
 export async function fetchMaybeBackpointer<TAddress extends string = string>(
-  rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
-  config?: FetchAccountConfig
+    rpc: Parameters<typeof fetchEncodedAccount>[0],
+    address: Address<TAddress>,
+    config?: FetchAccountConfig,
 ): Promise<MaybeAccount<Backpointer, TAddress>> {
-  const maybeAccount = await fetchEncodedAccount(rpc, address, config);
-  return decodeBackpointer(maybeAccount);
+    const maybeAccount = await fetchEncodedAccount(rpc, address, config);
+    return decodeBackpointer(maybeAccount);
 }
 
 export async function fetchAllBackpointer(
-  rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
-  config?: FetchAccountsConfig
+    rpc: Parameters<typeof fetchEncodedAccounts>[0],
+    addresses: Array<Address>,
+    config?: FetchAccountsConfig,
 ): Promise<Account<Backpointer>[]> {
-  const maybeAccounts = await fetchAllMaybeBackpointer(rpc, addresses, config);
-  assertAccountsExist(maybeAccounts);
-  return maybeAccounts;
+    const maybeAccounts = await fetchAllMaybeBackpointer(rpc, addresses, config);
+    assertAccountsExist(maybeAccounts);
+    return maybeAccounts;
 }
 
 export async function fetchAllMaybeBackpointer(
-  rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
-  config?: FetchAccountsConfig
+    rpc: Parameters<typeof fetchEncodedAccounts>[0],
+    addresses: Array<Address>,
+    config?: FetchAccountsConfig,
 ): Promise<MaybeAccount<Backpointer>[]> {
-  const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
-  return maybeAccounts.map((maybeAccount) => decodeBackpointer(maybeAccount));
+    const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
+    return maybeAccounts.map(maybeAccount => decodeBackpointer(maybeAccount));
 }
 
 export function getBackpointerSize(): number {
-  return 32;
+    return 32;
 }
 
 export async function fetchBackpointerFromSeeds(
-  rpc: Parameters<typeof fetchEncodedAccount>[0],
-  seeds: BackpointerSeeds,
-  config: FetchAccountConfig & { programAddress?: Address } = {}
+    rpc: Parameters<typeof fetchEncodedAccount>[0],
+    seeds: BackpointerSeeds,
+    config: FetchAccountConfig & { programAddress?: Address } = {},
 ): Promise<Account<Backpointer>> {
-  const maybeAccount = await fetchMaybeBackpointerFromSeeds(rpc, seeds, config);
-  assertAccountExists(maybeAccount);
-  return maybeAccount;
+    const maybeAccount = await fetchMaybeBackpointerFromSeeds(rpc, seeds, config);
+    assertAccountExists(maybeAccount);
+    return maybeAccount;
 }
 
 export async function fetchMaybeBackpointerFromSeeds(
-  rpc: Parameters<typeof fetchEncodedAccount>[0],
-  seeds: BackpointerSeeds,
-  config: FetchAccountConfig & { programAddress?: Address } = {}
+    rpc: Parameters<typeof fetchEncodedAccount>[0],
+    seeds: BackpointerSeeds,
+    config: FetchAccountConfig & { programAddress?: Address } = {},
 ): Promise<MaybeAccount<Backpointer>> {
-  const { programAddress, ...fetchConfig } = config;
-  const [address] = await findBackpointerPda(seeds, { programAddress });
-  return await fetchMaybeBackpointer(rpc, address, fetchConfig);
+    const { programAddress, ...fetchConfig } = config;
+    const [address] = await findBackpointerPda(seeds, { programAddress });
+    return await fetchMaybeBackpointer(rpc, address, fetchConfig);
 }

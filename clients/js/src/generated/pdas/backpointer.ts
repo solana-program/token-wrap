@@ -7,29 +7,26 @@
  */
 
 import {
-  getAddressEncoder,
-  getProgramDerivedAddress,
-  getUtf8Encoder,
-  type Address,
-  type ProgramDerivedAddress,
+    getAddressEncoder,
+    getProgramDerivedAddress,
+    getUtf8Encoder,
+    type Address,
+    type ProgramDerivedAddress,
 } from '@solana/kit';
 
 export type BackpointerSeeds = {
-  wrappedMint: Address;
+    wrappedMint: Address;
 };
 
 export async function findBackpointerPda(
-  seeds: BackpointerSeeds,
-  config: { programAddress?: Address | undefined } = {}
+    seeds: BackpointerSeeds,
+    config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
-  const {
-    programAddress = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
-  } = config;
-  return await getProgramDerivedAddress({
-    programAddress,
-    seeds: [
-      getUtf8Encoder().encode('backpointer'),
-      getAddressEncoder().encode(seeds.wrappedMint),
-    ],
-  });
+    const {
+        programAddress = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
+    } = config;
+    return await getProgramDerivedAddress({
+        programAddress,
+        seeds: [getUtf8Encoder().encode('backpointer'), getAddressEncoder().encode(seeds.wrappedMint)],
+    });
 }

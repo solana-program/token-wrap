@@ -7,81 +7,121 @@
  */
 
 import {
-  containsBytes,
-  getU8Encoder,
-  type Address,
-  type ReadonlyUint8Array,
+    assertIsInstructionWithAccounts,
+    containsBytes,
+    getU8Encoder,
+    type Address,
+    type Instruction,
+    type InstructionWithData,
+    type ReadonlyUint8Array,
 } from '@solana/kit';
 import {
-  type ParsedCloseStuckEscrowInstruction,
-  type ParsedCreateMintInstruction,
-  type ParsedSyncMetadataToSplTokenInstruction,
-  type ParsedSyncMetadataToToken2022Instruction,
-  type ParsedUnwrapInstruction,
-  type ParsedWrapInstruction,
+    parseCloseStuckEscrowInstruction,
+    parseCreateMintInstruction,
+    parseSyncMetadataToSplTokenInstruction,
+    parseSyncMetadataToToken2022Instruction,
+    parseUnwrapInstruction,
+    parseWrapInstruction,
+    type ParsedCloseStuckEscrowInstruction,
+    type ParsedCreateMintInstruction,
+    type ParsedSyncMetadataToSplTokenInstruction,
+    type ParsedSyncMetadataToToken2022Instruction,
+    type ParsedUnwrapInstruction,
+    type ParsedWrapInstruction,
 } from '../instructions';
 
 export const TOKEN_WRAP_PROGRAM_ADDRESS =
-  'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>;
+    'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>;
 
 export enum TokenWrapAccount {
-  Backpointer,
+    Backpointer,
 }
 
 export enum TokenWrapInstruction {
-  CreateMint,
-  Wrap,
-  Unwrap,
-  CloseStuckEscrow,
-  SyncMetadataToToken2022,
-  SyncMetadataToSplToken,
+    CreateMint,
+    Wrap,
+    Unwrap,
+    CloseStuckEscrow,
+    SyncMetadataToToken2022,
+    SyncMetadataToSplToken,
 }
 
 export function identifyTokenWrapInstruction(
-  instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
+    instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): TokenWrapInstruction {
-  const data = 'data' in instruction ? instruction.data : instruction;
-  if (containsBytes(data, getU8Encoder().encode(0), 0)) {
-    return TokenWrapInstruction.CreateMint;
-  }
-  if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return TokenWrapInstruction.Wrap;
-  }
-  if (containsBytes(data, getU8Encoder().encode(2), 0)) {
-    return TokenWrapInstruction.Unwrap;
-  }
-  if (containsBytes(data, getU8Encoder().encode(3), 0)) {
-    return TokenWrapInstruction.CloseStuckEscrow;
-  }
-  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
-    return TokenWrapInstruction.SyncMetadataToToken2022;
-  }
-  if (containsBytes(data, getU8Encoder().encode(5), 0)) {
-    return TokenWrapInstruction.SyncMetadataToSplToken;
-  }
-  throw new Error(
-    'The provided instruction could not be identified as a tokenWrap instruction.'
-  );
+    const data = 'data' in instruction ? instruction.data : instruction;
+    if (containsBytes(data, getU8Encoder().encode(0), 0)) {
+        return TokenWrapInstruction.CreateMint;
+    }
+    if (containsBytes(data, getU8Encoder().encode(1), 0)) {
+        return TokenWrapInstruction.Wrap;
+    }
+    if (containsBytes(data, getU8Encoder().encode(2), 0)) {
+        return TokenWrapInstruction.Unwrap;
+    }
+    if (containsBytes(data, getU8Encoder().encode(3), 0)) {
+        return TokenWrapInstruction.CloseStuckEscrow;
+    }
+    if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+        return TokenWrapInstruction.SyncMetadataToToken2022;
+    }
+    if (containsBytes(data, getU8Encoder().encode(5), 0)) {
+        return TokenWrapInstruction.SyncMetadataToSplToken;
+    }
+    throw new Error('The provided instruction could not be identified as a tokenWrap instruction.');
 }
 
-export type ParsedTokenWrapInstruction<
-  TProgram extends string = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR',
-> =
-  | ({
-      instructionType: TokenWrapInstruction.CreateMint;
-    } & ParsedCreateMintInstruction<TProgram>)
-  | ({
-      instructionType: TokenWrapInstruction.Wrap;
-    } & ParsedWrapInstruction<TProgram>)
-  | ({
-      instructionType: TokenWrapInstruction.Unwrap;
-    } & ParsedUnwrapInstruction<TProgram>)
-  | ({
-      instructionType: TokenWrapInstruction.CloseStuckEscrow;
-    } & ParsedCloseStuckEscrowInstruction<TProgram>)
-  | ({
-      instructionType: TokenWrapInstruction.SyncMetadataToToken2022;
-    } & ParsedSyncMetadataToToken2022Instruction<TProgram>)
-  | ({
-      instructionType: TokenWrapInstruction.SyncMetadataToSplToken;
-    } & ParsedSyncMetadataToSplTokenInstruction<TProgram>);
+export type ParsedTokenWrapInstruction<TProgram extends string = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'> =
+    | ({ instructionType: TokenWrapInstruction.CreateMint } & ParsedCreateMintInstruction<TProgram>)
+    | ({ instructionType: TokenWrapInstruction.Wrap } & ParsedWrapInstruction<TProgram>)
+    | ({ instructionType: TokenWrapInstruction.Unwrap } & ParsedUnwrapInstruction<TProgram>)
+    | ({ instructionType: TokenWrapInstruction.CloseStuckEscrow } & ParsedCloseStuckEscrowInstruction<TProgram>)
+    | ({
+          instructionType: TokenWrapInstruction.SyncMetadataToToken2022;
+      } & ParsedSyncMetadataToToken2022Instruction<TProgram>)
+    | ({
+          instructionType: TokenWrapInstruction.SyncMetadataToSplToken;
+      } & ParsedSyncMetadataToSplTokenInstruction<TProgram>);
+
+export function parseTokenWrapInstruction<TProgram extends string>(
+    instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
+): ParsedTokenWrapInstruction<TProgram> {
+    const instructionType = identifyTokenWrapInstruction(instruction);
+    switch (instructionType) {
+        case TokenWrapInstruction.CreateMint: {
+            assertIsInstructionWithAccounts(instruction);
+            return { instructionType: TokenWrapInstruction.CreateMint, ...parseCreateMintInstruction(instruction) };
+        }
+        case TokenWrapInstruction.Wrap: {
+            assertIsInstructionWithAccounts(instruction);
+            return { instructionType: TokenWrapInstruction.Wrap, ...parseWrapInstruction(instruction) };
+        }
+        case TokenWrapInstruction.Unwrap: {
+            assertIsInstructionWithAccounts(instruction);
+            return { instructionType: TokenWrapInstruction.Unwrap, ...parseUnwrapInstruction(instruction) };
+        }
+        case TokenWrapInstruction.CloseStuckEscrow: {
+            assertIsInstructionWithAccounts(instruction);
+            return {
+                instructionType: TokenWrapInstruction.CloseStuckEscrow,
+                ...parseCloseStuckEscrowInstruction(instruction),
+            };
+        }
+        case TokenWrapInstruction.SyncMetadataToToken2022: {
+            assertIsInstructionWithAccounts(instruction);
+            return {
+                instructionType: TokenWrapInstruction.SyncMetadataToToken2022,
+                ...parseSyncMetadataToToken2022Instruction(instruction),
+            };
+        }
+        case TokenWrapInstruction.SyncMetadataToSplToken: {
+            assertIsInstructionWithAccounts(instruction);
+            return {
+                instructionType: TokenWrapInstruction.SyncMetadataToSplToken,
+                ...parseSyncMetadataToSplTokenInstruction(instruction),
+            };
+        }
+        default:
+            throw new Error(`Unrecognized instruction type: ${instructionType as string}`);
+    }
+}

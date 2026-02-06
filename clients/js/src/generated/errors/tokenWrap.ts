@@ -7,10 +7,10 @@
  */
 
 import {
-  isProgramError,
-  type Address,
-  type SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM,
-  type SolanaError,
+    isProgramError,
+    type Address,
+    type SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM,
+    type SolanaError,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
@@ -32,65 +32,58 @@ export const TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA = 0xe; // 14
 export const TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022 = 0xf; // 15
 
 export type TokenWrapError =
-  | typeof TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE
-  | typeof TOKEN_WRAP_ERROR__ESCROW_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA
-  | typeof TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER
-  | typeof TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER
-  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING
-  | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET
-  | typeof TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022
-  | typeof TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA
-  | typeof TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH
-  | typeof TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT;
+    | typeof TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE
+    | typeof TOKEN_WRAP_ERROR__ESCROW_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA
+    | typeof TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER
+    | typeof TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER
+    | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING
+    | typeof TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET
+    | typeof TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022
+    | typeof TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA
+    | typeof TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH
+    | typeof TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT;
 
 let tokenWrapErrorMessages: Record<TokenWrapError, string> | undefined;
 if (process.env.NODE_ENV !== 'production') {
-  tokenWrapErrorMessages = {
-    [TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH]: `Wrapped backpointer account address does not match expected PDA`,
-    [TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE]: `The escrow account is in a good state and cannot be recreated`,
-    [TOKEN_WRAP_ERROR__ESCROW_MISMATCH]: `Escrow account address does not match expected ATA`,
-    [TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH]: `Unwrapped escrow token owner is not set to expected PDA`,
-    [TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA]: `External metadata program returned no data`,
-    [TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER]: `Wrapped backpointer account owner is not the expected token wrap program`,
-    [TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER]: `Wrapped mint account owner is not the expected token program`,
-    [TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH]: `Provided source metadata account does not match pointer`,
-    [TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING]: `Metadata pointer extension missing on mint`,
-    [TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET]: `Metadata pointer is unset (None)`,
-    [TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH]: `Metaplex metadata account address does not match expected PDA`,
-    [TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH]: `Wrapped mint authority does not match expected PDA`,
-    [TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022]: `Instruction can only be used with spl-token wrapped mints`,
-    [TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA]: `Unwrapped mint does not have the TokenMetadata extension`,
-    [TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH]: `Wrapped mint account address does not match expected PDA`,
-    [TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT]: `Wrap amount should be positive`,
-  };
+    tokenWrapErrorMessages = {
+        [TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH]: `Wrapped backpointer account address does not match expected PDA`,
+        [TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE]: `The escrow account is in a good state and cannot be recreated`,
+        [TOKEN_WRAP_ERROR__ESCROW_MISMATCH]: `Escrow account address does not match expected ATA`,
+        [TOKEN_WRAP_ERROR__ESCROW_OWNER_MISMATCH]: `Unwrapped escrow token owner is not set to expected PDA`,
+        [TOKEN_WRAP_ERROR__EXTERNAL_PROGRAM_RETURNED_NO_DATA]: `External metadata program returned no data`,
+        [TOKEN_WRAP_ERROR__INVALID_BACKPOINTER_OWNER]: `Wrapped backpointer account owner is not the expected token wrap program`,
+        [TOKEN_WRAP_ERROR__INVALID_WRAPPED_MINT_OWNER]: `Wrapped mint account owner is not the expected token program`,
+        [TOKEN_WRAP_ERROR__METADATA_POINTER_MISMATCH]: `Provided source metadata account does not match pointer`,
+        [TOKEN_WRAP_ERROR__METADATA_POINTER_MISSING]: `Metadata pointer extension missing on mint`,
+        [TOKEN_WRAP_ERROR__METADATA_POINTER_UNSET]: `Metadata pointer is unset (None)`,
+        [TOKEN_WRAP_ERROR__METAPLEX_METADATA_MISMATCH]: `Metaplex metadata account address does not match expected PDA`,
+        [TOKEN_WRAP_ERROR__MINT_AUTHORITY_MISMATCH]: `Wrapped mint authority does not match expected PDA`,
+        [TOKEN_WRAP_ERROR__NO_SYNCING_TO_TOKEN2022]: `Instruction can only be used with spl-token wrapped mints`,
+        [TOKEN_WRAP_ERROR__UNWRAPPED_MINT_HAS_NO_METADATA]: `Unwrapped mint does not have the TokenMetadata extension`,
+        [TOKEN_WRAP_ERROR__WRAPPED_MINT_MISMATCH]: `Wrapped mint account address does not match expected PDA`,
+        [TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT]: `Wrap amount should be positive`,
+    };
 }
 
 export function getTokenWrapErrorMessage(code: TokenWrapError): string {
-  if (process.env.NODE_ENV !== 'production') {
-    return (tokenWrapErrorMessages as Record<TokenWrapError, string>)[code];
-  }
+    if (process.env.NODE_ENV !== 'production') {
+        return (tokenWrapErrorMessages as Record<TokenWrapError, string>)[code];
+    }
 
-  return 'Error message not available in production bundles.';
+    return 'Error message not available in production bundles.';
 }
 
 export function isTokenWrapError<TProgramErrorCode extends TokenWrapError>(
-  error: unknown,
-  transactionMessage: {
-    instructions: Record<number, { programAddress: Address }>;
-  },
-  code?: TProgramErrorCode
+    error: unknown,
+    transactionMessage: { instructions: Record<number, { programAddress: Address }> },
+    code?: TProgramErrorCode,
 ): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> &
-  Readonly<{ context: Readonly<{ code: TProgramErrorCode }> }> {
-  return isProgramError<TProgramErrorCode>(
-    error,
-    transactionMessage,
-    TOKEN_WRAP_PROGRAM_ADDRESS,
-    code
-  );
+    Readonly<{ context: Readonly<{ code: TProgramErrorCode }> }> {
+    return isProgramError<TProgramErrorCode>(error, transactionMessage, TOKEN_WRAP_PROGRAM_ADDRESS, code);
 }

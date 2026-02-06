@@ -34,7 +34,7 @@
 ### Major Changes
 
 - First stable release
-  - expose createMintTx, singleSignerWrapTx, singleSignerUnwrapTx
-  - provide multisig-helper builders and utilities (combinedMultisigTx, escrow creation, token-account helpers)
-  - ship generated TypeScript types, codecs, PDA finders and error maps
-  - add GitHub-Actions & Changesets configs for automated publishing
+    - expose createMintTx, singleSignerWrapTx, singleSignerUnwrapTx
+    - provide multisig-helper builders and utilities (combinedMultisigTx, escrow creation, token-account helpers)
+    - ship generated TypeScript types, codecs, PDA finders and error maps
+    - add GitHub-Actions & Changesets configs for automated publishing

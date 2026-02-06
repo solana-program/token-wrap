@@ -7,29 +7,29 @@
  */
 
 import {
-  AccountRole,
-  combineCodec,
-  getStructDecoder,
-  getStructEncoder,
-  getU64Decoder,
-  getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
-  transformEncoder,
-  type AccountMeta,
-  type AccountSignerMeta,
-  type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
-  type Instruction,
-  type InstructionWithAccounts,
-  type InstructionWithData,
-  type ReadonlyAccount,
-  type ReadonlySignerAccount,
-  type ReadonlyUint8Array,
-  type TransactionSigner,
-  type WritableAccount,
+    AccountRole,
+    combineCodec,
+    getStructDecoder,
+    getStructEncoder,
+    getU64Decoder,
+    getU64Encoder,
+    getU8Decoder,
+    getU8Encoder,
+    transformEncoder,
+    type AccountMeta,
+    type AccountSignerMeta,
+    type Address,
+    type FixedSizeCodec,
+    type FixedSizeDecoder,
+    type FixedSizeEncoder,
+    type Instruction,
+    type InstructionWithAccounts,
+    type InstructionWithData,
+    type ReadonlyAccount,
+    type ReadonlySignerAccount,
+    type ReadonlyUint8Array,
+    type TransactionSigner,
+    type WritableAccount,
 } from '@solana/kit';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
@@ -37,248 +37,149 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export const WRAP_DISCRIMINATOR = 1;
 
 export function getWrapDiscriminatorBytes() {
-  return getU8Encoder().encode(WRAP_DISCRIMINATOR);
+    return getU8Encoder().encode(WRAP_DISCRIMINATOR);
 }
 
 export type WrapInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountRecipientWrappedTokenAccount extends
-    | string
-    | AccountMeta<string> = string,
-  TAccountWrappedMint extends string | AccountMeta<string> = string,
-  TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
-  TAccountUnwrappedTokenProgram extends string | AccountMeta<string> = string,
-  TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
-  TAccountUnwrappedTokenAccount extends string | AccountMeta<string> = string,
-  TAccountUnwrappedMint extends string | AccountMeta<string> = string,
-  TAccountUnwrappedEscrow extends string | AccountMeta<string> = string,
-  TAccountTransferAuthority extends string | AccountMeta<string> = string,
-  TRemainingAccounts extends readonly AccountMeta<string>[] = [],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountRecipientWrappedTokenAccount extends string | AccountMeta<string> = string,
+    TAccountWrappedMint extends string | AccountMeta<string> = string,
+    TAccountWrappedMintAuthority extends string | AccountMeta<string> = string,
+    TAccountUnwrappedTokenProgram extends string | AccountMeta<string> = string,
+    TAccountWrappedTokenProgram extends string | AccountMeta<string> = string,
+    TAccountUnwrappedTokenAccount extends string | AccountMeta<string> = string,
+    TAccountUnwrappedMint extends string | AccountMeta<string> = string,
+    TAccountUnwrappedEscrow extends string | AccountMeta<string> = string,
+    TAccountTransferAuthority extends string | AccountMeta<string> = string,
+    TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
-  InstructionWithData<ReadonlyUint8Array> &
-  InstructionWithAccounts<
-    [
-      TAccountRecipientWrappedTokenAccount extends string
-        ? WritableAccount<TAccountRecipientWrappedTokenAccount>
-        : TAccountRecipientWrappedTokenAccount,
-      TAccountWrappedMint extends string
-        ? WritableAccount<TAccountWrappedMint>
-        : TAccountWrappedMint,
-      TAccountWrappedMintAuthority extends string
-        ? ReadonlyAccount<TAccountWrappedMintAuthority>
-        : TAccountWrappedMintAuthority,
-      TAccountUnwrappedTokenProgram extends string
-        ? ReadonlyAccount<TAccountUnwrappedTokenProgram>
-        : TAccountUnwrappedTokenProgram,
-      TAccountWrappedTokenProgram extends string
-        ? ReadonlyAccount<TAccountWrappedTokenProgram>
-        : TAccountWrappedTokenProgram,
-      TAccountUnwrappedTokenAccount extends string
-        ? WritableAccount<TAccountUnwrappedTokenAccount>
-        : TAccountUnwrappedTokenAccount,
-      TAccountUnwrappedMint extends string
-        ? ReadonlyAccount<TAccountUnwrappedMint>
-        : TAccountUnwrappedMint,
-      TAccountUnwrappedEscrow extends string
-        ? WritableAccount<TAccountUnwrappedEscrow>
-        : TAccountUnwrappedEscrow,
-      TAccountTransferAuthority extends string
-        ? ReadonlyAccount<TAccountTransferAuthority>
-        : TAccountTransferAuthority,
-      ...TRemainingAccounts,
-    ]
-  >;
+    InstructionWithData<ReadonlyUint8Array> &
+    InstructionWithAccounts<
+        [
+            TAccountRecipientWrappedTokenAccount extends string
+                ? WritableAccount<TAccountRecipientWrappedTokenAccount>
+                : TAccountRecipientWrappedTokenAccount,
+            TAccountWrappedMint extends string ? WritableAccount<TAccountWrappedMint> : TAccountWrappedMint,
+            TAccountWrappedMintAuthority extends string
+                ? ReadonlyAccount<TAccountWrappedMintAuthority>
+                : TAccountWrappedMintAuthority,
+            TAccountUnwrappedTokenProgram extends string
+                ? ReadonlyAccount<TAccountUnwrappedTokenProgram>
+                : TAccountUnwrappedTokenProgram,
+            TAccountWrappedTokenProgram extends string
+                ? ReadonlyAccount<TAccountWrappedTokenProgram>
+                : TAccountWrappedTokenProgram,
+            TAccountUnwrappedTokenAccount extends string
+                ? WritableAccount<TAccountUnwrappedTokenAccount>
+                : TAccountUnwrappedTokenAccount,
+            TAccountUnwrappedMint extends string ? ReadonlyAccount<TAccountUnwrappedMint> : TAccountUnwrappedMint,
+            TAccountUnwrappedEscrow extends string ? WritableAccount<TAccountUnwrappedEscrow> : TAccountUnwrappedEscrow,
+            TAccountTransferAuthority extends string
+                ? ReadonlyAccount<TAccountTransferAuthority>
+                : TAccountTransferAuthority,
+            ...TRemainingAccounts,
+        ]
+    >;
 
 export type WrapInstructionData = {
-  discriminator: number;
-  /** The amount of tokens to wrap. */
-  amount: bigint;
+    discriminator: number;
+    /** The amount of tokens to wrap. */
+    amount: bigint;
 };
 
 export type WrapInstructionDataArgs = {
-  /** The amount of tokens to wrap. */
-  amount: number | bigint;
+    /** The amount of tokens to wrap. */
+    amount: number | bigint;
 };
 
 export function getWrapInstructionDataEncoder(): FixedSizeEncoder<WrapInstructionDataArgs> {
-  return transformEncoder(
-    getStructEncoder([
-      ['discriminator', getU8Encoder()],
-      ['amount', getU64Encoder()],
-    ]),
-    (value) => ({ ...value, discriminator: WRAP_DISCRIMINATOR })
-  );
+    return transformEncoder(
+        getStructEncoder([
+            ['discriminator', getU8Encoder()],
+            ['amount', getU64Encoder()],
+        ]),
+        value => ({ ...value, discriminator: WRAP_DISCRIMINATOR }),
+    );
 }
 
 export function getWrapInstructionDataDecoder(): FixedSizeDecoder<WrapInstructionData> {
-  return getStructDecoder([
-    ['discriminator', getU8Decoder()],
-    ['amount', getU64Decoder()],
-  ]);
+    return getStructDecoder([
+        ['discriminator', getU8Decoder()],
+        ['amount', getU64Decoder()],
+    ]);
 }
 
-export function getWrapInstructionDataCodec(): FixedSizeCodec<
-  WrapInstructionDataArgs,
-  WrapInstructionData
-> {
-  return combineCodec(
-    getWrapInstructionDataEncoder(),
-    getWrapInstructionDataDecoder()
-  );
+export function getWrapInstructionDataCodec(): FixedSizeCodec<WrapInstructionDataArgs, WrapInstructionData> {
+    return combineCodec(getWrapInstructionDataEncoder(), getWrapInstructionDataDecoder());
 }
 
 export type WrapInput<
-  TAccountRecipientWrappedTokenAccount extends string = string,
-  TAccountWrappedMint extends string = string,
-  TAccountWrappedMintAuthority extends string = string,
-  TAccountUnwrappedTokenProgram extends string = string,
-  TAccountWrappedTokenProgram extends string = string,
-  TAccountUnwrappedTokenAccount extends string = string,
-  TAccountUnwrappedMint extends string = string,
-  TAccountUnwrappedEscrow extends string = string,
-  TAccountTransferAuthority extends string = string,
+    TAccountRecipientWrappedTokenAccount extends string = string,
+    TAccountWrappedMint extends string = string,
+    TAccountWrappedMintAuthority extends string = string,
+    TAccountUnwrappedTokenProgram extends string = string,
+    TAccountWrappedTokenProgram extends string = string,
+    TAccountUnwrappedTokenAccount extends string = string,
+    TAccountUnwrappedMint extends string = string,
+    TAccountUnwrappedEscrow extends string = string,
+    TAccountTransferAuthority extends string = string,
 > = {
-  /** The token account to receive the wrapped tokens. */
-  recipientWrappedTokenAccount: Address<TAccountRecipientWrappedTokenAccount>;
-  /**
-   * Wrapped mint, must be initialized, address must be:
-   * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
-   */
-  wrappedMint: Address<TAccountWrappedMint>;
-  /**
-   * The PDA authority of the wrapped mint, address must be
-   * `get_wrapped_mint_authority(wrapped_mint)`
-   */
-  wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
-  /** The token program of the unwrapped tokens. */
-  unwrappedTokenProgram: Address<TAccountUnwrappedTokenProgram>;
-  /** The token program of the wrapped tokens. */
-  wrappedTokenProgram: Address<TAccountWrappedTokenProgram>;
-  /** The source token account for the unwrapped tokens. */
-  unwrappedTokenAccount: Address<TAccountUnwrappedTokenAccount>;
-  /** The mint of the unwrapped tokens. */
-  unwrappedMint: Address<TAccountUnwrappedMint>;
-  /**
-   * The escrow account that holds the unwrapped tokens.
-   * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
-   */
-  unwrappedEscrow: Address<TAccountUnwrappedEscrow>;
-  /** The authority to transfer the unwrapped tokens. */
-  transferAuthority:
-    | Address<TAccountTransferAuthority>
-    | TransactionSigner<TAccountTransferAuthority>;
-  amount: WrapInstructionDataArgs['amount'];
-  multiSigners?: Array<TransactionSigner>;
+    /** The token account to receive the wrapped tokens. */
+    recipientWrappedTokenAccount: Address<TAccountRecipientWrappedTokenAccount>;
+    /**
+     * Wrapped mint, must be initialized, address must be:
+     * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
+     */
+    wrappedMint: Address<TAccountWrappedMint>;
+    /**
+     * The PDA authority of the wrapped mint, address must be
+     * `get_wrapped_mint_authority(wrapped_mint)`
+     */
+    wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
+    /** The token program of the unwrapped tokens. */
+    unwrappedTokenProgram: Address<TAccountUnwrappedTokenProgram>;
+    /** The token program of the wrapped tokens. */
+    wrappedTokenProgram: Address<TAccountWrappedTokenProgram>;
+    /** The source token account for the unwrapped tokens. */
+    unwrappedTokenAccount: Address<TAccountUnwrappedTokenAccount>;
+    /** The mint of the unwrapped tokens. */
+    unwrappedMint: Address<TAccountUnwrappedMint>;
+    /**
+     * The escrow account that holds the unwrapped tokens.
+     * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
+     */
+    unwrappedEscrow: Address<TAccountUnwrappedEscrow>;
+    /** The authority to transfer the unwrapped tokens. */
+    transferAuthority: Address<TAccountTransferAuthority> | TransactionSigner<TAccountTransferAuthority>;
+    amount: WrapInstructionDataArgs['amount'];
+    multiSigners?: Array<TransactionSigner>;
 };
 
 export function getWrapInstruction<
-  TAccountRecipientWrappedTokenAccount extends string,
-  TAccountWrappedMint extends string,
-  TAccountWrappedMintAuthority extends string,
-  TAccountUnwrappedTokenProgram extends string,
-  TAccountWrappedTokenProgram extends string,
-  TAccountUnwrappedTokenAccount extends string,
-  TAccountUnwrappedMint extends string,
-  TAccountUnwrappedEscrow extends string,
-  TAccountTransferAuthority extends string,
-  TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountRecipientWrappedTokenAccount extends string,
+    TAccountWrappedMint extends string,
+    TAccountWrappedMintAuthority extends string,
+    TAccountUnwrappedTokenProgram extends string,
+    TAccountWrappedTokenProgram extends string,
+    TAccountUnwrappedTokenAccount extends string,
+    TAccountUnwrappedMint extends string,
+    TAccountUnwrappedEscrow extends string,
+    TAccountTransferAuthority extends string,
+    TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
-  input: WrapInput<
-    TAccountRecipientWrappedTokenAccount,
-    TAccountWrappedMint,
-    TAccountWrappedMintAuthority,
-    TAccountUnwrappedTokenProgram,
-    TAccountWrappedTokenProgram,
-    TAccountUnwrappedTokenAccount,
-    TAccountUnwrappedMint,
-    TAccountUnwrappedEscrow,
-    TAccountTransferAuthority
-  >,
-  config?: { programAddress?: TProgramAddress }
+    input: WrapInput<
+        TAccountRecipientWrappedTokenAccount,
+        TAccountWrappedMint,
+        TAccountWrappedMintAuthority,
+        TAccountUnwrappedTokenProgram,
+        TAccountWrappedTokenProgram,
+        TAccountUnwrappedTokenAccount,
+        TAccountUnwrappedMint,
+        TAccountUnwrappedEscrow,
+        TAccountTransferAuthority
+    >,
+    config?: { programAddress?: TProgramAddress },
 ): WrapInstruction<
-  TProgramAddress,
-  TAccountRecipientWrappedTokenAccount,
-  TAccountWrappedMint,
-  TAccountWrappedMintAuthority,
-  TAccountUnwrappedTokenProgram,
-  TAccountWrappedTokenProgram,
-  TAccountUnwrappedTokenAccount,
-  TAccountUnwrappedMint,
-  TAccountUnwrappedEscrow,
-  (typeof input)['transferAuthority'] extends TransactionSigner<TAccountTransferAuthority>
-    ? ReadonlySignerAccount<TAccountTransferAuthority> &
-        AccountSignerMeta<TAccountTransferAuthority>
-    : TAccountTransferAuthority
-> {
-  // Program address.
-  const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    recipientWrappedTokenAccount: {
-      value: input.recipientWrappedTokenAccount ?? null,
-      isWritable: true,
-    },
-    wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
-    wrappedMintAuthority: {
-      value: input.wrappedMintAuthority ?? null,
-      isWritable: false,
-    },
-    unwrappedTokenProgram: {
-      value: input.unwrappedTokenProgram ?? null,
-      isWritable: false,
-    },
-    wrappedTokenProgram: {
-      value: input.wrappedTokenProgram ?? null,
-      isWritable: false,
-    },
-    unwrappedTokenAccount: {
-      value: input.unwrappedTokenAccount ?? null,
-      isWritable: true,
-    },
-    unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-    unwrappedEscrow: { value: input.unwrappedEscrow ?? null, isWritable: true },
-    transferAuthority: {
-      value: input.transferAuthority ?? null,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Remaining accounts.
-  const remainingAccounts: AccountMeta[] = (args.multiSigners ?? []).map(
-    (signer) => ({
-      address: signer.address,
-      role: AccountRole.READONLY_SIGNER,
-      signer,
-    })
-  );
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
-  return Object.freeze({
-    accounts: [
-      getAccountMeta(accounts.recipientWrappedTokenAccount),
-      getAccountMeta(accounts.wrappedMint),
-      getAccountMeta(accounts.wrappedMintAuthority),
-      getAccountMeta(accounts.unwrappedTokenProgram),
-      getAccountMeta(accounts.wrappedTokenProgram),
-      getAccountMeta(accounts.unwrappedTokenAccount),
-      getAccountMeta(accounts.unwrappedMint),
-      getAccountMeta(accounts.unwrappedEscrow),
-      getAccountMeta(accounts.transferAuthority),
-      ...remainingAccounts,
-    ],
-    data: getWrapInstructionDataEncoder().encode(
-      args as WrapInstructionDataArgs
-    ),
-    programAddress,
-  } as WrapInstruction<
     TProgramAddress,
     TAccountRecipientWrappedTokenAccount,
     TAccountWrappedMint,
@@ -289,80 +190,133 @@ export function getWrapInstruction<
     TAccountUnwrappedMint,
     TAccountUnwrappedEscrow,
     (typeof input)['transferAuthority'] extends TransactionSigner<TAccountTransferAuthority>
-      ? ReadonlySignerAccount<TAccountTransferAuthority> &
-          AccountSignerMeta<TAccountTransferAuthority>
-      : TAccountTransferAuthority
-  >);
+        ? ReadonlySignerAccount<TAccountTransferAuthority> & AccountSignerMeta<TAccountTransferAuthority>
+        : TAccountTransferAuthority
+> {
+    // Program address.
+    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+
+    // Original accounts.
+    const originalAccounts = {
+        recipientWrappedTokenAccount: { value: input.recipientWrappedTokenAccount ?? null, isWritable: true },
+        wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
+        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: false },
+        unwrappedTokenProgram: { value: input.unwrappedTokenProgram ?? null, isWritable: false },
+        wrappedTokenProgram: { value: input.wrappedTokenProgram ?? null, isWritable: false },
+        unwrappedTokenAccount: { value: input.unwrappedTokenAccount ?? null, isWritable: true },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
+        unwrappedEscrow: { value: input.unwrappedEscrow ?? null, isWritable: true },
+        transferAuthority: { value: input.transferAuthority ?? null, isWritable: false },
+    };
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+
+    // Original args.
+    const args = { ...input };
+
+    // Remaining accounts.
+    const remainingAccounts: AccountMeta[] = (args.multiSigners ?? []).map(signer => ({
+        address: signer.address,
+        role: AccountRole.READONLY_SIGNER,
+        signer,
+    }));
+
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
+    return Object.freeze({
+        accounts: [
+            getAccountMeta(accounts.recipientWrappedTokenAccount),
+            getAccountMeta(accounts.wrappedMint),
+            getAccountMeta(accounts.wrappedMintAuthority),
+            getAccountMeta(accounts.unwrappedTokenProgram),
+            getAccountMeta(accounts.wrappedTokenProgram),
+            getAccountMeta(accounts.unwrappedTokenAccount),
+            getAccountMeta(accounts.unwrappedMint),
+            getAccountMeta(accounts.unwrappedEscrow),
+            getAccountMeta(accounts.transferAuthority),
+            ...remainingAccounts,
+        ],
+        data: getWrapInstructionDataEncoder().encode(args as WrapInstructionDataArgs),
+        programAddress,
+    } as WrapInstruction<
+        TProgramAddress,
+        TAccountRecipientWrappedTokenAccount,
+        TAccountWrappedMint,
+        TAccountWrappedMintAuthority,
+        TAccountUnwrappedTokenProgram,
+        TAccountWrappedTokenProgram,
+        TAccountUnwrappedTokenAccount,
+        TAccountUnwrappedMint,
+        TAccountUnwrappedEscrow,
+        (typeof input)['transferAuthority'] extends TransactionSigner<TAccountTransferAuthority>
+            ? ReadonlySignerAccount<TAccountTransferAuthority> & AccountSignerMeta<TAccountTransferAuthority>
+            : TAccountTransferAuthority
+    >);
 }
 
 export type ParsedWrapInstruction<
-  TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
-  TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
+    TProgram extends string = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
+    TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
-  programAddress: Address<TProgram>;
-  accounts: {
-    /** The token account to receive the wrapped tokens. */
-    recipientWrappedTokenAccount: TAccountMetas[0];
-    /**
-     * Wrapped mint, must be initialized, address must be:
-     * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
-     */
-    wrappedMint: TAccountMetas[1];
-    /**
-     * The PDA authority of the wrapped mint, address must be
-     * `get_wrapped_mint_authority(wrapped_mint)`
-     */
-    wrappedMintAuthority: TAccountMetas[2];
-    /** The token program of the unwrapped tokens. */
-    unwrappedTokenProgram: TAccountMetas[3];
-    /** The token program of the wrapped tokens. */
-    wrappedTokenProgram: TAccountMetas[4];
-    /** The source token account for the unwrapped tokens. */
-    unwrappedTokenAccount: TAccountMetas[5];
-    /** The mint of the unwrapped tokens. */
-    unwrappedMint: TAccountMetas[6];
-    /**
-     * The escrow account that holds the unwrapped tokens.
-     * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
-     */
-    unwrappedEscrow: TAccountMetas[7];
-    /** The authority to transfer the unwrapped tokens. */
-    transferAuthority: TAccountMetas[8];
-  };
-  data: WrapInstructionData;
+    programAddress: Address<TProgram>;
+    accounts: {
+        /** The token account to receive the wrapped tokens. */
+        recipientWrappedTokenAccount: TAccountMetas[0];
+        /**
+         * Wrapped mint, must be initialized, address must be:
+         * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
+         */
+        wrappedMint: TAccountMetas[1];
+        /**
+         * The PDA authority of the wrapped mint, address must be
+         * `get_wrapped_mint_authority(wrapped_mint)`
+         */
+        wrappedMintAuthority: TAccountMetas[2];
+        /** The token program of the unwrapped tokens. */
+        unwrappedTokenProgram: TAccountMetas[3];
+        /** The token program of the wrapped tokens. */
+        wrappedTokenProgram: TAccountMetas[4];
+        /** The source token account for the unwrapped tokens. */
+        unwrappedTokenAccount: TAccountMetas[5];
+        /** The mint of the unwrapped tokens. */
+        unwrappedMint: TAccountMetas[6];
+        /**
+         * The escrow account that holds the unwrapped tokens.
+         * Address must be ATA: get_escrow_address(unwrapped_mint, unwrapped_token_program, wrapped_token_program)
+         */
+        unwrappedEscrow: TAccountMetas[7];
+        /** The authority to transfer the unwrapped tokens. */
+        transferAuthority: TAccountMetas[8];
+    };
+    data: WrapInstructionData;
 };
 
-export function parseWrapInstruction<
-  TProgram extends string,
-  TAccountMetas extends readonly AccountMeta[],
->(
-  instruction: Instruction<TProgram> &
-    InstructionWithAccounts<TAccountMetas> &
-    InstructionWithData<ReadonlyUint8Array>
+export function parseWrapInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(
+    instruction: Instruction<TProgram> &
+        InstructionWithAccounts<TAccountMetas> &
+        InstructionWithData<ReadonlyUint8Array>,
 ): ParsedWrapInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
-    // TODO: Coded error.
-    throw new Error('Not enough accounts');
-  }
-  let accountIndex = 0;
-  const getNextAccount = () => {
-    const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
-    accountIndex += 1;
-    return accountMeta;
-  };
-  return {
-    programAddress: instruction.programAddress,
-    accounts: {
-      recipientWrappedTokenAccount: getNextAccount(),
-      wrappedMint: getNextAccount(),
-      wrappedMintAuthority: getNextAccount(),
-      unwrappedTokenProgram: getNextAccount(),
-      wrappedTokenProgram: getNextAccount(),
-      unwrappedTokenAccount: getNextAccount(),
-      unwrappedMint: getNextAccount(),
-      unwrappedEscrow: getNextAccount(),
-      transferAuthority: getNextAccount(),
-    },
-    data: getWrapInstructionDataDecoder().decode(instruction.data),
-  };
+    if (instruction.accounts.length < 9) {
+        // TODO: Coded error.
+        throw new Error('Not enough accounts');
+    }
+    let accountIndex = 0;
+    const getNextAccount = () => {
+        const accountMeta = (instruction.accounts as TAccountMetas)[accountIndex]!;
+        accountIndex += 1;
+        return accountMeta;
+    };
+    return {
+        programAddress: instruction.programAddress,
+        accounts: {
+            recipientWrappedTokenAccount: getNextAccount(),
+            wrappedMint: getNextAccount(),
+            wrappedMintAuthority: getNextAccount(),
+            unwrappedTokenProgram: getNextAccount(),
+            wrappedTokenProgram: getNextAccount(),
+            unwrappedTokenAccount: getNextAccount(),
+            unwrappedMint: getNextAccount(),
+            unwrappedEscrow: getNextAccount(),
+            transferAuthority: getNextAccount(),
+        },
+        data: getWrapInstructionDataDecoder().decode(instruction.data),
+    };
 }
