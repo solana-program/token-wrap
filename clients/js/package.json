@@ -18,7 +18,8 @@
     },
     "files": [
         "./dist/src",
-        "./dist/types"
+        "./dist/types",
+        "./src/"
     ],
     "scripts": {
         "build": "tsc && tsup",
