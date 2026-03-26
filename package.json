@@ -29,7 +29,7 @@
         "@solana/sysvars": "^6.0.0",
         "@solana/prettier-config-solana": "0.0.6",
         "@types/node": "^25.5.0",
-        "codama": "^1.5.0",
+        "codama": "^1.5.1",
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",
         "zx": "^8.8.5"
