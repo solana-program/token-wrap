@@ -25,7 +25,7 @@ pub fn cpi_emit_and_decode<'a>(
 ) -> Result<TokenMetadata, ProgramError> {
     invoke(
         &emit(owner_program_info.key, metadata_info.key, None, None),
-        &[metadata_info.clone()],
+        core::slice::from_ref(metadata_info),
     )?;
 
     if let Some((program_key, data)) = get_return_data() {

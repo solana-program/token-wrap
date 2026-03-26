@@ -136,7 +136,7 @@ pub async fn command_sync_metadata_to_spl_token(
     let blockhash = config.rpc_client.get_latest_blockhash().await?;
 
     let mut transaction = Transaction::new_with_payer(&[instruction], Some(&payer.pubkey()));
-    transaction.partial_sign(&[payer.clone()], blockhash);
+    transaction.partial_sign(core::slice::from_ref(&payer), blockhash);
 
     let signature = process_transaction(config, transaction).await?;
 

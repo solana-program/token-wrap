@@ -136,12 +136,12 @@ pub fn process_create_mint<M: MintCustomizer>(
 
     invoke_signed(
         &allocate(&wrapped_mint_address, space as u64),
-        &[wrapped_mint_account.clone()],
+        core::slice::from_ref(wrapped_mint_account),
         &[&signer_seeds],
     )?;
     invoke_signed(
         &assign(&wrapped_mint_address, wrapped_token_program_account.key),
-        &[wrapped_mint_account.clone()],
+        core::slice::from_ref(wrapped_mint_account),
         &[&signer_seeds],
     )?;
 
@@ -160,7 +160,7 @@ pub fn process_create_mint<M: MintCustomizer>(
             freeze_authority.as_ref(),
             decimals,
         )?,
-        &[wrapped_mint_account.clone()],
+        core::slice::from_ref(wrapped_mint_account),
     )?;
 
     // Initialize backpointer PDA
@@ -180,12 +180,12 @@ pub fn process_create_mint<M: MintCustomizer>(
         get_wrapped_mint_backpointer_address_signer_seeds(wrapped_mint_account.key, &bump_seed);
     invoke_signed(
         &allocate(&wrapped_backpointer_address, backpointer_space as u64),
-        &[wrapped_backpointer_account.clone()],
+        core::slice::from_ref(wrapped_backpointer_account),
         &[&backpointer_signer_seeds],
     )?;
     invoke_signed(
         &assign(&wrapped_backpointer_address, program_id),
-        &[wrapped_backpointer_account.clone()],
+        core::slice::from_ref(wrapped_backpointer_account),
         &[&backpointer_signer_seeds],
     )?;
 
@@ -860,12 +860,12 @@ pub fn process_set_canonical_pointer(
             get_canonical_pointer_address_signer_seeds(unwrapped_mint_info.key, &bump_seed);
         invoke_signed(
             &allocate(canonical_pointer_info.key, space as u64),
-            &[canonical_pointer_info.clone()],
+            core::slice::from_ref(canonical_pointer_info),
             &[&signer_seeds],
         )?;
         invoke_signed(
             &assign(canonical_pointer_info.key, program_id),
-            &[canonical_pointer_info.clone()],
+            core::slice::from_ref(canonical_pointer_info),
             &[&signer_seeds],
         )?;
     }

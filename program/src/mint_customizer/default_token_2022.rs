@@ -44,7 +44,7 @@ impl MintCustomizer for DefaultToken2022Customizer {
                 true, // No approvals necessary to use.
                 None, // No auditor can decrypt transaction amounts.
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         // Initialize metadata pointer
@@ -56,7 +56,7 @@ impl MintCustomizer for DefaultToken2022Customizer {
                 Some(wrapped_mint_authority),
                 Some(*wrapped_mint_account.key),
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         Ok(())

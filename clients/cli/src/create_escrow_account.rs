@@ -153,7 +153,7 @@ pub async fn command_create_escrow_account(
         let transaction = Transaction::new_signed_with_payer(
             &instructions,
             Some(&payer.pubkey()),
-            &[payer.clone()],
+            core::slice::from_ref(&payer),
             latest_blockhash,
         );
         process_transaction(config, transaction).await?
