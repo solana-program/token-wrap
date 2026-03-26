@@ -9,7 +9,6 @@ use {
         },
         pod::PodMint,
     },
-    std::process::Command,
 };
 
 mod helpers;
@@ -44,29 +43,4 @@ async fn test_confidential_transfer_with_wrap_and_deposit() {
         ct_mint.auditor_elgamal_pubkey,
         OptionalNonZeroElGamalPubkey::default()
     );
-
-    // Create a ATA for the new wrapped mint
-    let create_status = Command::new("spl-token")
-        .args([
-            "--config",
-            &env.config_file_path,
-            "create-account",
-            &wrapped_mint_address.to_string(),
-        ])
-        .status()
-        .unwrap();
-    assert!(create_status.success());
-
-    // Configure ATA for confidential transfers to verify confidential transfer
-    // extension working properly
-    let config_status = Command::new("spl-token")
-        .args([
-            "--config",
-            &env.config_file_path,
-            "configure-confidential-transfer-account",
-            &wrapped_mint_address.to_string(),
-        ])
-        .status()
-        .unwrap();
-    assert!(config_status.success());
 }

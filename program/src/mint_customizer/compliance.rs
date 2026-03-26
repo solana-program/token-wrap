@@ -25,7 +25,7 @@ use {
 /// - `Pausable` transfers, mints, burns
 /// - Confidential transfers with a designated auditor
 ///
-/// In the future, can support sRFC-37: https://github.com/solana-foundation/SRFCs/discussions/2
+/// In the future, can support [sRFC-37](https://github.com/solana-foundation/SRFCs/discussions/2)
 pub struct ComplianceMintCustomizer;
 
 /// Permanent delegate that can transfer/burn from any account of this mint
