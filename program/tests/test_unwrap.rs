@@ -67,7 +67,7 @@ fn test_incorrect_wrapped_mint_authority() {
 
 #[test]
 fn test_incorrect_escrow_address() {
-    let not_derived_ata = Default::default();
+    let not_derived_ata = KeyedAccount::default();
 
     UnwrapBuilder::default()
         .unwrapped_escrow_account(not_derived_ata)
@@ -291,7 +291,7 @@ fn test_unwrap_with_transfer_hook() {
 
     // Escrow & unwrapped token account need to have TransferHook extension as well
     let transfer_authority = TransferAuthority {
-        keyed_account: Default::default(),
+        keyed_account: KeyedAccount::default(),
         signers: vec![],
     };
     let recipient_token_account = TokenAccountBuilder::new()
@@ -372,7 +372,7 @@ fn test_successfully_unwraps_to_native_mint() {
     let unwrap_amount = 40_000;
 
     let transfer_authority = TransferAuthority {
-        keyed_account: Default::default(),
+        keyed_account: KeyedAccount::default(),
         signers: vec![],
     };
 

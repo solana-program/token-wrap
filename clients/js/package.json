@@ -28,6 +28,7 @@
         "lint:fix": "eslint --fix --ext js,ts,tsx src",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "test": "exit 0",
         "example:single-signer": "tsx src/examples/single-signer.ts",
         "example:multisig": "tsx src/examples/multisig.ts"
     },

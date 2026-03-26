@@ -45,6 +45,7 @@ serial_test = { workspace = true }
 solana-keypair = { workspace = true }
 solana-sdk-ids = { workspace = true }
 solana-test-validator = { workspace = true }
+spl-pod = { workspace = true }
 tempfile = { workspace = true }
 
 [[bin]]

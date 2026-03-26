@@ -597,7 +597,7 @@ fn test_fail_pointer_to_third_party_missing_owner_program() {
     let source_metadata = KeyedAccount {
         key: Pubkey::new_unique(),
         account: Account {
-            owner: mock_metadata_owner::ID,
+            owner: test_metadata_owner::ID,
             ..Default::default()
         },
     };
@@ -643,7 +643,7 @@ fn test_fail_pointer_to_third_party_owner_program_mismatch() {
     let source_metadata = KeyedAccount {
         key: Pubkey::new_unique(),
         account: Account {
-            owner: mock_metadata_owner::ID, // Real owner
+            owner: test_metadata_owner::ID, // Real owner
             ..Default::default()
         },
     };
@@ -714,13 +714,13 @@ fn test_integration_pointer_to_third_party_no_return_fails() {
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
-            metadata_address: Some(mock_metadata_owner::NO_RETURN),
+            metadata_address: Some(test_metadata_owner::NO_RETURN),
         })
         .build();
     let source_metadata = KeyedAccount {
-        key: mock_metadata_owner::NO_RETURN,
+        key: test_metadata_owner::NO_RETURN,
         account: Account {
-            owner: mock_metadata_owner::ID,
+            owner: test_metadata_owner::ID,
             ..Default::default()
         },
     };
@@ -741,18 +741,18 @@ fn test_integration_pointer_to_third_party_success() {
         uri: "uri.mock".to_string(),
         additional_metadata: vec![],
     };
-    let mock_metadata_key = Pubkey::new_unique();
+    let test_metadata_key = Pubkey::new_unique();
     let mut source_metadata = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .mint_key(mock_metadata_key)
+        .mint_key(test_metadata_key)
         .with_extension(source_metadata_extension)
         .build();
-    source_metadata.account.owner = mock_metadata_owner::ID;
+    source_metadata.account.owner = test_metadata_owner::ID;
 
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
-            metadata_address: Some(mock_metadata_key),
+            metadata_address: Some(test_metadata_key),
         })
         .build();
 
@@ -769,13 +769,13 @@ fn test_integration_spl_token_pointer_to_third_party_no_return_fails() {
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
-            metadata_address: Some(mock_metadata_owner::NO_RETURN),
+            metadata_address: Some(test_metadata_owner::NO_RETURN),
         })
         .build();
     let source_metadata = KeyedAccount {
-        key: mock_metadata_owner::NO_RETURN,
+        key: test_metadata_owner::NO_RETURN,
         account: Account {
-            owner: mock_metadata_owner::ID,
+            owner: test_metadata_owner::ID,
             ..Default::default()
         },
     };
@@ -796,18 +796,18 @@ fn test_integration_spl_token_pointer_to_third_party_success() {
         uri: "uri.mock".to_string(),
         additional_metadata: vec![],
     };
-    let mock_metadata_key = Pubkey::new_unique();
+    let test_metadata_key = Pubkey::new_unique();
     let mut source_metadata = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
-        .mint_key(mock_metadata_key)
+        .mint_key(test_metadata_key)
         .with_extension(source_metadata_extension)
         .build();
-    source_metadata.account.owner = mock_metadata_owner::ID;
+    source_metadata.account.owner = test_metadata_owner::ID;
 
     let unwrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .with_extension(MintExtension::MetadataPointer {
-            metadata_address: Some(mock_metadata_key),
+            metadata_address: Some(test_metadata_key),
         })
         .build();
 
