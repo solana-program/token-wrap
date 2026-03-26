@@ -69,7 +69,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
                 wrapped_mint_account.key,
                 &PERMANENT_DELEGATE,
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         // Enables private transactions and specifies an auditor that can decrypt
@@ -86,7 +86,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
                 // transfer amounts
                 Some(elgamal_pubkey),
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         // By default, new accounts are initialized. The freeze authority can freeze
@@ -97,7 +97,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
                 wrapped_mint_account.key,
                 &AccountState::Initialized,
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         // The pause authority can pause transfers, burns, and mints
@@ -107,7 +107,7 @@ impl MintCustomizer for ComplianceMintCustomizer {
                 wrapped_mint_account.key,
                 &PAUSE_AUTHORITY,
             )?,
-            &[wrapped_mint_account.clone()],
+            core::slice::from_ref(wrapped_mint_account),
         )?;
 
         Ok(())
