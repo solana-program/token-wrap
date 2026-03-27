@@ -26,7 +26,7 @@ use {
     solana_signature::Signature,
     solana_signer::Signer,
     solana_transaction::Transaction,
-    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+    spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
     spl_token_wrap::{
         get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
     },

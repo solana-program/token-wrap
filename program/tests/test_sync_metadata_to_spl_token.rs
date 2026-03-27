@@ -385,7 +385,7 @@ fn test_success_update_from_spl_token_to_spl_token() {
         collection_details: Some(CollectionDetails::V1 { size: 100 }),
         programmable_config: None,
     };
-    source_metaplex_account.data = source_metaplex_metadata.try_to_vec().unwrap();
+    source_metaplex_account.data = borsh::to_vec(&source_metaplex_metadata).unwrap();
 
     let source_keyed_account = KeyedAccount {
         key: source_metaplex_pda,
@@ -528,7 +528,7 @@ fn test_success_initialize_from_spl_token_to_spl_token() {
         key: MetaplexMetadata::find_pda(&unwrapped_mint.key).0,
         account: Account {
             lamports: 1_000_000_000,
-            data: metaplex_metadata_obj.try_to_vec().unwrap(),
+            data: borsh::to_vec(&metaplex_metadata_obj).unwrap(),
             owner: mpl_token_metadata::ID,
             ..Default::default()
         },
@@ -611,7 +611,7 @@ fn test_success_nulls_fields_on_update() {
         collection_details: None,
         programmable_config: None,
     };
-    source_metaplex_account.data = source_metaplex_metadata.try_to_vec().unwrap();
+    source_metaplex_account.data = borsh::to_vec(&source_metaplex_metadata).unwrap();
 
     let source_keyed_account = KeyedAccount {
         key: source_metaplex_pda,

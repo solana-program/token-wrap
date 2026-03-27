@@ -84,10 +84,7 @@ impl TryFrom<u32> for TokenWrapError {
 }
 
 impl ToStr for TokenWrapError {
-    fn to_str<E>(&self) -> &'static str
-    where
-        E: 'static + ToStr + TryFrom<u32>,
-    {
+    fn to_str(&self) -> &'static str {
         match self {
             TokenWrapError::WrappedMintMismatch => "Error: WrappedMintMismatch",
             TokenWrapError::BackpointerMismatch => "Error: BackpointerMismatch",
