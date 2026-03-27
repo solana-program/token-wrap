@@ -10,25 +10,53 @@ import {
     assertIsInstructionWithAccounts,
     containsBytes,
     getU8Encoder,
+    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
+    SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
+    SolanaError,
     type Address,
+    type ClientWithRpc,
+    type ClientWithTransactionPlanning,
+    type ClientWithTransactionSending,
+    type GetAccountInfoApi,
+    type GetMultipleAccountsApi,
     type Instruction,
     type InstructionWithData,
     type ReadonlyUint8Array,
 } from '@solana/kit';
 import {
+    addSelfFetchFunctions,
+    addSelfPlanAndSendFunctions,
+    type SelfFetchFunctions,
+    type SelfPlanAndSendFunctions,
+} from '@solana/program-client-core';
+import { getBackpointerCodec, type Backpointer, type BackpointerArgs } from '../accounts';
+import {
+    getCloseStuckEscrowInstruction,
+    getCreateMintInstruction,
+    getSyncMetadataToSplTokenInstruction,
+    getSyncMetadataToToken2022Instruction,
+    getUnwrapInstruction,
+    getWrapInstruction,
     parseCloseStuckEscrowInstruction,
     parseCreateMintInstruction,
     parseSyncMetadataToSplTokenInstruction,
     parseSyncMetadataToToken2022Instruction,
     parseUnwrapInstruction,
     parseWrapInstruction,
+    type CloseStuckEscrowInput,
+    type CreateMintInput,
     type ParsedCloseStuckEscrowInstruction,
     type ParsedCreateMintInstruction,
     type ParsedSyncMetadataToSplTokenInstruction,
     type ParsedSyncMetadataToToken2022Instruction,
     type ParsedUnwrapInstruction,
     type ParsedWrapInstruction,
+    type SyncMetadataToSplTokenInput,
+    type SyncMetadataToToken2022Input,
+    type UnwrapInput,
+    type WrapInput,
 } from '../instructions';
+import { findBackpointerPda, findWrappedMintAuthorityPda, findWrappedMintPda } from '../pdas';
 
 export const TOKEN_WRAP_PROGRAM_ADDRESS =
     'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>;
@@ -68,7 +96,10 @@ export function identifyTokenWrapInstruction(
     if (containsBytes(data, getU8Encoder().encode(5), 0)) {
         return TokenWrapInstruction.SyncMetadataToSplToken;
     }
-    throw new Error('The provided instruction could not be identified as a tokenWrap instruction.');
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION, {
+        instructionData: data,
+        programName: 'tokenWrap',
+    });
 }
 
 export type ParsedTokenWrapInstruction<TProgram extends string = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'> =
@@ -122,6 +153,71 @@ export function parseTokenWrapInstruction<TProgram extends string>(
             };
         }
         default:
-            throw new Error(`Unrecognized instruction type: ${instructionType as string}`);
+            throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE, {
+                instructionType: instructionType as string,
+                programName: 'tokenWrap',
+            });
     }
+}
+
+export type TokenWrapPlugin = {
+    accounts: TokenWrapPluginAccounts;
+    instructions: TokenWrapPluginInstructions;
+    pdas: TokenWrapPluginPdas;
+};
+
+export type TokenWrapPluginAccounts = {
+    backpointer: ReturnType<typeof getBackpointerCodec> & SelfFetchFunctions<BackpointerArgs, Backpointer>;
+};
+
+export type TokenWrapPluginInstructions = {
+    createMint: (input: CreateMintInput) => ReturnType<typeof getCreateMintInstruction> & SelfPlanAndSendFunctions;
+    wrap: (input: WrapInput) => ReturnType<typeof getWrapInstruction> & SelfPlanAndSendFunctions;
+    unwrap: (input: UnwrapInput) => ReturnType<typeof getUnwrapInstruction> & SelfPlanAndSendFunctions;
+    closeStuckEscrow: (
+        input: CloseStuckEscrowInput,
+    ) => ReturnType<typeof getCloseStuckEscrowInstruction> & SelfPlanAndSendFunctions;
+    syncMetadataToToken2022: (
+        input: SyncMetadataToToken2022Input,
+    ) => ReturnType<typeof getSyncMetadataToToken2022Instruction> & SelfPlanAndSendFunctions;
+    syncMetadataToSplToken: (
+        input: SyncMetadataToSplTokenInput,
+    ) => ReturnType<typeof getSyncMetadataToSplTokenInstruction> & SelfPlanAndSendFunctions;
+};
+
+export type TokenWrapPluginPdas = {
+    backpointer: typeof findBackpointerPda;
+    wrappedMint: typeof findWrappedMintPda;
+    wrappedMintAuthority: typeof findWrappedMintAuthorityPda;
+};
+
+export type TokenWrapPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetMultipleAccountsApi> &
+    ClientWithTransactionPlanning &
+    ClientWithTransactionSending;
+
+export function tokenWrapProgram() {
+    return <T extends TokenWrapPluginRequirements>(client: T) => {
+        return {
+            ...client,
+            tokenWrap: <TokenWrapPlugin>{
+                accounts: { backpointer: addSelfFetchFunctions(client, getBackpointerCodec()) },
+                instructions: {
+                    createMint: input => addSelfPlanAndSendFunctions(client, getCreateMintInstruction(input)),
+                    wrap: input => addSelfPlanAndSendFunctions(client, getWrapInstruction(input)),
+                    unwrap: input => addSelfPlanAndSendFunctions(client, getUnwrapInstruction(input)),
+                    closeStuckEscrow: input =>
+                        addSelfPlanAndSendFunctions(client, getCloseStuckEscrowInstruction(input)),
+                    syncMetadataToToken2022: input =>
+                        addSelfPlanAndSendFunctions(client, getSyncMetadataToToken2022Instruction(input)),
+                    syncMetadataToSplToken: input =>
+                        addSelfPlanAndSendFunctions(client, getSyncMetadataToSplTokenInstruction(input)),
+                },
+                pdas: {
+                    backpointer: findBackpointerPda,
+                    wrappedMint: findWrappedMintPda,
+                    wrappedMintAuthority: findWrappedMintAuthorityPda,
+                },
+            },
+        };
+    };
 }

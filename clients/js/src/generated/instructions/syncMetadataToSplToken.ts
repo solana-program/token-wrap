@@ -12,6 +12,8 @@ import {
     getStructEncoder,
     getU8Decoder,
     getU8Encoder,
+    SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+    SolanaError,
     transformEncoder,
     type AccountMeta,
     type Address,
@@ -25,8 +27,8 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
+import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
-import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export const SYNC_METADATA_TO_SPL_TOKEN_DISCRIMINATOR = 5;
 
@@ -181,7 +183,7 @@ export function getSyncMetadataToSplTokenInstruction<
         sourceMetadata: { value: input.sourceMetadata ?? null, isWritable: false },
         ownerProgram: { value: input.ownerProgram ?? null, isWritable: false },
     };
-    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
     // Resolve default values.
     if (!accounts.metaplexProgram.value) {
@@ -200,15 +202,15 @@ export function getSyncMetadataToSplTokenInstruction<
     const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
-            getAccountMeta(accounts.metaplexMetadata),
-            getAccountMeta(accounts.wrappedMintAuthority),
-            getAccountMeta(accounts.wrappedMint),
-            getAccountMeta(accounts.unwrappedMint),
-            getAccountMeta(accounts.metaplexProgram),
-            getAccountMeta(accounts.systemProgram),
-            getAccountMeta(accounts.rentSysvar),
-            getAccountMeta(accounts.sourceMetadata),
-            getAccountMeta(accounts.ownerProgram),
+            getAccountMeta('metaplexMetadata', accounts.metaplexMetadata),
+            getAccountMeta('wrappedMintAuthority', accounts.wrappedMintAuthority),
+            getAccountMeta('wrappedMint', accounts.wrappedMint),
+            getAccountMeta('unwrappedMint', accounts.unwrappedMint),
+            getAccountMeta('metaplexProgram', accounts.metaplexProgram),
+            getAccountMeta('systemProgram', accounts.systemProgram),
+            getAccountMeta('rentSysvar', accounts.rentSysvar),
+            getAccountMeta('sourceMetadata', accounts.sourceMetadata),
+            getAccountMeta('ownerProgram', accounts.ownerProgram),
         ],
         data: getSyncMetadataToSplTokenInstructionDataEncoder().encode({}),
         programAddress,
@@ -270,8 +272,10 @@ export function parseSyncMetadataToSplTokenInstruction<
         InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSyncMetadataToSplTokenInstruction<TProgram, TAccountMetas> {
     if (instruction.accounts.length < 9) {
-        // TODO: Coded error.
-        throw new Error('Not enough accounts');
+        throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+            actualAccountMetas: instruction.accounts.length,
+            expectedAccountMetas: 9,
+        });
     }
     let accountIndex = 0;
     const getNextAccount = () => {

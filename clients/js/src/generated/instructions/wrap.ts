@@ -15,6 +15,8 @@ import {
     getU64Encoder,
     getU8Decoder,
     getU8Encoder,
+    SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+    SolanaError,
     transformEncoder,
     type AccountMeta,
     type AccountSignerMeta,
@@ -31,8 +33,8 @@ import {
     type TransactionSigner,
     type WritableAccount,
 } from '@solana/kit';
+import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
-import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export const WRAP_DISCRIMINATOR = 1;
 
@@ -208,7 +210,7 @@ export function getWrapInstruction<
         unwrappedEscrow: { value: input.unwrappedEscrow ?? null, isWritable: true },
         transferAuthority: { value: input.transferAuthority ?? null, isWritable: false },
     };
-    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
     // Original args.
     const args = { ...input };
@@ -223,15 +225,15 @@ export function getWrapInstruction<
     const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
-            getAccountMeta(accounts.recipientWrappedTokenAccount),
-            getAccountMeta(accounts.wrappedMint),
-            getAccountMeta(accounts.wrappedMintAuthority),
-            getAccountMeta(accounts.unwrappedTokenProgram),
-            getAccountMeta(accounts.wrappedTokenProgram),
-            getAccountMeta(accounts.unwrappedTokenAccount),
-            getAccountMeta(accounts.unwrappedMint),
-            getAccountMeta(accounts.unwrappedEscrow),
-            getAccountMeta(accounts.transferAuthority),
+            getAccountMeta('recipientWrappedTokenAccount', accounts.recipientWrappedTokenAccount),
+            getAccountMeta('wrappedMint', accounts.wrappedMint),
+            getAccountMeta('wrappedMintAuthority', accounts.wrappedMintAuthority),
+            getAccountMeta('unwrappedTokenProgram', accounts.unwrappedTokenProgram),
+            getAccountMeta('wrappedTokenProgram', accounts.wrappedTokenProgram),
+            getAccountMeta('unwrappedTokenAccount', accounts.unwrappedTokenAccount),
+            getAccountMeta('unwrappedMint', accounts.unwrappedMint),
+            getAccountMeta('unwrappedEscrow', accounts.unwrappedEscrow),
+            getAccountMeta('transferAuthority', accounts.transferAuthority),
             ...remainingAccounts,
         ],
         data: getWrapInstructionDataEncoder().encode(args as WrapInstructionDataArgs),
@@ -295,8 +297,10 @@ export function parseWrapInstruction<TProgram extends string, TAccountMetas exte
         InstructionWithData<ReadonlyUint8Array>,
 ): ParsedWrapInstruction<TProgram, TAccountMetas> {
     if (instruction.accounts.length < 9) {
-        // TODO: Coded error.
-        throw new Error('Not enough accounts');
+        throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+            actualAccountMetas: instruction.accounts.length,
+            expectedAccountMetas: 9,
+        });
     }
     let accountIndex = 0;
     const getNextAccount = () => {

@@ -61,7 +61,7 @@ pub async fn setup_test_env() -> TestEnv {
     let (validator, payer) = start_validator().await;
     let rpc_client = Arc::new(RpcClient::new_with_commitment(
         validator.rpc_url(),
-        CommitmentConfig::confirmed(),
+        CommitmentConfig::processed(),
     ));
 
     // Write payer keypair to a temporary file
@@ -79,6 +79,9 @@ pub async fn setup_test_env() -> TestEnv {
         ..SolanaConfig::default()
     };
     solana_config.save(&config_file_path).unwrap();
+
+    // Wait one slot to make tests less flaky, remove this when upgrading to v3
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     TestEnv {
         payer,

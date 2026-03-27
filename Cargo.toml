@@ -3,8 +3,8 @@ resolver = "2"
 members = [
     "clients/cli",
     "program",
-    "program/tests/programs/test-transfer-hook",
-    "program/tests/programs/mock-metadata-owner"
+    "program/test-metadata-owner",
+    "program/test-transfer-hook",
 ]
 
 [workspace.metadata.cli]
@@ -18,6 +18,11 @@ lint = "nightly-2026-01-22"
 
 [workspace.metadata.spellcheck]
 config = "scripts/spellcheck.toml"
+
+[workspace.metadata.release]
+pre-release-commit-message = "Publish {{crate_name}} v{{version}}"
+tag-message = "Publish {{crate_name}} v{{version}}"
+consolidate-commits = false
 
 [workspace.lints.rust.unexpected_cfgs]
 level = "warn"
@@ -39,7 +44,6 @@ anyhow = "1.0.100"
 borsh = "0.10.4"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
-mock-metadata-owner = { path = "program/tests/programs/mock-metadata-owner" }
 mollusk-svm = "0.4.2"
 mollusk-svm-programs-token = "0.4.1"
 mpl-token-metadata = "5.1.1"
@@ -90,6 +94,7 @@ spl-transfer-hook-interface = "0.10.0"
 spl-type-length-value = "0.8.0"
 tempfile = "3.23.0"
 test-case = "3.3.1"
-test-transfer-hook = { path = "program/tests/programs/test-transfer-hook", features = ["no-entrypoint"] }
+test-metadata-owner = { path = "program/test-metadata-owner", features = ["no-entrypoint"] }
+test-transfer-hook = { path = "program/test-transfer-hook", features = ["no-entrypoint"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["full"] }

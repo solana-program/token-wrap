@@ -237,7 +237,7 @@ fn test_wrap_with_transfer_hook() {
     // Escrow & unwrapped token account need to have TransferHook extension as well
     let wrap_amount = 12_555;
     let transfer_authority = TransferAuthority {
-        keyed_account: Default::default(),
+        keyed_account: KeyedAccount::default(),
         signers: vec![],
     };
     let unwrapped_token_account = TokenAccountBuilder::new()
@@ -301,7 +301,7 @@ fn test_successfully_wraps_native_mint() {
     let wrap_amount = 12_555;
 
     let transfer_authority = TransferAuthority {
-        keyed_account: Default::default(),
+        keyed_account: KeyedAccount::default(),
         signers: vec![],
     };
 

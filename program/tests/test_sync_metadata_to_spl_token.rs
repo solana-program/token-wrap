@@ -143,7 +143,7 @@ fn test_fail_owner_program_mismatch() {
     let source_metadata = KeyedAccount {
         key: Pubkey::new_unique(),
         account: Account {
-            owner: mock_metadata_owner::ID, // The real owner
+            owner: test_metadata_owner::ID, // The real owner
             ..Default::default()
         },
     };

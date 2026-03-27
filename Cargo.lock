@@ -3316,19 +3316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mock-metadata-owner"
-version = "0.1.0"
-dependencies = [
- "solana-account-info",
- "solana-cpi",
- "solana-program-entrypoint",
- "solana-program-error",
- "solana-pubkey",
- "spl-token-2022 9.0.0",
- "spl-token-metadata-interface",
-]
-
-[[package]]
 name = "mockall"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9764,7 +9751,6 @@ version = "1.0.0"
 dependencies = [
  "borsh 0.10.4",
  "bytemuck",
- "mock-metadata-owner",
  "mollusk-svm",
  "mollusk-svm-programs-token",
  "mpl-token-metadata",
@@ -9793,6 +9779,7 @@ dependencies = [
  "spl-transfer-hook-interface",
  "spl-type-length-value",
  "test-case",
+ "test-metadata-owner",
  "test-transfer-hook",
  "thiserror 2.0.17",
 ]
@@ -9830,6 +9817,7 @@ dependencies = [
  "solana-test-validator",
  "solana-transaction",
  "spl-associated-token-account-client",
+ "spl-pod",
  "spl-token",
  "spl-token-2022 9.0.0",
  "spl-token-metadata-interface",
@@ -10165,6 +10153,19 @@ dependencies = [
  "quote",
  "syn 2.0.104",
  "test-case-core",
+]
+
+[[package]]
+name = "test-metadata-owner"
+version = "0.1.0"
+dependencies = [
+ "solana-account-info",
+ "solana-cpi",
+ "solana-program-entrypoint",
+ "solana-program-error",
+ "solana-pubkey",
+ "spl-token-2022 9.0.0",
+ "spl-token-metadata-interface",
 ]
 
 [[package]]
