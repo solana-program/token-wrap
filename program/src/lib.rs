@@ -13,7 +13,7 @@ pub mod state;
 
 use {
     solana_pubkey::Pubkey,
-    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+    spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
 };
 
 solana_pubkey::declare_id!("TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR");

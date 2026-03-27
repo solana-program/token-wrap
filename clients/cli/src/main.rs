@@ -27,8 +27,6 @@ async fn main() -> Result<(), Error> {
 
     let config = Config::new(cli.clone(), matches.clone(), &mut wallet_manager)?;
 
-    solana_logger::setup_with_default("solana=info");
-
     let result = cli
         .command
         .execute(&config, &matches, &mut wallet_manager)

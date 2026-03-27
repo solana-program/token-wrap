@@ -7,7 +7,6 @@ use {
         sync_to_token_2022_builder::SyncToToken2022Builder,
         token_account_builder::TokenAccountBuilder,
     },
-    borsh::BorshSerialize,
     mollusk_svm::result::Check,
     mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, types::Key},
     solana_account::Account,
@@ -36,7 +35,6 @@ fn test_fail_invalid_owner() {
         &mut data,
         &wrong_owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -61,7 +59,6 @@ fn test_fail_spl_token_missing_metaplex_account() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -93,7 +90,6 @@ fn test_fail_spl_token_with_wrong_metaplex_owner() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -105,7 +101,6 @@ fn test_fail_spl_token_with_wrong_metaplex_owner() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -135,7 +130,6 @@ fn test_fail_spl_token_with_invalid_metaplex_pda() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = invalid_pda_account.account.lamports;
     let mut source_data = invalid_pda_account.account.data.clone();
@@ -147,7 +141,6 @@ fn test_fail_spl_token_with_invalid_metaplex_pda() {
         &mut source_data,
         &invalid_pda_account.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -175,7 +168,6 @@ fn test_fail_no_fallback_account_provided() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -213,7 +205,7 @@ fn test_success_no_pointer_fallback_to_metaplex() {
         collection_details: None,
         programmable_config: None,
     };
-    source_metaplex_account.data = metaplex_metadata_obj.try_to_vec().unwrap();
+    source_metaplex_account.data = borsh::to_vec(&metaplex_metadata_obj).unwrap();
     let source_metadata = KeyedAccount {
         key: metaplex_pda,
         account: source_metaplex_account,
@@ -229,7 +221,6 @@ fn test_success_no_pointer_fallback_to_metaplex() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -241,7 +232,6 @@ fn test_success_no_pointer_fallback_to_metaplex() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -276,7 +266,6 @@ fn test_fail_no_pointer_fallback_wrong_owner() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -288,7 +277,6 @@ fn test_fail_no_pointer_fallback_wrong_owner() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -314,7 +302,6 @@ fn test_fail_pointer_unset() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -352,7 +339,6 @@ fn test_success_self_referential_pointer() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -385,7 +371,6 @@ fn test_fail_self_referential_pointer_no_metadata() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -413,7 +398,6 @@ fn test_fail_pointer_to_external_account_not_provided() {
         &mut data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, None, None);
@@ -446,7 +430,6 @@ fn test_fail_pointer_mismatch() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = wrong_metadata_account.account.lamports;
     let mut source_data = wrong_metadata_account.account.data.clone();
@@ -458,7 +441,6 @@ fn test_fail_pointer_mismatch() {
         &mut source_data,
         &wrong_metadata_account.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -495,7 +477,6 @@ fn test_fail_pointer_to_token_2022_account_is_unsupported() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata_account.account.lamports;
     let mut source_data = source_metadata_account.account.data.clone();
@@ -507,7 +488,6 @@ fn test_fail_pointer_to_token_2022_account_is_unsupported() {
         &mut source_data,
         &source_metadata_account.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -545,7 +525,7 @@ fn test_success_pointer_to_metaplex() {
         collection_details: None,
         programmable_config: None,
     };
-    metaplex_account.data = metaplex_metadata_obj.try_to_vec().unwrap();
+    metaplex_account.data = borsh::to_vec(&metaplex_metadata_obj).unwrap();
     let source_metadata = KeyedAccount {
         key: metaplex_pda,
         account: metaplex_account,
@@ -570,7 +550,6 @@ fn test_success_pointer_to_metaplex() {
         &mut mint_data,
         &unwrapped_mint_with_pointer.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -582,7 +561,6 @@ fn test_success_pointer_to_metaplex() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -618,7 +596,6 @@ fn test_fail_pointer_to_third_party_missing_owner_program() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -630,7 +607,6 @@ fn test_fail_pointer_to_third_party_missing_owner_program() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(&unwrapped_mint_info, Some(&source_metadata_info), None);
@@ -668,7 +644,6 @@ fn test_fail_pointer_to_third_party_owner_program_mismatch() {
         &mut mint_data,
         &unwrapped_mint.account.owner,
         false,
-        0,
     );
     let mut source_lamports = source_metadata.account.lamports;
     let mut source_data = source_metadata.account.data.clone();
@@ -680,7 +655,6 @@ fn test_fail_pointer_to_third_party_owner_program_mismatch() {
         &mut source_data,
         &source_metadata.account.owner,
         false,
-        0,
     );
     let mut owner_lamports = wrong_owner_program.account.lamports;
     let mut owner_data = wrong_owner_program.account.data.clone();
@@ -692,7 +666,6 @@ fn test_fail_pointer_to_third_party_owner_program_mismatch() {
         &mut owner_data,
         &wrong_owner_program.account.owner,
         false,
-        0,
     );
 
     let result = extract_token_metadata(
