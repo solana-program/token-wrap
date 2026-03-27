@@ -80,6 +80,9 @@ pub async fn setup_test_env() -> TestEnv {
     };
     solana_config.save(&config_file_path).unwrap();
 
+    // Wait one slot to make tests less flaky, remove this when upgrading to v3
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+
     TestEnv {
         payer,
         rpc_client,
