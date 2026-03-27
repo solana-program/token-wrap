@@ -3,7 +3,6 @@ use {
         common::{init_mollusk, KeyedAccount, TokenProgram},
         mint_builder::MintBuilder,
     },
-    borsh::BorshSerialize,
     mollusk_svm::{result::Check, Mollusk},
     mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, types::Key},
     solana_account::Account,
@@ -114,7 +113,7 @@ impl<'a> SyncToSplTokenBuilder<'a> {
                 programmable_config: None,
             };
             let source_account = Account {
-                data: source_metadata_obj.try_to_vec().unwrap(),
+                data: borsh::to_vec(&source_metadata_obj).unwrap(),
                 owner: mpl_token_metadata::ID,
                 lamports: 1_000_000_000,
                 ..Default::default()
