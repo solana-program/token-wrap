@@ -12,6 +12,8 @@ import {
     getStructEncoder,
     getU8Decoder,
     getU8Encoder,
+    SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+    SolanaError,
     transformEncoder,
     type AccountMeta,
     type Address,
@@ -25,8 +27,8 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
+import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
-import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export const SYNC_METADATA_TO_TOKEN2022_DISCRIMINATOR = 4;
 
@@ -153,7 +155,7 @@ export function getSyncMetadataToToken2022Instruction<
         sourceMetadata: { value: input.sourceMetadata ?? null, isWritable: false },
         ownerProgram: { value: input.ownerProgram ?? null, isWritable: false },
     };
-    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
     // Resolve default values.
     if (!accounts.token2022Program.value) {
@@ -164,12 +166,12 @@ export function getSyncMetadataToToken2022Instruction<
     const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
-            getAccountMeta(accounts.wrappedMint),
-            getAccountMeta(accounts.wrappedMintAuthority),
-            getAccountMeta(accounts.unwrappedMint),
-            getAccountMeta(accounts.token2022Program),
-            getAccountMeta(accounts.sourceMetadata),
-            getAccountMeta(accounts.ownerProgram),
+            getAccountMeta('wrappedMint', accounts.wrappedMint),
+            getAccountMeta('wrappedMintAuthority', accounts.wrappedMintAuthority),
+            getAccountMeta('unwrappedMint', accounts.unwrappedMint),
+            getAccountMeta('token2022Program', accounts.token2022Program),
+            getAccountMeta('sourceMetadata', accounts.sourceMetadata),
+            getAccountMeta('ownerProgram', accounts.ownerProgram),
         ],
         data: getSyncMetadataToToken2022InstructionDataEncoder().encode({}),
         programAddress,
@@ -221,8 +223,10 @@ export function parseSyncMetadataToToken2022Instruction<
         InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSyncMetadataToToken2022Instruction<TProgram, TAccountMetas> {
     if (instruction.accounts.length < 6) {
-        // TODO: Coded error.
-        throw new Error('Not enough accounts');
+        throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+            actualAccountMetas: instruction.accounts.length,
+            expectedAccountMetas: 6,
+        });
     }
     let accountIndex = 0;
     const getNextAccount = () => {

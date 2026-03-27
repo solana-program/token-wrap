@@ -5,9 +5,8 @@
         "js": {
             "from": "@codama/renderers-js",
             "args": [
-                "clients/js/src/generated",
+                "clients/js",
                 {
-                    "packageFolder": "clients/js",
                     "syncPackageJson": true
                 }
             ]

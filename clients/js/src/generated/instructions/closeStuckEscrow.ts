@@ -12,6 +12,8 @@ import {
     getStructEncoder,
     getU8Decoder,
     getU8Encoder,
+    SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
+    SolanaError,
     transformEncoder,
     type AccountMeta,
     type Address,
@@ -25,8 +27,8 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
+import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
-import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export const CLOSE_STUCK_ESCROW_DISCRIMINATOR = 3;
 
@@ -144,7 +146,7 @@ export function getCloseStuckEscrowInstruction<
         wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: false },
         token2022Program: { value: input.token2022Program ?? null, isWritable: false },
     };
-    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedAccount>;
+    const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
     // Resolve default values.
     if (!accounts.token2022Program.value) {
@@ -155,12 +157,12 @@ export function getCloseStuckEscrowInstruction<
     const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
-            getAccountMeta(accounts.escrow),
-            getAccountMeta(accounts.destination),
-            getAccountMeta(accounts.unwrappedMint),
-            getAccountMeta(accounts.wrappedMint),
-            getAccountMeta(accounts.wrappedMintAuthority),
-            getAccountMeta(accounts.token2022Program),
+            getAccountMeta('escrow', accounts.escrow),
+            getAccountMeta('destination', accounts.destination),
+            getAccountMeta('unwrappedMint', accounts.unwrappedMint),
+            getAccountMeta('wrappedMint', accounts.wrappedMint),
+            getAccountMeta('wrappedMintAuthority', accounts.wrappedMintAuthority),
+            getAccountMeta('token2022Program', accounts.token2022Program),
         ],
         data: getCloseStuckEscrowInstructionDataEncoder().encode({}),
         programAddress,
@@ -203,8 +205,10 @@ export function parseCloseStuckEscrowInstruction<TProgram extends string, TAccou
         InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCloseStuckEscrowInstruction<TProgram, TAccountMetas> {
     if (instruction.accounts.length < 6) {
-        // TODO: Coded error.
-        throw new Error('Not enough accounts');
+        throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+            actualAccountMetas: instruction.accounts.length,
+            expectedAccountMetas: 6,
+        });
     }
     let accountIndex = 0;
     const getNextAccount = () => {
