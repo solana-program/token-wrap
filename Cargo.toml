@@ -38,7 +38,7 @@ edition = "2021"
 anyhow = "1.0.100"
 borsh = "0.10.4"
 bytemuck = { version = "1.25.0", features = ["derive"] }
-clap = { version = "3.2.25", features = ["derive"] }
+clap = { version = "4.5.60", features = ["derive"] }
 mock-metadata-owner = { path = "program/tests/programs/mock-metadata-owner" }
 mollusk-svm = "0.4.2"
 mollusk-svm-programs-token = "0.4.1"
