@@ -61,7 +61,7 @@ pub async fn setup_test_env() -> TestEnv {
     let (validator, payer) = start_validator().await;
     let rpc_client = Arc::new(RpcClient::new_with_commitment(
         validator.rpc_url(),
-        CommitmentConfig::confirmed(),
+        CommitmentConfig::processed(),
     ));
 
     // Write payer keypair to a temporary file
