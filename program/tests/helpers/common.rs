@@ -62,6 +62,7 @@ pub fn init_mollusk() -> Mollusk {
     mollusk.add_program(&test_transfer_hook::id(), "test_transfer_hook");
     mollusk.add_program(&test_metadata_owner::ID, "test_metadata_owner");
     mollusk.add_program(&mpl_token_metadata::ID, "mpl_token_metadata");
+    mollusk.add_program(&spl_token_2022::ID, "spl_token_2022");
     mollusk
 }
 
