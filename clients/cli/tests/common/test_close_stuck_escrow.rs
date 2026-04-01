@@ -1,9 +1,8 @@
 use {
-    crate::helpers::{
-        create_associated_token_account, create_unwrapped_mint, execute_create_mint,
-        setup_test_env, TOKEN_WRAP_CLI_BIN,
+    crate::common::helpers::{
+        create_associated_token_account, create_unwrapped_mint, execute_create_mint, TestEnv,
+        TOKEN_WRAP_CLI_BIN,
     },
-    serial_test::serial,
     solana_keypair::Keypair,
     solana_signer::Signer,
     solana_system_interface::instruction::create_account,
@@ -17,17 +16,11 @@ use {
     std::process::Command,
 };
 
-mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_only_token_2022_allowed() {
-    let env = setup_test_env().await;
-
+pub async fn test_only_token_2022_allowed(env: &TestEnv) {
     // Create unwrapped mint with spl-token (not spl-token-2022)
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     let output = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
@@ -46,24 +39,20 @@ async fn test_only_token_2022_allowed() {
     assert!(stderr.contains("CloseStuckEscrow only works with spl-token-2022 unwrapped mints"));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_mint_close_stuck_escrow_fails() {
-    let env = setup_test_env().await;
-
+pub async fn test_create_mint_close_stuck_escrow_fails(env: &TestEnv) {
     // 1. Create unwrapped mint with spl-token-2022
     let unwrapped_token_program = spl_token_2022::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     // 2. Create wrapped mint
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     // 3. Create escrow account (the ATA for the wrapped mint authority)
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     create_associated_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &wrapped_mint_authority,
@@ -86,10 +75,7 @@ async fn test_create_mint_close_stuck_escrow_fails() {
     assert!(!output.status.success());
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_successful_close() {
-    let env = setup_test_env().await;
+pub async fn test_successful_close(env: &TestEnv) {
     let unwrapped_token_program = spl_token_2022::id();
     let wrapped_token_program = spl_token_2022::id();
     let close_authority = env.payer.pubkey();
@@ -142,13 +128,13 @@ async fn test_successful_close() {
         .unwrap();
 
     // 2. Create wrapped mint
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     // 3. Create the initial escrow account
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     let escrow_address = create_associated_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &wrapped_mint_authority,

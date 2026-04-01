@@ -1,7 +1,6 @@
 use {
-    crate::helpers::{create_unwrapped_mint, setup_test_env, TestEnv, TOKEN_WRAP_CLI_BIN},
+    crate::common::helpers::{create_unwrapped_mint, TestEnv, TOKEN_WRAP_CLI_BIN},
     serde_json::Value,
-    serial_test::serial,
     solana_keypair::{write_keypair_file, Keypair},
     solana_program_pack::IsInitialized,
     solana_pubkey::Pubkey,
@@ -17,8 +16,6 @@ use {
     std::{process::Command, str::FromStr},
     tempfile::NamedTempFile,
 };
-
-mod helpers;
 
 async fn assert_escrow_creation(
     env: &TestEnv,
@@ -59,14 +56,11 @@ async fn assert_escrow_creation(
     assert_eq!(account_state.base.amount, 0.into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_ata_escrow_account_for_spl_token_mint() {
-    let env = setup_test_env().await;
+pub async fn test_create_ata_escrow_account_for_spl_token_mint(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
     let wrapped_token_program_id = spl_token_2022::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program_id);
     let expected_owner_pda = get_wrapped_mint_authority(&wrapped_mint_address);
@@ -90,7 +84,7 @@ async fn test_create_ata_escrow_account_for_spl_token_mint() {
     let json_result: Value = serde_json::from_str(&output_str).unwrap();
 
     assert_escrow_creation(
-        &env,
+        env,
         &json_result,
         &expected_owner_pda,
         &unwrapped_mint,
@@ -99,14 +93,11 @@ async fn test_create_ata_escrow_account_for_spl_token_mint() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_ata_escrow_account_for_token2022_mint() {
-    let env = setup_test_env().await;
+pub async fn test_create_ata_escrow_account_for_token2022_mint(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token_2022::id();
     let wrapped_token_program_id = spl_token::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program_id);
     let expected_owner_pda = get_wrapped_mint_authority(&wrapped_mint_address);
@@ -130,7 +121,7 @@ async fn test_create_ata_escrow_account_for_token2022_mint() {
     let json_result: Value = serde_json::from_str(&output_str).unwrap();
 
     assert_escrow_creation(
-        &env,
+        env,
         &json_result,
         &expected_owner_pda,
         &unwrapped_mint,
@@ -139,14 +130,11 @@ async fn test_create_ata_escrow_account_for_token2022_mint() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_escrow_account_with_signer() {
-    let env = setup_test_env().await;
+pub async fn test_create_escrow_account_with_signer(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
     let wrapped_token_program_id = spl_token_2022::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
     // Create a keypair for the escrow account
     let escrow_keypair = Keypair::new();
@@ -183,7 +171,7 @@ async fn test_create_escrow_account_with_signer() {
     let expected_owner_pda = get_wrapped_mint_authority(&wrapped_mint_address);
 
     assert_escrow_creation(
-        &env,
+        env,
         &json_result,
         &expected_owner_pda,
         &unwrapped_mint,
@@ -192,14 +180,11 @@ async fn test_create_escrow_account_with_signer() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_escrow_account_signer_idempotent() {
-    let env = setup_test_env().await;
+pub async fn test_create_escrow_account_signer_idempotent(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
     let wrapped_token_program_id = spl_token_2022::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
     let args = [
         "create-escrow-account",
@@ -241,14 +226,11 @@ async fn test_create_escrow_account_signer_idempotent() {
         .contains(format!("Escrow account {} already exists", derived_escrow_address).as_str()));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_escrow_account_ata_idempotent() {
-    let env = setup_test_env().await;
+pub async fn test_create_escrow_account_ata_idempotent(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
     let wrapped_token_program_id = spl_token_2022::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program_id).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
     let args = [
         "create-escrow-account",
@@ -284,14 +266,10 @@ async fn test_create_escrow_account_ata_idempotent() {
     assert!(stderr_c.contains("already exists"));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_escrow_account_with_wrong_mint_owner() {
-    let env = setup_test_env().await;
-
+pub async fn test_create_escrow_account_with_wrong_mint_owner(env: &TestEnv) {
     let keypair = Keypair::new();
     let wrong_owner = Pubkey::new_unique();
-    create_account(&env, &keypair, &wrong_owner).await;
+    create_account(env, &keypair, &wrong_owner).await;
 
     let mut command = Command::new(TOKEN_WRAP_CLI_BIN);
     let output = command
@@ -310,15 +288,11 @@ async fn test_create_escrow_account_with_wrong_mint_owner() {
     assert!(stderr.contains("is not owned by a token program"));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_escrow_account_with_wrong_account_type() {
-    let env = setup_test_env().await;
-
+pub async fn test_create_escrow_account_with_wrong_account_type(env: &TestEnv) {
     let keypair = Keypair::new();
 
     // note no data in account
-    create_account(&env, &keypair, &spl_token_2022::id()).await;
+    create_account(env, &keypair, &spl_token_2022::id()).await;
 
     let mut command = Command::new(TOKEN_WRAP_CLI_BIN);
     let output = command

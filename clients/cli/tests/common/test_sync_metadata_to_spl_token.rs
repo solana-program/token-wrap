@@ -1,11 +1,10 @@
 use {
-    crate::helpers::{
-        create_metaplex_metadata, create_unwrapped_mint, execute_create_mint, setup_test_env,
+    crate::common::helpers::{
+        create_metaplex_metadata, create_unwrapped_mint, execute_create_mint, TestEnv,
         TOKEN_WRAP_CLI_BIN,
     },
     mpl_token_metadata::{accounts::Metadata as MetaplexMetadata, utils::clean},
     serde_json::Value,
-    serial_test::serial,
     solana_keypair::Keypair,
     solana_signer::Signer,
     solana_system_interface::instruction::transfer,
@@ -15,13 +14,7 @@ use {
     std::process::Command,
 };
 
-mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_metadata_from_token2022_to_spl_token() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_metadata_from_token2022_to_spl_token(env: &TestEnv) {
     // 1. Create an unwrapped Token-2022 mint with MetadataPointer and TokenMetadata
     let unwrapped_mint_kp = Keypair::new();
     let unwrapped_mint = unwrapped_mint_kp.pubkey();
@@ -142,7 +135,7 @@ async fn test_sync_metadata_from_token2022_to_spl_token() {
         .unwrap();
 
     // 2. Create the corresponding wrapped SPL Token mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token::id());
 
     // 3. Fund the wrapped mint authority PDA so it can pay for the Metaplex CPI
@@ -201,20 +194,16 @@ async fn test_sync_metadata_from_token2022_to_spl_token() {
     assert_eq!(metaplex_metadata.update_authority, wrapped_mint_authority);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_metadata_from_spl_token_to_spl_token() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_metadata_from_spl_token_to_spl_token(env: &TestEnv) {
     // 1. Create an unwrapped SPL Token mint
-    let unwrapped_mint = create_unwrapped_mint(&env, &spl_token::id()).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &spl_token::id()).await;
 
     // 2. Create Metaplex metadata for the unwrapped mint
     let name = "Unwrapped SPL".to_string();
     let symbol = "USPL".to_string();
     let uri = "http://uspl.com".to_string();
     let metaplex_pda = create_metaplex_metadata(
-        &env,
+        env,
         &unwrapped_mint,
         spl_token::id(),
         name.clone(),
@@ -224,7 +213,7 @@ async fn test_sync_metadata_from_spl_token_to_spl_token() {
     .await;
 
     // 3. Create the corresponding wrapped SPL Token mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token::id());
 
     // 4. Fund the wrapped mint authority PDA

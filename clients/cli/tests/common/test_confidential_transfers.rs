@@ -1,6 +1,5 @@
 use {
-    crate::helpers::{create_unwrapped_mint, execute_create_mint, setup_test_env},
-    serial_test::serial,
+    crate::common::helpers::{create_unwrapped_mint, execute_create_mint, TestEnv},
     spl_pod::optional_keys::{OptionalNonZeroElGamalPubkey, OptionalNonZeroPubkey},
     spl_token_2022::{
         extension::{
@@ -11,17 +10,12 @@ use {
     },
 };
 
-mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_confidential_transfer_with_wrap_and_deposit() {
-    let env = setup_test_env().await;
+pub async fn test_confidential_transfer_with_wrap_and_deposit(env: &TestEnv) {
     let unwrapped_token_program = spl_token_2022::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
     let wrapped_mint_address =
         spl_token_wrap::get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
 
