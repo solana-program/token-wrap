@@ -44,6 +44,7 @@ anyhow = "1.0.100"
 borsh = "0.10.4"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 clap = { version = "3.2.25", features = ["derive"] }
+libtest-mimic = "0.8.2"
 mollusk-svm = "0.4.2"
 mollusk-svm-programs-token = "0.4.1"
 mpl-token-metadata = "5.1.1"

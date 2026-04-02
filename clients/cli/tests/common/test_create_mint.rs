@@ -1,6 +1,5 @@
 use {
-    crate::helpers::{create_unwrapped_mint, execute_create_mint, setup_test_env},
-    serial_test::serial,
+    crate::common::helpers::{create_unwrapped_mint, execute_create_mint, TestEnv},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     spl_token::{self, state::Mint as SplTokenMint},
@@ -17,17 +16,11 @@ use {
     },
 };
 
-mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_create_mint() {
-    let env = setup_test_env().await;
-
+pub async fn test_create_mint(env: &TestEnv) {
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     // Derive expected account addresses
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);

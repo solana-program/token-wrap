@@ -1,11 +1,10 @@
 use {
-    crate::helpers::{
-        create_metaplex_metadata, create_unwrapped_mint, execute_create_mint, setup_test_env,
-        TestEnv, TOKEN_WRAP_CLI_BIN,
+    crate::common::helpers::{
+        create_metaplex_metadata, create_unwrapped_mint, execute_create_mint, TestEnv,
+        TOKEN_WRAP_CLI_BIN,
     },
     mpl_token_metadata::utils::clean,
     serde_json::Value,
-    serial_test::serial,
     solana_keypair::Keypair,
     solana_pubkey::Pubkey,
     solana_sdk_ids::system_program,
@@ -23,8 +22,6 @@ use {
     spl_token_wrap::get_wrapped_mint_address,
     std::process::Command,
 };
-
-mod helpers;
 
 const NAME: &str = "xyz-dex";
 const SYMBOL: &str = "XYZ";
@@ -158,20 +155,16 @@ async fn create_token2022_mint(
     unwrapped_mint_kp
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_metadata_from_spl_token_to_token2022() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_metadata_from_spl_token_to_token2022(env: &TestEnv) {
     // 1. Create a standard SPL Token mint
-    let unwrapped_mint = create_unwrapped_mint(&env, &spl_token::id()).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &spl_token::id()).await;
 
     // 2. Create Metaplex metadata for the SPL Token mint
     let name = "Test Token".to_string();
     let symbol = "TEST".to_string();
     let uri = "http://test.com".to_string();
     create_metaplex_metadata(
-        &env,
+        env,
         &unwrapped_mint,
         spl_token::id(),
         name.clone(),
@@ -181,7 +174,7 @@ async fn test_sync_metadata_from_spl_token_to_token2022() {
     .await;
 
     // 3. Create the corresponding wrapped Token-2022 mint for the SPL Token mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token_2022::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
 
     // 4. Fund the wrapped mint account for the extra space needed for the metadata
     //    extension
@@ -248,14 +241,10 @@ async fn test_sync_metadata_from_spl_token_to_token2022() {
     assert_eq!(token_metadata.mint, wrapped_mint_address);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_from_token2022_with_self_referential_pointer() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_from_token2022_with_self_referential_pointer(env: &TestEnv) {
     // 1. Create unwrapped T22 mint with self-referential pointer and metadata
     let unwrapped_mint_kp = create_token2022_mint(
-        &env,
+        env,
         Some(Pubkey::new_unique()), // placeholder, will be updated
         true,
         true,
@@ -284,7 +273,7 @@ async fn test_sync_from_token2022_with_self_referential_pointer() {
         .unwrap();
 
     // 2. Create and fund wrapped mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token_2022::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
@@ -330,18 +319,14 @@ async fn test_sync_from_token2022_with_self_referential_pointer() {
     assert_eq!(clean(token_metadata.uri), URI);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_from_token2022_with_external_metaplex_pointer() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_from_token2022_with_external_metaplex_pointer(env: &TestEnv) {
     // 1. Create an external Metaplex metadata account
-    let dummy_mint = create_unwrapped_mint(&env, &spl_token::id()).await;
+    let dummy_mint = create_unwrapped_mint(env, &spl_token::id()).await;
     let name = "External Metaplex".to_string();
     let symbol = "EXTM".to_string();
     let uri = "http://external.com".to_string();
     let metaplex_pda = create_metaplex_metadata(
-        &env,
+        env,
         &dummy_mint,
         spl_token::id(),
         name.clone(),
@@ -352,7 +337,7 @@ async fn test_sync_from_token2022_with_external_metaplex_pointer() {
 
     // 2. Create unwrapped T22 mint pointing to the external metadata
     let unwrapped_mint_kp = create_token2022_mint(
-        &env,
+        env,
         Some(metaplex_pda),
         true,  // has_pointer_extension
         false, // has_token_metadata
@@ -361,7 +346,7 @@ async fn test_sync_from_token2022_with_external_metaplex_pointer() {
     let unwrapped_mint = unwrapped_mint_kp.pubkey();
 
     // 3. Create and fund wrapped mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token_2022::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
 
     let funding_amount = 1_000_000_000;
@@ -419,13 +404,9 @@ async fn test_sync_from_token2022_with_external_metaplex_pointer() {
     assert_eq!(clean(token_metadata.uri), uri);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_sync_from_token2022_without_pointer_fallback() {
-    let env = setup_test_env().await;
-
+pub async fn test_sync_from_token2022_without_pointer_fallback(env: &TestEnv) {
     // 1. Create unwrapped T22 mint with no pointer extension
-    let unwrapped_mint_kp = create_token2022_mint(&env, None, false, false).await;
+    let unwrapped_mint_kp = create_token2022_mint(env, None, false, false).await;
     let unwrapped_mint = unwrapped_mint_kp.pubkey();
 
     // 2. Create Metaplex metadata for the unwrapped mint (the fallback)
@@ -433,7 +414,7 @@ async fn test_sync_from_token2022_without_pointer_fallback() {
     let symbol = "NPF".to_string();
     let uri = "http://npf.com".to_string();
     create_metaplex_metadata(
-        &env,
+        env,
         &unwrapped_mint,
         spl_token_2022::id(),
         name.clone(),
@@ -443,7 +424,7 @@ async fn test_sync_from_token2022_without_pointer_fallback() {
     .await;
 
     // 3. Create and fund wrapped mint
-    execute_create_mint(&env, &unwrapped_mint, &spl_token_2022::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
     let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
@@ -489,10 +470,7 @@ async fn test_sync_from_token2022_without_pointer_fallback() {
     assert_eq!(clean(token_metadata.uri), uri);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_fail_sync_from_invalid_mint_owner() {
-    let env = setup_test_env().await;
+pub async fn test_fail_sync_from_invalid_mint_owner(env: &TestEnv) {
     let invalid_account = Keypair::new();
 
     let tx = Transaction::new_signed_with_payer(

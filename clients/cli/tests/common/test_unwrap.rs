@@ -1,10 +1,9 @@
 use {
-    crate::helpers::{
+    crate::common::helpers::{
         create_associated_token_account, create_test_multisig, create_token_account,
-        create_unwrapped_mint, execute_create_mint, extract_signers, mint_to, setup_test_env,
-        TestEnv, TOKEN_WRAP_CLI_BIN,
+        create_unwrapped_mint, execute_create_mint, extract_signers, mint_to, TestEnv,
+        TOKEN_WRAP_CLI_BIN,
     },
-    serial_test::serial,
     solana_keypair::{write_keypair_file, Keypair},
     solana_pubkey::Pubkey,
     solana_signer::Signer,
@@ -14,8 +13,6 @@ use {
     std::process::Command,
     tempfile::NamedTempFile,
 };
-
-mod helpers;
 
 pub struct UnwrapSetup {
     pub wrapped_token_account: Pubkey,
@@ -164,15 +161,11 @@ async fn assert_unwrap_result(
     );
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_single_signer_with_defaults() {
-    let env = setup_test_env().await;
-
+pub async fn test_unwrap_single_signer_with_defaults(env: &TestEnv) {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
+    let setup = setup_for_unwrap(env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     let status = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
@@ -189,7 +182,7 @@ async fn test_unwrap_single_signer_with_defaults() {
     assert!(status.success());
 
     assert_unwrap_result(
-        &env,
+        env,
         &setup.wrapped_token_account,
         setup_wrap_amount,
         &setup.unwrapped_token_recipient,
@@ -201,11 +194,7 @@ async fn test_unwrap_single_signer_with_defaults() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_single_signer_with_optional_flags() {
-    let env = setup_test_env().await;
-
+pub async fn test_unwrap_single_signer_with_optional_flags(env: &TestEnv) {
     // Create a separate Keypair to be the transfer authority
     let transfer_authority = Keypair::new();
     let authority_keypair_file = NamedTempFile::new().unwrap();
@@ -216,7 +205,7 @@ async fn test_unwrap_single_signer_with_optional_flags() {
     let unwrap_amount = 75;
 
     let setup = setup_for_unwrap(
-        &env,
+        env,
         initial_unwrapped_balance,
         setup_wrap_amount,
         Some(transfer_authority.pubkey()),
@@ -252,7 +241,7 @@ async fn test_unwrap_single_signer_with_optional_flags() {
 
     // Confirm the final balances after unwrap
     assert_unwrap_result(
-        &env,
+        env,
         &setup.wrapped_token_account,
         setup_wrap_amount,
         &setup.unwrapped_token_recipient,
@@ -264,15 +253,11 @@ async fn test_unwrap_single_signer_with_optional_flags() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_fail_invalid_wrapped_token_program() {
-    let env = setup_test_env().await;
-
+pub async fn test_unwrap_fail_invalid_wrapped_token_program(env: &TestEnv) {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
+    let setup = setup_for_unwrap(env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Pass the wrong token program ID for the wrapped mint
     let wrong_wrapped_token_program = spl_token::id();
@@ -301,18 +286,14 @@ async fn test_unwrap_fail_invalid_wrapped_token_program() {
     )));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_fail_mismatched_unwrapped_mint() {
-    let env = setup_test_env().await;
-
+pub async fn test_unwrap_fail_mismatched_unwrapped_mint(env: &TestEnv) {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
+    let setup = setup_for_unwrap(env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Create a *different* unwrapped mint
-    let wrong_unwrapped_mint = create_unwrapped_mint(&env, &setup.unwrapped_token_program).await;
+    let wrong_unwrapped_mint = create_unwrapped_mint(env, &setup.unwrapped_token_program).await;
 
     let output = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
@@ -338,15 +319,11 @@ async fn test_unwrap_fail_mismatched_unwrapped_mint() {
     )));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_fail_invalid_unwrapped_token_program() {
-    let env = setup_test_env().await;
-
+pub async fn test_unwrap_fail_invalid_unwrapped_token_program(env: &TestEnv) {
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
-    let setup = setup_for_unwrap(&env, initial_unwrapped_balance, setup_wrap_amount, None).await;
+    let setup = setup_for_unwrap(env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Pass the wrong token program ID for the unwrapped mint
     let wrong_unwrapped_token_program = spl_token_2022::id();
@@ -376,12 +353,8 @@ async fn test_unwrap_fail_invalid_unwrapped_token_program() {
     )));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_unwrap_with_multisig() {
-    let mut env = setup_test_env().await;
-
-    let (multisig_pubkey, multisig_members) = create_test_multisig(&mut env, &spl_token_2022::id())
+pub async fn test_unwrap_with_multisig(env: &TestEnv) {
+    let (multisig_pubkey, multisig_members) = create_test_multisig(env, &spl_token_2022::id())
         .await
         .unwrap();
 
@@ -389,7 +362,7 @@ async fn test_unwrap_with_multisig() {
     let setup_wrap_amount = 100;
     let unwrap_amount = 50;
     let setup = setup_for_unwrap(
-        &env,
+        env,
         initial_unwrapped_balance,
         setup_wrap_amount,
         Some(multisig_pubkey),
@@ -512,7 +485,7 @@ async fn test_unwrap_with_multisig() {
     assert!(status.success(), "Final broadcast command failed");
 
     assert_unwrap_result(
-        &env,
+        env,
         &setup.wrapped_token_account,
         setup_wrap_amount,
         &setup.unwrapped_token_recipient,

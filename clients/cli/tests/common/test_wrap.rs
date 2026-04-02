@@ -1,10 +1,9 @@
 use {
-    crate::helpers::{
+    crate::common::helpers::{
         create_associated_token_account, create_test_multisig, create_token_account,
-        create_unwrapped_mint, execute_create_mint, extract_signers, mint_to, setup_test_env,
-        TestEnv, TOKEN_WRAP_CLI_BIN,
+        create_unwrapped_mint, execute_create_mint, extract_signers, mint_to, TestEnv,
+        TOKEN_WRAP_CLI_BIN,
     },
-    serial_test::serial,
     solana_keypair::{write_keypair_file, Keypair},
     solana_pubkey::Pubkey,
     solana_signer::Signer,
@@ -15,22 +14,16 @@ use {
     tempfile::NamedTempFile,
 };
 
-mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_wrap_single_signer_with_defaults() {
-    let env = setup_test_env().await;
-
+pub async fn test_wrap_single_signer_with_defaults(env: &TestEnv) {
     // Create Mint
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     // Fund initial unwrapped token account
     let unwrapped_token_account = create_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &env.payer.pubkey(),
@@ -38,7 +31,7 @@ async fn test_wrap_single_signer_with_defaults() {
     .await;
     let starting_amount = 100;
     mint_to(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &unwrapped_token_account,
@@ -49,7 +42,7 @@ async fn test_wrap_single_signer_with_defaults() {
     // Setup recipient account with zero balance
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let recipient_account = create_associated_token_account(
-        &env,
+        env,
         &wrapped_token_program,
         &wrapped_mint,
         &env.payer.pubkey(),
@@ -59,7 +52,7 @@ async fn test_wrap_single_signer_with_defaults() {
     // Setup escrow with mint_authority as owner
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     let escrow_account = create_associated_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &wrapped_mint_authority,
@@ -93,16 +86,12 @@ async fn test_wrap_single_signer_with_defaults() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_wrap_single_signer_with_optional_flags() {
-    let env = setup_test_env().await;
-
+pub async fn test_wrap_single_signer_with_optional_flags(env: &TestEnv) {
     // Create Mint
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     let transfer_authority = Keypair::new();
     let authority_keypair_file = NamedTempFile::new().unwrap();
@@ -110,7 +99,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
 
     // Fund initial unwrapped token account
     let unwrapped_token_account = create_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &transfer_authority.pubkey(),
@@ -118,7 +107,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
     .await;
     let starting_amount = 100;
     mint_to(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &unwrapped_token_account,
@@ -130,7 +119,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
     // This time it is not an ATA, but a fresh token account
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let recipient_account = create_token_account(
-        &env,
+        env,
         &wrapped_token_program,
         &wrapped_mint,
         &env.payer.pubkey(),
@@ -140,7 +129,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
     // Setup escrow with mint_authority as owner
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     let escrow_account = create_associated_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &wrapped_mint_authority,
@@ -183,7 +172,7 @@ async fn test_wrap_single_signer_with_optional_flags() {
 }
 
 async fn assert_result(
-    env: TestEnv,
+    env: &TestEnv,
     unwrapped_token_account: &Pubkey,
     starting_amount: u64,
     recipient_account: &Pubkey,
@@ -222,24 +211,19 @@ async fn assert_result(
     assert_eq!(u64::from(wrapped_token_state.base.amount), wrap_amount);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_wrap_with_multisig() {
-    let mut env = setup_test_env().await;
-
-    let (multisig_pubkey, multisig_members) = create_test_multisig(&mut env, &spl_token::id())
-        .await
-        .unwrap();
+pub async fn test_wrap_with_multisig(env: &TestEnv) {
+    let (multisig_pubkey, multisig_members) =
+        create_test_multisig(env, &spl_token::id()).await.unwrap();
 
     let unwrapped_token_program = spl_token::id();
     let wrapped_token_program = spl_token_2022::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
-    execute_create_mint(&env, &unwrapped_mint, &wrapped_token_program).await;
+    execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
     let unwrapped_token_account = create_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &multisig_pubkey,
@@ -248,7 +232,7 @@ async fn test_wrap_with_multisig() {
 
     let starting_amount = 100;
     mint_to(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &unwrapped_token_account,
@@ -258,7 +242,7 @@ async fn test_wrap_with_multisig() {
 
     let wrapped_mint = get_wrapped_mint_address(&unwrapped_mint, &wrapped_token_program);
     let recipient_account = create_associated_token_account(
-        &env,
+        env,
         &wrapped_token_program,
         &wrapped_mint,
         &env.payer.pubkey(),
@@ -267,7 +251,7 @@ async fn test_wrap_with_multisig() {
 
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
     let escrow_account = create_associated_token_account(
-        &env,
+        env,
         &unwrapped_token_program,
         &unwrapped_mint,
         &wrapped_mint_authority,

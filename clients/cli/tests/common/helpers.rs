@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use {
     mpl_token_metadata::{
         accounts::Metadata as MetaplexMetadata, instructions::CreateV1Builder, types::TokenStandard,
@@ -7,7 +5,6 @@ use {
     serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
-    solana_commitment_config::CommitmentConfig,
     solana_keypair::{write_keypair_file, Keypair},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
@@ -25,14 +22,14 @@ use {
 
 pub const TOKEN_WRAP_CLI_BIN: &str = "../../target/debug/spl-token-wrap";
 
+#[derive(Clone)]
 pub struct TestEnv {
     pub rpc_client: Arc<RpcClient>,
-    pub payer: Keypair,
+    pub payer: Arc<Keypair>,
     pub config_file_path: String,
-    // Persist these to keep them in scope
-    _validator: TestValidator,
-    _keypair_file: NamedTempFile,
-    _config_file: NamedTempFile,
+    _validator: Arc<TestValidator>,
+    _keypair_file: Arc<NamedTempFile>,
+    _config_file: Arc<NamedTempFile>,
 }
 
 pub async fn start_validator() -> (TestValidator, Keypair) {
@@ -59,10 +56,6 @@ pub async fn start_validator() -> (TestValidator, Keypair) {
 
 pub async fn setup_test_env() -> TestEnv {
     let (validator, payer) = start_validator().await;
-    let rpc_client = Arc::new(RpcClient::new_with_commitment(
-        validator.rpc_url(),
-        CommitmentConfig::processed(),
-    ));
 
     // Write payer keypair to a temporary file
     let keypair_file = NamedTempFile::new().unwrap();
@@ -84,12 +77,12 @@ pub async fn setup_test_env() -> TestEnv {
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
 
     TestEnv {
-        payer,
-        rpc_client,
+        payer: Arc::new(payer),
+        rpc_client: Arc::new(validator.get_async_rpc_client()),
         config_file_path,
-        _keypair_file: keypair_file,
-        _config_file: config_file,
-        _validator: validator,
+        _keypair_file: Arc::new(keypair_file),
+        _config_file: Arc::new(config_file),
+        _validator: Arc::new(validator),
     }
 }
 
@@ -301,7 +294,7 @@ pub async fn mint_to(
 
 // Creates 2 of 3 multisig
 pub async fn create_test_multisig(
-    env: &mut TestEnv,
+    env: &TestEnv,
     token_program: &Pubkey,
 ) -> Result<(Pubkey, Vec<Keypair>), Box<dyn Error>> {
     let multisig_keypair = Keypair::new();

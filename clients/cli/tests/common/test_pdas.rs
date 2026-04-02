@@ -1,6 +1,5 @@
 use {
-    crate::helpers::{create_unwrapped_mint, setup_test_env, TOKEN_WRAP_CLI_BIN},
-    serial_test::serial,
+    crate::common::helpers::{create_unwrapped_mint, TestEnv, TOKEN_WRAP_CLI_BIN},
     spl_token_wrap::{
         self, get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority,
         get_wrapped_mint_backpointer_address,
@@ -8,16 +7,11 @@ use {
     std::process::Command,
 };
 
-pub mod helpers;
-
-#[tokio::test(flavor = "multi_thread")]
-#[serial]
-async fn test_pdas() {
-    let env = setup_test_env().await;
+pub async fn test_pdas(env: &TestEnv) {
     let unwrapped_token_program = spl_token_2022::id();
     let wrapped_token_program = spl_token::id();
 
-    let unwrapped_mint = create_unwrapped_mint(&env, &unwrapped_token_program).await;
+    let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     // Execute the pdas command with JSON output
     let mut command = Command::new(TOKEN_WRAP_CLI_BIN);
