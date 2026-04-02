@@ -72,9 +72,6 @@ pub async fn setup_test_env() -> TestEnv {
     };
     solana_config.save(&config_file_path).unwrap();
 
-    // Wait two slots to make tests less flaky
-    tokio::time::sleep(std::time::Duration::from_millis(800)).await;
-
     TestEnv {
         payer: Arc::new(payer),
         rpc_client: Arc::new(validator.get_async_rpc_client()),
