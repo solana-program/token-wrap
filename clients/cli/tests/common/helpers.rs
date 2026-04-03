@@ -64,17 +64,19 @@ pub async fn setup_test_env() -> TestEnv {
     // Create and save CLI configuration file
     let config_file = NamedTempFile::new().unwrap();
     let config_file_path = config_file.path().to_str().unwrap().to_string();
+    let rpc_client = Arc::new(validator.get_async_rpc_client());
     let solana_config = SolanaConfig {
         json_rpc_url: validator.rpc_url(),
         websocket_url: validator.rpc_pubsub_url(),
         keypair_path: keypair_file_path,
+        commitment: rpc_client.commitment().commitment.to_string(),
         ..SolanaConfig::default()
     };
     solana_config.save(&config_file_path).unwrap();
 
     TestEnv {
         payer: Arc::new(payer),
-        rpc_client: Arc::new(validator.get_async_rpc_client()),
+        rpc_client,
         config_file_path,
         _keypair_file: Arc::new(keypair_file),
         _config_file: Arc::new(config_file),
