@@ -88,7 +88,7 @@ spl-associated-token-account-client = "2.0.0"
 spl-pod = "0.5.1"
 spl-tlv-account-resolution = "0.10.0"
 spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
-spl-token-2022 = { version = "9.0.0", features = ["no-entrypoint"] }
+spl-token-2022 = { version = "10.0.0", features = ["no-entrypoint"] }
 spl-token-metadata-interface = "0.7.0"
 spl-token-wrap = { version = "1.0.0", path = "program", features = ["no-entrypoint"] }
 spl-transfer-hook-interface = "0.10.0"
