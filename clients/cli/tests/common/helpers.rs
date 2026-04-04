@@ -5,6 +5,7 @@ use {
     serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
+    solana_commitment_config::CommitmentConfig,
     solana_keypair::{write_keypair_file, Keypair},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
@@ -64,7 +65,10 @@ pub async fn setup_test_env() -> TestEnv {
     // Create and save CLI configuration file
     let config_file = NamedTempFile::new().unwrap();
     let config_file_path = config_file.path().to_str().unwrap().to_string();
-    let rpc_client = Arc::new(validator.get_async_rpc_client());
+    let rpc_client = Arc::new(RpcClient::new_with_commitment(
+        validator.rpc_url(),
+        CommitmentConfig::confirmed(),
+    ));
     let solana_config = SolanaConfig {
         json_rpc_url: validator.rpc_url(),
         websocket_url: validator.rpc_pubsub_url(),
