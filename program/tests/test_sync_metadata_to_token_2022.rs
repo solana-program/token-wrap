@@ -6,7 +6,6 @@ use {
         mint_builder::MintBuilder,
         sync_to_token_2022_builder::SyncToToken2022Builder,
     },
-    borsh::BorshSerialize,
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     mpl_token_metadata::{
         accounts::Metadata as MetaplexMetadata,
@@ -308,7 +307,7 @@ fn test_success_initialize_from_spl_token() {
         key: MetaplexMetadata::find_pda(&unwrapped_mint.key).0,
         account: Account {
             lamports: 1_000_000_000,
-            data: metaplex_metadata_obj.try_to_vec().unwrap(),
+            data: borsh::to_vec(&metaplex_metadata_obj).unwrap(),
             owner: mpl_token_metadata::ID,
             ..Default::default()
         },
@@ -406,7 +405,7 @@ fn test_success_update_from_spl_token() {
         key: MetaplexMetadata::find_pda(&unwrapped_mint.key).0,
         account: Account {
             lamports: 1_000_000_000,
-            data: new_metaplex_metadata_obj.try_to_vec().unwrap(),
+            data: borsh::to_vec(&new_metaplex_metadata_obj).unwrap(),
             owner: mpl_token_metadata::ID,
             ..Default::default()
         },

@@ -14,7 +14,7 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    spl_associated_token_account_client::{
+    spl_associated_token_account_interface::{
         address::get_associated_token_address_with_program_id,
         instruction::create_associated_token_account,
     },

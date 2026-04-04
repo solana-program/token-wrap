@@ -16,7 +16,7 @@ use {
     solana_signature::Signature,
     solana_signer::Signer,
     solana_transaction::Transaction,
-    spl_associated_token_account_client::instruction::create_associated_token_account,
+    spl_associated_token_account_interface::instruction::create_associated_token_account,
     spl_token_wrap::{get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority},
     std::fmt::{Display, Formatter},
 };

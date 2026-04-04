@@ -59,21 +59,10 @@ pub fn init_mollusk() -> Mollusk {
     mollusk_svm_programs_token::token::add_program(&mut mollusk);
     mollusk_svm_programs_token::token2022::add_program(&mut mollusk);
     mollusk_svm_programs_token::associated_token::add_program(&mut mollusk);
-    mollusk.add_program(
-        &test_transfer_hook::id(),
-        "test_transfer_hook",
-        &mollusk_svm::program::loader_keys::LOADER_V3,
-    );
-    mollusk.add_program(
-        &test_metadata_owner::ID,
-        "test_metadata_owner",
-        &mollusk_svm::program::loader_keys::LOADER_V3,
-    );
-    mollusk.add_program(
-        &mpl_token_metadata::ID,
-        "mpl_token_metadata",
-        &mollusk_svm::program::loader_keys::LOADER_V3,
-    );
+    mollusk.add_program(&test_transfer_hook::id(), "test_transfer_hook");
+    mollusk.add_program(&test_metadata_owner::ID, "test_metadata_owner");
+    mollusk.add_program(&mpl_token_metadata::ID, "mpl_token_metadata");
+    mollusk.add_program(&spl_token_2022::ID, "spl_token_2022");
     mollusk
 }
 

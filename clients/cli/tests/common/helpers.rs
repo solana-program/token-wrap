@@ -5,6 +5,7 @@ use {
     serde_json::Value,
     solana_cli_config::Config as SolanaConfig,
     solana_client::nonblocking::rpc_client::RpcClient,
+    solana_commitment_config::CommitmentConfig,
     solana_keypair::{write_keypair_file, Keypair},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
@@ -13,7 +14,7 @@ use {
     solana_system_interface::instruction::create_account,
     solana_test_validator::{TestValidator, TestValidatorGenesis, UpgradeableProgramInfo},
     solana_transaction::Transaction,
-    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+    spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
     spl_token::{self, state::Mint as SplTokenMint},
     spl_token_2022::instruction::initialize_mint,
     std::{error::Error, path::PathBuf, process::Command, sync::Arc},
@@ -33,7 +34,6 @@ pub struct TestEnv {
 }
 
 pub async fn start_validator() -> (TestValidator, Keypair) {
-    solana_logger::setup();
     let mut test_validator_genesis = TestValidatorGenesis::default();
 
     test_validator_genesis.add_upgradeable_programs_with_path(&[
@@ -65,20 +65,22 @@ pub async fn setup_test_env() -> TestEnv {
     // Create and save CLI configuration file
     let config_file = NamedTempFile::new().unwrap();
     let config_file_path = config_file.path().to_str().unwrap().to_string();
+    let rpc_client = Arc::new(RpcClient::new_with_commitment(
+        validator.rpc_url(),
+        CommitmentConfig::confirmed(),
+    ));
     let solana_config = SolanaConfig {
         json_rpc_url: validator.rpc_url(),
         websocket_url: validator.rpc_pubsub_url(),
         keypair_path: keypair_file_path,
+        commitment: rpc_client.commitment().commitment.to_string(),
         ..SolanaConfig::default()
     };
     solana_config.save(&config_file_path).unwrap();
 
-    // Wait one slot to make tests less flaky, remove this when upgrading to v3
-    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
-
     TestEnv {
         payer: Arc::new(payer),
-        rpc_client: Arc::new(validator.get_async_rpc_client()),
+        rpc_client,
         config_file_path,
         _keypair_file: Arc::new(keypair_file),
         _config_file: Arc::new(config_file),
@@ -202,7 +204,7 @@ pub async fn create_associated_token_account(
     }
 
     let instruction =
-        spl_associated_token_account_client::instruction::create_associated_token_account(
+        spl_associated_token_account_interface::instruction::create_associated_token_account(
             &env.payer.pubkey(),
             wallet_addr,
             mint,

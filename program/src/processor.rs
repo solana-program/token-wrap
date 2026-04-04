@@ -32,7 +32,7 @@ use {
     solana_rent::Rent,
     solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::{clock::Clock, Sysvar},
-    spl_associated_token_account_client::address::get_associated_token_address_with_program_id,
+    spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
     spl_token_2022::{
         extension::{
             transfer_fee::TransferFeeConfig, BaseStateWithExtensions, ExtensionType,
