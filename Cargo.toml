@@ -78,7 +78,7 @@ solana-rent = "3.0.0"
 solana-sdk-ids = "3.1.0"
 solana-signature = "3.1.0"
 solana-signer = "3.0.0"
-solana-system-interface = { version = "2.0.0", features = ["bincode"] }
+solana-system-interface = { version = "3.0.0", features = ["bincode"] }
 solana-sysvar = "3.0.0"
 solana-test-validator = { version = "3.1.11", features = ["agave-unstable-api"] }
 solana-transaction = "3.0.0"
