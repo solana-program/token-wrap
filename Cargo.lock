@@ -1298,11 +1298,12 @@ dependencies = [
 
 [[package]]
 name = "borsh"
-version = "1.5.7"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad8646f98db542e39fc66e68a20b2144f6a732636df7c2354e74645faaa433ce"
+checksum = "cfd1e3f8955a5d7de9fab72fc8373fade9fb8a703968cb200ae3dc6cf08e185a"
 dependencies = [
- "borsh-derive 1.5.7",
+ "borsh-derive 1.6.1",
+ "bytes",
  "cfg_aliases",
 ]
 
@@ -1321,9 +1322,9 @@ dependencies = [
 
 [[package]]
 name = "borsh-derive"
-version = "1.5.7"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdd1d3c0c2f5833f22386f252fe8ed005c7f59fdcddeef025c01b4c3b9fd9ac3"
+checksum = "bfcfdc083699101d5a7965e49925975f2f55060f94f9a05e7187be95d530ca59"
 dependencies = [
  "once_cell",
  "proc-macro-crate 3.3.0",
@@ -4347,7 +4348,7 @@ version = "5.1.2-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9824d84a8e23b634256591ce2f05b3180f7be5fcd193d939c43764c804aac5ef"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "kaigan",
  "num-derive 0.3.3",
  "num-traits",
@@ -6580,7 +6581,7 @@ version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f08236dacd0e6dc8234becef58e27c8567856644ef509d7e97957d55a91dc72"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "bytemuck",
  "bytemuck_derive",
  "curve25519-dalek 4.1.3",
@@ -6631,7 +6632,7 @@ version = "3.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf3d649f50844ddf8f572010491af77c2e40a81621779abd58f5198fdf1cf5a4"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "futures 0.3.31",
  "solana-account",
  "solana-banks-interface",
@@ -6795,7 +6796,7 @@ version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c04abbae16f57178a163125805637b8a076175bb5c0002fb04f4792bea901cf7"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
 ]
 
 [[package]]
@@ -7140,7 +7141,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8292c436b269ad23cecc8b24f7da3ab07ca111661e25e00ce0e1d22771951ab9"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "solana-instruction",
  "solana-sdk-ids",
 ]
@@ -7824,7 +7825,7 @@ version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8064ea1d591ec791be95245058ca40f4f5345d390c200069d0f79bbf55bfae55"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "bytemuck",
  "bytemuck_derive",
  "five8 1.0.0",
@@ -7852,7 +7853,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8df4e8fcba01d7efa647ed20a081c234475df5e11a93acb4393cc2c9a7b99bab"
 dependencies = [
  "bincode",
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "serde",
  "serde_derive",
  "solana-define-syscall 3.0.0",
@@ -8460,7 +8461,7 @@ version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f04fa578707b3612b095f0c8e19b66a1233f7c42ca8082fcb3b745afcc0add6"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "serde",
  "serde_derive",
 ]
@@ -9934,7 +9935,7 @@ dependencies = [
  "agave-reserved-account-keys",
  "base64 0.22.1",
  "bincode",
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "bs58",
  "log",
  "serde",
@@ -10394,7 +10395,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6433917b60441d68d99a17e121d9db0ea15a9a69c0e5afa34649cf5ba12612f"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "solana-instruction",
  "solana-pubkey 3.0.0",
 ]
@@ -10476,7 +10477,7 @@ version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f3df240f67bea453d4bc5749761e45436d14b9457ed667e0300555d5c271f3"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "bytemuck",
  "bytemuck_derive",
  "num-derive 0.4.2",
@@ -10721,7 +10722,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c467c7c3bd056f8fe60119e7ec34ddd6f23052c2fa8f1f51999098063b72676"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "num-derive 0.4.2",
  "num-traits",
  "solana-borsh",
@@ -10738,7 +10739,7 @@ dependencies = [
 name = "spl-token-wrap"
 version = "1.0.0"
 dependencies = [
- "borsh 1.5.7",
+ "borsh 1.6.1",
  "bytemuck",
  "mollusk-svm",
  "mollusk-svm-programs-token",
