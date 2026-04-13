@@ -21,8 +21,8 @@ importers:
         specifier: 0.0.6
         version: 0.0.6(prettier@3.8.2)
       '@solana/sysvars':
-        specifier: ^6.7.0
-        version: 6.7.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
+        specifier: ^6.8.0
+        version: 6.8.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
