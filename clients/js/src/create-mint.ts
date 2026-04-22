@@ -16,7 +16,7 @@ export interface CreateMintArgs {
     unwrappedMint: Address;
     wrappedTokenProgram: Address;
     payer: KeyPairSigner;
-    idempotent: boolean;
+    idempotent?: boolean;
 }
 
 export interface CreateMintResult {
