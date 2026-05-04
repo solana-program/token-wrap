@@ -9,6 +9,7 @@
 import {
     assertIsInstructionWithAccounts,
     containsBytes,
+    extendClient,
     getU8Encoder,
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -196,9 +197,10 @@ export type TokenWrapPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetM
     ClientWithTransactionSending;
 
 export function tokenWrapProgram() {
-    return <T extends TokenWrapPluginRequirements>(client: T) => {
-        return {
-            ...client,
+    return <T extends TokenWrapPluginRequirements>(
+        client: T,
+    ): Omit<T, 'tokenWrap'> & { tokenWrap: TokenWrapPlugin } => {
+        return extendClient(client, {
             tokenWrap: <TokenWrapPlugin>{
                 accounts: { backpointer: addSelfFetchFunctions(client, getBackpointerCodec()) },
                 instructions: {
@@ -218,6 +220,6 @@ export function tokenWrapProgram() {
                     wrappedMintAuthority: findWrappedMintAuthorityPda,
                 },
             },
-        };
+        });
     };
 }
