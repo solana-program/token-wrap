@@ -32,7 +32,7 @@ import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const SYNC_METADATA_TO_TOKEN2022_DISCRIMINATOR = 4;
 
-export function getSyncMetadataToToken2022DiscriminatorBytes() {
+export function getSyncMetadataToToken2022DiscriminatorBytes(): ReadonlyUint8Array {
     return getU8Encoder().encode(SYNC_METADATA_TO_TOKEN2022_DISCRIMINATOR);
 }
 

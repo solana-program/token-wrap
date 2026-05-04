@@ -34,7 +34,7 @@ import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const CREATE_MINT_DISCRIMINATOR = 0;
 
-export function getCreateMintDiscriminatorBytes() {
+export function getCreateMintDiscriminatorBytes(): ReadonlyUint8Array {
     return getU8Encoder().encode(CREATE_MINT_DISCRIMINATOR);
 }
 

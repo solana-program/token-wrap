@@ -38,7 +38,7 @@ import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const WRAP_DISCRIMINATOR = 1;
 
-export function getWrapDiscriminatorBytes() {
+export function getWrapDiscriminatorBytes(): ReadonlyUint8Array {
     return getU8Encoder().encode(WRAP_DISCRIMINATOR);
 }
 

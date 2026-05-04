@@ -32,7 +32,7 @@ import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const CLOSE_STUCK_ESCROW_DISCRIMINATOR = 3;
 
-export function getCloseStuckEscrowDiscriminatorBytes() {
+export function getCloseStuckEscrowDiscriminatorBytes(): ReadonlyUint8Array {
     return getU8Encoder().encode(CLOSE_STUCK_ESCROW_DISCRIMINATOR);
 }
 

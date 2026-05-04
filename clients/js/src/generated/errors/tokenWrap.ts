@@ -50,7 +50,7 @@ export type TokenWrapError =
     | typeof TOKEN_WRAP_ERROR__ZERO_WRAP_AMOUNT;
 
 let tokenWrapErrorMessages: Record<TokenWrapError, string> | undefined;
-if (process.env.NODE_ENV !== 'production') {
+if (process.env['NODE_ENV'] !== 'production') {
     tokenWrapErrorMessages = {
         [TOKEN_WRAP_ERROR__BACKPOINTER_MISMATCH]: `Wrapped backpointer account address does not match expected PDA`,
         [TOKEN_WRAP_ERROR__ESCROW_IN_GOOD_STATE]: `The escrow account is in a good state and cannot be recreated`,
@@ -72,7 +72,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export function getTokenWrapErrorMessage(code: TokenWrapError): string {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env['NODE_ENV'] !== 'production') {
         return (tokenWrapErrorMessages as Record<TokenWrapError, string>)[code];
     }
 
