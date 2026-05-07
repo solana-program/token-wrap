@@ -7,7 +7,7 @@
         "@changesets/cli": "^2.31.0",
         "@codama/renderers-js": "^2.2.0",
         "@solana-program/system": "^0.12.0",
-        "@solana/sysvars": "^6.8.0",
+        "@solana/sysvars": "^6.9.0",
         "@solana/prettier-config-solana": "0.0.6",
         "@types/node": "^25.6.0",
         "codama": "^1.6.0",
