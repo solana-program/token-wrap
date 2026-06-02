@@ -47,7 +47,7 @@
         "@solana/kit": "^6.9.0"
     },
     "dependencies": {
-        "@solana-program/system": "^0.12.1",
+        "@solana-program/system": "^0.12.2",
         "@solana-program/token": "^0.13.0",
         "@solana-program/token-2022": "^0.9.0",
         "@solana/program-client-core": "^6.9.0"
