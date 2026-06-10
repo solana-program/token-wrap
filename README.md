@@ -9,7 +9,7 @@ different token standards. If you are building an app with a mint/token and find
 advantage of some of the latest features of a specific token program, this might be for you!
 
 - **Program ID:** `TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR`
-- **IDL:** [`./program/idl.json`](./program/idl.json)
+- **IDL:** [`./idl.json`](./idl.json)
 - **Docs & SDK Guide:** https://www.solana-program.com/docs/token-wrap
 
 ## Features

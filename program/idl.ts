@@ -659,4 +659,4 @@ const codama = createFromRoot(
   ),
 );
 
-writeFileSync("program/idl.json", JSON.stringify(codama.getRoot(), null, 2));
+writeFileSync("idl.json", JSON.stringify(codama.getRoot(), null, 2));
