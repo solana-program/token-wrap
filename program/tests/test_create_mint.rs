@@ -11,8 +11,8 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    spl_pod::primitives::{PodBool, PodU64},
-    spl_token_2022::{
+    solana_zero_copy::unaligned::{Bool, U64},
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::ConfidentialTransferMint,
             metadata_pointer::MetadataPointer,
@@ -60,7 +60,7 @@ fn test_idempotency_true_with_existing_valid_account() {
     // Simulating existing data on mint or backpointer
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: spl_token_2022::id(),
+        owner: spl_token_2022_interface::id(),
         ..Account::default()
     };
     let backpointer_account_with_data = Account {
@@ -96,7 +96,7 @@ fn test_idempotency_true_with_existing_invalid_accounts() {
 
     let mint_account_with_data = Account {
         data: vec![1; 10],
-        owner: spl_token_2022::id(),
+        owner: spl_token_2022_interface::id(),
         ..Account::default()
     };
 
@@ -208,7 +208,10 @@ fn test_successful_spl_token_to_spl_token_2022() {
 
     // Assert state of resulting wrapped mint account
 
-    assert_eq!(result.wrapped_mint.account.owner, spl_token_2022::id());
+    assert_eq!(
+        result.wrapped_mint.account.owner,
+        spl_token_2022_interface::id()
+    );
     let wrapped_mint_data =
         PodStateWithExtensions::<PodMint>::unpack(&result.wrapped_mint.account.data)
             .unwrap()
@@ -221,8 +224,8 @@ fn test_successful_spl_token_to_spl_token_2022() {
             .unwrap(),
         expected_mint_authority,
     );
-    assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
-    assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
+    assert_eq!(wrapped_mint_data.supply, U64::from(0));
+    assert_eq!(wrapped_mint_data.is_initialized, Bool::from_bool(true));
     assert_eq!(
         result.wrapped_backpointer.account.owner,
         spl_token_wrap::id()
@@ -265,8 +268,8 @@ fn test_successful_spl_token_2022_to_spl_token() {
             .unwrap(),
         expected_mint_authority,
     );
-    assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
-    assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
+    assert_eq!(wrapped_mint_data.supply, U64::from(0));
+    assert_eq!(wrapped_mint_data.is_initialized, Bool::from_bool(true));
 
     // Assert state of resulting backpointer account
 
@@ -311,8 +314,8 @@ fn test_create_mint_from_extended_mint(extension: MintExtension) {
             .unwrap(),
         expected_mint_authority,
     );
-    assert_eq!(wrapped_mint_data.supply, PodU64::from(0));
-    assert_eq!(wrapped_mint_data.is_initialized, PodBool::from_bool(true));
+    assert_eq!(wrapped_mint_data.supply, U64::from(0));
+    assert_eq!(wrapped_mint_data.is_initialized, Bool::from_bool(true));
 
     assert_eq!(
         result.wrapped_backpointer.account.owner,

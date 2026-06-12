@@ -121,7 +121,7 @@ pub async fn command_create_mint(config: &Config, args: CreateMintArgs) -> Comma
         Err(_) => 0,
     };
 
-    let mint_size = if args.wrapped_token_program == spl_token_2022::id() {
+    let mint_size = if args.wrapped_token_program == spl_token_2022_interface::id() {
         DefaultToken2022Customizer::get_token_2022_mint_space()?
     } else {
         spl_token::state::Mint::LEN

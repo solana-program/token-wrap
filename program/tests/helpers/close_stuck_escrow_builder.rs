@@ -130,8 +130,8 @@ impl<'a> CloseStuckEscrowBuilder<'a> {
         );
 
         let escrow_account = self.escrow_account.unwrap_or_else(|| {
-            let owner = self.escrow_owner.unwrap_or(spl_token_2022::id());
-            let len = spl_token_2022::state::Account::LEN;
+            let owner = self.escrow_owner.unwrap_or(spl_token_2022_interface::id());
+            let len = spl_token_2022_interface::state::Account::LEN;
             KeyedAccount {
                 key: escrow_address,
                 account: Account {

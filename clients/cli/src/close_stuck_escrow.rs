@@ -78,7 +78,7 @@ pub async fn command_close_stuck_escrow(
 
     // CloseStuckEscrow only works with spl-token-2022 unwrapped mints due to
     // extension requirements
-    if unwrapped_token_program != spl_token_2022::id() {
+    if unwrapped_token_program != spl_token_2022_interface::id() {
         return Err(format!(
             "CloseStuckEscrow only works with spl-token-2022 unwrapped mints. Unwrapped mint {} \
              uses program {}",

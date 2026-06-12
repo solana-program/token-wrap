@@ -9,7 +9,7 @@ use {
     solana_signer::Signer,
     solana_system_interface::instruction::transfer,
     solana_transaction::Transaction,
-    spl_token_2022::extension::ExtensionType,
+    spl_token_2022_interface::extension::ExtensionType,
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority},
     std::process::Command,
 };
@@ -23,10 +23,11 @@ pub async fn test_sync_metadata_from_token2022_to_spl_token(env: &TestEnv) {
     let uri = "http://test2022.com".to_string();
 
     // Allocate and initialize the mint
-    let mint_size = ExtensionType::try_calculate_account_len::<spl_token_2022::state::Mint>(&[
-        ExtensionType::MetadataPointer,
-    ])
-    .unwrap();
+    let mint_size =
+        ExtensionType::try_calculate_account_len::<spl_token_2022_interface::state::Mint>(&[
+            ExtensionType::MetadataPointer,
+        ])
+        .unwrap();
     let rent = env
         .rpc_client
         .get_minimum_balance_for_rent_exemption(mint_size)
@@ -40,17 +41,17 @@ pub async fn test_sync_metadata_from_token2022_to_spl_token(env: &TestEnv) {
                 &unwrapped_mint,
                 rent,
                 mint_size as u64,
-                &spl_token_2022::id(),
+                &spl_token_2022_interface::id(),
             ),
-            spl_token_2022::extension::metadata_pointer::instruction::initialize(
-                &spl_token_2022::id(),
+            spl_token_2022_interface::extension::metadata_pointer::instruction::initialize(
+                &spl_token_2022_interface::id(),
                 &unwrapped_mint,
                 Some(env.payer.pubkey()),
                 Some(unwrapped_mint),
             )
             .unwrap(),
-            spl_token_2022::instruction::initialize_mint(
-                &spl_token_2022::id(),
+            spl_token_2022_interface::instruction::initialize_mint(
+                &spl_token_2022_interface::id(),
                 &unwrapped_mint,
                 &env.payer.pubkey(),
                 None,
@@ -87,7 +88,7 @@ pub async fn test_sync_metadata_from_token2022_to_spl_token(env: &TestEnv) {
         .unwrap();
 
     let init_meta_ix = spl_token_metadata_interface::instruction::initialize(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint,
         &update_authority,
         &unwrapped_mint,
@@ -97,21 +98,21 @@ pub async fn test_sync_metadata_from_token2022_to_spl_token(env: &TestEnv) {
         uri.clone(),
     );
     let update_name_ix = spl_token_metadata_interface::instruction::update_field(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint,
         &update_authority,
         spl_token_metadata_interface::state::Field::Name,
         name.clone(),
     );
     let update_symbol_ix = spl_token_metadata_interface::instruction::update_field(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint,
         &update_authority,
         spl_token_metadata_interface::state::Field::Symbol,
         symbol.clone(),
     );
     let update_uri_ix = spl_token_metadata_interface::instruction::update_field(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint,
         &update_authority,
         spl_token_metadata_interface::state::Field::Uri,

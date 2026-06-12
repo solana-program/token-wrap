@@ -36,7 +36,7 @@ impl TokenProgram {
     pub fn id(&self) -> Pubkey {
         match self {
             TokenProgram::SplToken => spl_token::id(),
-            TokenProgram::SplToken2022 => spl_token_2022::id(),
+            TokenProgram::SplToken2022 => spl_token_2022_interface::id(),
         }
     }
 
@@ -62,7 +62,7 @@ pub fn init_mollusk() -> Mollusk {
     mollusk.add_program(&test_transfer_hook::id(), "test_transfer_hook");
     mollusk.add_program(&test_metadata_owner::ID, "test_metadata_owner");
     mollusk.add_program(&mpl_token_metadata::ID, "mpl_token_metadata");
-    mollusk.add_program(&spl_token_2022::ID, "spl_token_2022");
+    mollusk.add_program(&spl_token_2022_interface::ID, "spl_token_2022");
     mollusk
 }
 
@@ -75,11 +75,11 @@ pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
     let mut multisig_account = Account {
         lamports: 100_000_000,
         owner: program.id(),
-        data: vec![0; spl_token_2022::state::Multisig::LEN],
+        data: vec![0; spl_token_2022_interface::state::Multisig::LEN],
         ..Account::default()
     };
 
-    let multisig_state = spl_token_2022::state::Multisig {
+    let multisig_state = spl_token_2022_interface::state::Multisig {
         m: 2,
         n: 3,
         is_initialized: true,
@@ -97,7 +97,8 @@ pub fn setup_multisig(program: TokenProgram) -> TransferAuthority {
             Pubkey::default(),
         ],
     };
-    spl_token_2022::state::Multisig::pack(multisig_state, &mut multisig_account.data).unwrap();
+    spl_token_2022_interface::state::Multisig::pack(multisig_state, &mut multisig_account.data)
+        .unwrap();
     TransferAuthority {
         keyed_account: KeyedAccount {
             key: multisig_key,

@@ -6,7 +6,7 @@ use {
     solana_account::Account,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut},
         pod::{PodAccount, PodCOption},
         state::AccountState,

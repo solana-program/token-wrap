@@ -8,7 +8,7 @@ use {
     solana_pubkey::Pubkey,
     solana_signer::Signer,
     spl_token::{self},
-    spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
+    spl_token_2022_interface::{extension::PodStateWithExtensions, pod::PodAccount},
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority},
     std::process::Command,
     tempfile::NamedTempFile,
@@ -17,7 +17,7 @@ use {
 pub async fn test_wrap_single_signer_with_defaults(env: &TestEnv) {
     // Create Mint
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
     execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
@@ -89,7 +89,7 @@ pub async fn test_wrap_single_signer_with_defaults(env: &TestEnv) {
 pub async fn test_wrap_single_signer_with_optional_flags(env: &TestEnv) {
     // Create Mint
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
     execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
@@ -205,7 +205,7 @@ async fn assert_result(
 
     // Recipient should have wrapped tokens
     let wrapped_account = env.rpc_client.get_account(recipient_account).await.unwrap();
-    assert_eq!(wrapped_account.owner, spl_token_2022::id());
+    assert_eq!(wrapped_account.owner, spl_token_2022_interface::id());
     let wrapped_token_state =
         PodStateWithExtensions::<PodAccount>::unpack(&wrapped_account.data).unwrap();
     assert_eq!(u64::from(wrapped_token_state.base.amount), wrap_amount);
@@ -216,7 +216,7 @@ pub async fn test_wrap_with_multisig(env: &TestEnv) {
         create_test_multisig(env, &spl_token::id()).await.unwrap();
 
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 

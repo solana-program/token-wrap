@@ -11,7 +11,7 @@ use {
     solana_signer::Signer,
     solana_system_interface::instruction::{create_account, transfer},
     solana_transaction::Transaction,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             metadata_pointer, BaseStateWithExtensions, ExtensionType, PodStateWithExtensions,
         },
@@ -52,13 +52,13 @@ async fn create_token2022_mint(
         &unwrapped_mint_kp.pubkey(),
         rent,
         mint_size as u64,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     )];
 
     if has_pointer_extension {
         ixs.push(
             metadata_pointer::instruction::initialize(
-                &spl_token_2022::id(),
+                &spl_token_2022_interface::id(),
                 &unwrapped_mint_kp.pubkey(),
                 Some(env.payer.pubkey()),
                 pointer_address,
@@ -68,8 +68,8 @@ async fn create_token2022_mint(
     }
 
     ixs.push(
-        spl_token_2022::instruction::initialize_mint(
-            &spl_token_2022::id(),
+        spl_token_2022_interface::instruction::initialize_mint(
+            &spl_token_2022_interface::id(),
             &unwrapped_mint_kp.pubkey(),
             &env.payer.pubkey(),
             None,
@@ -111,7 +111,7 @@ async fn create_token2022_mint(
         let meta_tx = Transaction::new_signed_with_payer(
             &[
                 spl_token_metadata_interface::instruction::initialize(
-                    &spl_token_2022::id(),
+                    &spl_token_2022_interface::id(),
                     &unwrapped_mint_kp.pubkey(),
                     &update_authority,
                     &unwrapped_mint_kp.pubkey(),
@@ -121,21 +121,21 @@ async fn create_token2022_mint(
                     URI.to_string(),
                 ),
                 spl_token_metadata_interface::instruction::update_field(
-                    &spl_token_2022::id(),
+                    &spl_token_2022_interface::id(),
                     &unwrapped_mint_kp.pubkey(),
                     &update_authority,
                     spl_token_metadata_interface::state::Field::Name,
                     NAME.to_string(),
                 ),
                 spl_token_metadata_interface::instruction::update_field(
-                    &spl_token_2022::id(),
+                    &spl_token_2022_interface::id(),
                     &unwrapped_mint_kp.pubkey(),
                     &update_authority,
                     spl_token_metadata_interface::state::Field::Symbol,
                     SYMBOL.to_string(),
                 ),
                 spl_token_metadata_interface::instruction::update_field(
-                    &spl_token_2022::id(),
+                    &spl_token_2022_interface::id(),
                     &unwrapped_mint_kp.pubkey(),
                     &update_authority,
                     spl_token_metadata_interface::state::Field::Uri,
@@ -174,11 +174,12 @@ pub async fn test_sync_metadata_from_spl_token_to_token2022(env: &TestEnv) {
     .await;
 
     // 3. Create the corresponding wrapped Token-2022 mint for the SPL Token mint
-    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022_interface::id()).await;
 
     // 4. Fund the wrapped mint account for the extra space needed for the metadata
     //    extension
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022_interface::id());
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
             &env.payer.pubkey(),
@@ -254,7 +255,7 @@ pub async fn test_sync_from_token2022_with_self_referential_pointer(env: &TestEn
 
     // Update pointer to be self-referential
     let update_pointer_ix = metadata_pointer::instruction::update(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint,
         &env.payer.pubkey(),
         &[],
@@ -273,8 +274,9 @@ pub async fn test_sync_from_token2022_with_self_referential_pointer(env: &TestEn
         .unwrap();
 
     // 2. Create and fund wrapped mint
-    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022_interface::id()).await;
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022_interface::id());
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
             &env.payer.pubkey(),
@@ -346,8 +348,9 @@ pub async fn test_sync_from_token2022_with_external_metaplex_pointer(env: &TestE
     let unwrapped_mint = unwrapped_mint_kp.pubkey();
 
     // 3. Create and fund wrapped mint
-    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022_interface::id()).await;
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022_interface::id());
 
     let funding_amount = 1_000_000_000;
     let fund_tx = Transaction::new_signed_with_payer(
@@ -416,7 +419,7 @@ pub async fn test_sync_from_token2022_without_pointer_fallback(env: &TestEnv) {
     create_metaplex_metadata(
         env,
         &unwrapped_mint,
-        spl_token_2022::id(),
+        spl_token_2022_interface::id(),
         name.clone(),
         symbol.clone(),
         uri.clone(),
@@ -424,8 +427,9 @@ pub async fn test_sync_from_token2022_without_pointer_fallback(env: &TestEnv) {
     .await;
 
     // 3. Create and fund wrapped mint
-    execute_create_mint(env, &unwrapped_mint, &spl_token_2022::id()).await;
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022::id());
+    execute_create_mint(env, &unwrapped_mint, &spl_token_2022_interface::id()).await;
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint, &spl_token_2022_interface::id());
     let fund_tx = Transaction::new_signed_with_payer(
         &[transfer(
             &env.payer.pubkey(),

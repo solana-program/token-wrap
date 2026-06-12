@@ -12,7 +12,7 @@ use {
     solana_cpi::set_return_data,
     solana_program_error::ProgramResult,
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{BaseStateWithExtensions, PodStateWithExtensions},
         pod::PodMint,
     },

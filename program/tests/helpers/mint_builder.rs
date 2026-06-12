@@ -7,8 +7,8 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     solana_rent::Rent,
-    spl_pod::primitives::{PodBool, PodU64},
-    spl_token_2022::{
+    solana_zero_copy::unaligned::{Bool, U64},
+    spl_token_2022_interface::{
         extension::{BaseStateWithExtensionsMut, PodStateWithExtensionsMut},
         pod::{PodCOption, PodMint},
         state::Mint,
@@ -109,8 +109,8 @@ impl MintBuilder {
 
         // Set base mint data
         state.base.decimals = self.decimals;
-        state.base.is_initialized = PodBool::from_bool(true);
-        state.base.supply = PodU64::from(self.supply);
+        state.base.is_initialized = Bool::from_bool(true);
+        state.base.supply = U64::from(self.supply);
         state.base.mint_authority = match self.mint_authority {
             Some(Some(authority)) => PodCOption::some(authority),
             Some(None) => PodCOption::none(),

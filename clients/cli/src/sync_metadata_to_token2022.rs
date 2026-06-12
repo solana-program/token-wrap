@@ -16,7 +16,7 @@ use {
     solana_signature::Signature,
     solana_signer::Signer,
     solana_transaction::Transaction,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             metadata_pointer::MetadataPointer, BaseStateWithExtensions, PodStateWithExtensions,
         },
@@ -114,7 +114,8 @@ pub async fn command_sync_metadata_to_token2022(
 ) -> CommandResult {
     let payer = config.fee_payer()?;
 
-    let wrapped_mint = get_wrapped_mint_address(&args.unwrapped_mint, &spl_token_2022::id());
+    let wrapped_mint =
+        get_wrapped_mint_address(&args.unwrapped_mint, &spl_token_2022_interface::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint);
 
     let source_metadata = if let Some(metadata_account) = args.metadata_account {
@@ -172,7 +173,7 @@ pub async fn resolve_source_metadata_account(
         return Ok(metaplex_pda);
     }
 
-    if owner == spl_token_2022::id() {
+    if owner == spl_token_2022_interface::id() {
         let mint_state = PodStateWithExtensions::<PodMint>::unpack(&acct.data)?;
 
         let resolved = match mint_state.get_extension::<MetadataPointer>() {

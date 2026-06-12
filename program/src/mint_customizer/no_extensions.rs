@@ -3,7 +3,7 @@ use {
     solana_account_info::AccountInfo,
     solana_program_error::ProgramError,
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{ExtensionType, PodStateWithExtensions},
         pod::PodMint,
         state::Mint,
