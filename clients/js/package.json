@@ -44,17 +44,17 @@
         "url": "https://github.com/solana-program/token-wrap/issues"
     },
     "peerDependencies": {
-        "@solana/kit": "^6.9.0"
+        "@solana/kit": "^6.10.0"
     },
     "dependencies": {
         "@solana-program/system": "^0.12.2",
         "@solana-program/token": "^0.14.0",
         "@solana-program/token-2022": "^0.12.0",
-        "@solana/program-client-core": "^6.9.0"
+        "@solana/program-client-core": "^6.10.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@solana/kit": "^6.9.0",
+        "@solana/kit": "^6.10.0",
         "@tsconfig/strictest": "^2.0.8",
         "@types/node": "^25.9.3",
         "eslint": "^10.5.0",

@@ -18,6 +18,7 @@ import {
     type ClientWithRpc,
     type ClientWithTransactionPlanning,
     type ClientWithTransactionSending,
+    type ExtendedClient,
     type GetAccountInfoApi,
     type GetMultipleAccountsApi,
     type Instruction,
@@ -165,6 +166,8 @@ export type TokenWrapPlugin = {
     accounts: TokenWrapPluginAccounts;
     instructions: TokenWrapPluginInstructions;
     pdas: TokenWrapPluginPdas;
+    identifyInstruction: typeof identifyTokenWrapInstruction;
+    parseInstruction: typeof parseTokenWrapInstruction;
 };
 
 export type TokenWrapPluginAccounts = {
@@ -197,9 +200,7 @@ export type TokenWrapPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetM
     ClientWithTransactionSending;
 
 export function tokenWrapProgram() {
-    return <T extends TokenWrapPluginRequirements>(
-        client: T,
-    ): Omit<T, 'tokenWrap'> & { tokenWrap: TokenWrapPlugin } => {
+    return <T extends TokenWrapPluginRequirements>(client: T): ExtendedClient<T, { tokenWrap: TokenWrapPlugin }> => {
         return extendClient(client, {
             tokenWrap: <TokenWrapPlugin>{
                 accounts: { backpointer: addSelfFetchFunctions(client, getBackpointerCodec()) },
@@ -219,6 +220,8 @@ export function tokenWrapProgram() {
                     wrappedMint: findWrappedMintPda,
                     wrappedMintAuthority: findWrappedMintAuthorityPda,
                 },
+                identifyInstruction: identifyTokenWrapInstruction,
+                parseInstruction: parseTokenWrapInstruction,
             },
         });
     };
