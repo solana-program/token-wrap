@@ -45,8 +45,8 @@ importers:
         specifier: ^0.14.0
         version: 0.14.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))
       '@solana-program/token-2022':
-        specifier: ^0.11.0
-        version: 0.11.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.10.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3))
+        specifier: ^0.12.0
+        version: 0.12.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.10.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3))
       '@solana/program-client-core':
         specifier: ^6.9.0
         version: 6.9.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)
@@ -731,10 +731,11 @@ packages:
     peerDependencies:
       '@solana/kit': ^6.4.0
 
-  '@solana-program/token-2022@0.11.0':
-    resolution: {integrity: sha512-4yhSajmlZdMl98vJvt63kW6L0ERtV7UFcfZGJFyUVfTMxTrgghp8BNyhh5S1Ho3p4yHqfgL4N9VgVQ9GCnqqbg==}
+  '@solana-program/token-2022@0.12.0':
+    resolution: {integrity: sha512-SXkN6Epy9sC3OEELJLhc0hZtUijsAlR2Nb5gP6jcc0WVrtj5wEAmksWxF/yYrAB8AisJVgxvODkhIAnrd02DIw==}
+    engines: {node: '>=24.0.0'}
     peerDependencies:
-      '@solana/kit': ^6.0.0
+      '@solana/kit': ^6.4.0
       '@solana/sysvars': ^5.0
       '@solana/zk-sdk': ^0.4.2
     peerDependenciesMeta:
@@ -747,8 +748,8 @@ packages:
     peerDependencies:
       '@solana/kit': ^6.5.0
 
-  '@solana-program/zk-elgamal-proof@0.1.0':
-    resolution: {integrity: sha512-MKyeapz8P7SqkkC7h53ARFLoanb59ylVzokSMyINDH7hxY3JyiZs92/VfPa/qedhLAEHLd8jcc8sQ3pr3GyXtw==}
+  '@solana-program/zk-elgamal-proof@0.2.0':
+    resolution: {integrity: sha512-znu1asnySKVp0VyOlfXCLZhpdWvyq/tJ7GRrX61Z6vyXXqJ/OMizv2BkgYL/VbzDKkFmUiYfiFwF3gDtZHv7VA==}
     peerDependencies:
       '@solana/kit': ^5.0
 
@@ -2839,10 +2840,10 @@ snapshots:
     dependencies:
       '@solana/kit': 6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10)
 
-  '@solana-program/token-2022@0.11.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.10.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3))':
+  '@solana-program/token-2022@0.12.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.10.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3))':
     dependencies:
       '@noble/curves': 1.9.7
-      '@solana-program/zk-elgamal-proof': 0.1.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))
+      '@solana-program/zk-elgamal-proof': 0.2.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))
       '@solana/kit': 6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10)
       '@solana/sysvars': 6.10.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)
 
@@ -2851,7 +2852,7 @@ snapshots:
       '@solana-program/system': 0.12.2(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))
       '@solana/kit': 6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10)
 
-  '@solana-program/zk-elgamal-proof@0.1.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))':
+  '@solana-program/zk-elgamal-proof@0.2.0(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana-program/system': 0.12.2(@solana/kit@6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10))
       '@solana/kit': 6.9.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@5.0.10)
