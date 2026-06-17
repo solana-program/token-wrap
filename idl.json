@@ -7,7 +7,6 @@
     "name": "tokenWrap",
     "publicKey": "TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR",
     "version": "0.1.0",
-    "docs": [],
     "accounts": [
       {
         "kind": "accountNode",
@@ -22,7 +21,6 @@
             {
               "kind": "structFieldTypeNode",
               "name": "unwrappedMint",
-              "docs": [],
               "type": {
                 "kind": "publicKeyTypeNode"
               }
@@ -110,7 +108,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -261,7 +258,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -290,7 +286,6 @@
             "kind": "instructionRemainingAccountsNode",
             "isOptional": true,
             "isSigner": true,
-            "docs": [],
             "value": {
               "kind": "argumentValueNode",
               "name": "multiSigners"
@@ -415,7 +410,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -444,7 +438,6 @@
             "kind": "instructionRemainingAccountsNode",
             "isOptional": true,
             "isSigner": true,
-            "docs": [],
             "value": {
               "kind": "argumentValueNode",
               "name": "multiSigners"
@@ -544,7 +537,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -659,7 +651,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -813,7 +804,6 @@
             "kind": "instructionArgumentNode",
             "name": "discriminator",
             "defaultValueStrategy": "omitted",
-            "docs": [],
             "type": {
               "kind": "numberTypeNode",
               "format": "u8",
@@ -839,7 +829,6 @@
       {
         "kind": "pdaNode",
         "name": "backpointer",
-        "docs": [],
         "seeds": [
           {
             "kind": "constantPdaSeedNode",
@@ -855,7 +844,6 @@
           {
             "kind": "variablePdaSeedNode",
             "name": "wrappedMint",
-            "docs": [],
             "type": {
               "kind": "publicKeyTypeNode"
             }
@@ -865,7 +853,6 @@
       {
         "kind": "pdaNode",
         "name": "wrappedMint",
-        "docs": [],
         "seeds": [
           {
             "kind": "constantPdaSeedNode",
@@ -881,7 +868,6 @@
           {
             "kind": "variablePdaSeedNode",
             "name": "unwrappedMint",
-            "docs": [],
             "type": {
               "kind": "publicKeyTypeNode"
             }
@@ -889,7 +875,6 @@
           {
             "kind": "variablePdaSeedNode",
             "name": "wrappedTokenProgram",
-            "docs": [],
             "type": {
               "kind": "publicKeyTypeNode"
             }
@@ -899,7 +884,6 @@
       {
         "kind": "pdaNode",
         "name": "wrappedMintAuthority",
-        "docs": [],
         "seeds": [
           {
             "kind": "constantPdaSeedNode",
@@ -915,7 +899,6 @@
           {
             "kind": "variablePdaSeedNode",
             "name": "wrappedMint",
-            "docs": [],
             "type": {
               "kind": "publicKeyTypeNode"
             }
@@ -929,115 +912,100 @@
         "kind": "errorNode",
         "name": "wrappedMintMismatch",
         "code": 0,
-        "message": "Wrapped mint account address does not match expected PDA",
-        "docs": []
+        "message": "Wrapped mint account address does not match expected PDA"
       },
       {
         "kind": "errorNode",
         "name": "backpointerMismatch",
         "code": 1,
-        "message": "Wrapped backpointer account address does not match expected PDA",
-        "docs": []
+        "message": "Wrapped backpointer account address does not match expected PDA"
       },
       {
         "kind": "errorNode",
         "name": "zeroWrapAmount",
         "code": 2,
-        "message": "Wrap amount should be positive",
-        "docs": []
+        "message": "Wrap amount should be positive"
       },
       {
         "kind": "errorNode",
         "name": "mintAuthorityMismatch",
         "code": 3,
-        "message": "Wrapped mint authority does not match expected PDA",
-        "docs": []
+        "message": "Wrapped mint authority does not match expected PDA"
       },
       {
         "kind": "errorNode",
         "name": "escrowOwnerMismatch",
         "code": 4,
-        "message": "Unwrapped escrow token owner is not set to expected PDA",
-        "docs": []
+        "message": "Unwrapped escrow token owner is not set to expected PDA"
       },
       {
         "kind": "errorNode",
         "name": "invalidWrappedMintOwner",
         "code": 5,
-        "message": "Wrapped mint account owner is not the expected token program",
-        "docs": []
+        "message": "Wrapped mint account owner is not the expected token program"
       },
       {
         "kind": "errorNode",
         "name": "invalidBackpointerOwner",
         "code": 6,
-        "message": "Wrapped backpointer account owner is not the expected token wrap program",
-        "docs": []
+        "message": "Wrapped backpointer account owner is not the expected token wrap program"
       },
       {
         "kind": "errorNode",
         "name": "escrowMismatch",
         "code": 7,
-        "message": "Escrow account address does not match expected ATA",
-        "docs": []
+        "message": "Escrow account address does not match expected ATA"
       },
       {
         "kind": "errorNode",
         "name": "escrowInGoodState",
         "code": 8,
-        "message": "The escrow account is in a good state and cannot be recreated",
-        "docs": []
+        "message": "The escrow account is in a good state and cannot be recreated"
       },
       {
         "kind": "errorNode",
         "name": "unwrappedMintHasNoMetadata",
         "code": 9,
-        "message": "Unwrapped mint does not have the TokenMetadata extension",
-        "docs": []
+        "message": "Unwrapped mint does not have the TokenMetadata extension"
       },
       {
         "kind": "errorNode",
         "name": "metaplexMetadataMismatch",
         "code": 10,
-        "message": "Metaplex metadata account address does not match expected PDA",
-        "docs": []
+        "message": "Metaplex metadata account address does not match expected PDA"
       },
       {
         "kind": "errorNode",
         "name": "metadataPointerMissing",
         "code": 11,
-        "message": "Metadata pointer extension missing on mint",
-        "docs": []
+        "message": "Metadata pointer extension missing on mint"
       },
       {
         "kind": "errorNode",
         "name": "metadataPointerUnset",
         "code": 12,
-        "message": "Metadata pointer is unset (None)",
-        "docs": []
+        "message": "Metadata pointer is unset (None)"
       },
       {
         "kind": "errorNode",
         "name": "metadataPointerMismatch",
         "code": 13,
-        "message": "Provided source metadata account does not match pointer",
-        "docs": []
+        "message": "Provided source metadata account does not match pointer"
       },
       {
         "kind": "errorNode",
         "name": "externalProgramReturnedNoData",
         "code": 14,
-        "message": "External metadata program returned no data",
-        "docs": []
+        "message": "External metadata program returned no data"
       },
       {
         "kind": "errorNode",
         "name": "noSyncingToToken2022",
         "code": 15,
-        "message": "Instruction can only be used with spl-token wrapped mints",
-        "docs": []
+        "message": "Instruction can only be used with spl-token wrapped mints"
       }
-    ]
+    ],
+    "constants": []
   },
   "additionalPrograms": []
 }
