@@ -7,7 +7,7 @@ use {
     solana_pubkey::Pubkey,
     solana_signature::Signature,
     solana_transaction::Transaction,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{PodStateWithExtensions, StateWithExtensions},
         pod::PodAccount,
         state::Mint,
@@ -27,7 +27,7 @@ fn parse_address(path: &str, name: &str) -> Result<Pubkey, String> {
 
 pub fn parse_token_program(value: &str) -> Result<Pubkey, String> {
     let pubkey = parse_pubkey(value)?;
-    if pubkey == spl_token::id() || pubkey == spl_token_2022::id() {
+    if pubkey == spl_token::id() || pubkey == spl_token_2022_interface::id() {
         Ok(pubkey)
     } else {
         Err("Invalid token program. Must be spl-token or spl-token-2022".to_string())
@@ -102,7 +102,7 @@ pub async fn assert_mint_account(
         .map_err(|e| format!("Failed to fetch account {}: {}", account_key, e))?;
 
     let owner = account_info.owner;
-    if owner != spl_token::id() && owner != spl_token_2022::id() {
+    if owner != spl_token::id() && owner != spl_token_2022_interface::id() {
         return Err(format!(
             "Account {} is not owned by a token program. Owner: {}",
             account_key, owner

@@ -15,7 +15,7 @@ use {
     solana_instruction::AccountMeta,
     solana_program_error::ProgramError,
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{BaseStateWithExtensions, PodStateWithExtensions},
         pod::PodMint,
     },
@@ -40,7 +40,8 @@ fn test_fail_incorrect_token_program() {
             additional_metadata: vec![],
         })
         .build();
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     let wrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
@@ -94,7 +95,7 @@ fn test_fail_wrapped_mint_not_token_2022() {
         .token_program(TokenProgram::SplToken) // Invalid program
         .mint_key(get_wrapped_mint_address(
             &unwrapped_mint.key,
-            &spl_token_2022::id(),
+            &spl_token_2022_interface::id(),
         ))
         .build();
 
@@ -147,7 +148,8 @@ fn test_success_initialize_from_token_2022() {
         })
         .build();
 
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     let wrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
@@ -223,7 +225,8 @@ fn test_success_update_from_token_2022() {
         })
         .build();
 
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
 
     let wrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
@@ -313,7 +316,8 @@ fn test_success_initialize_from_spl_token() {
         },
     };
 
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
 
     let wrapped_mint = MintBuilder::new()
@@ -365,7 +369,8 @@ fn test_success_update_from_spl_token() {
         additional_metadata: vec![("seller_fee_basis_points".to_string(), "50".to_string())],
     };
 
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     let wrapped_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)

@@ -16,7 +16,7 @@ use {
     solana_transaction::Transaction,
     spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
     spl_token::{self, state::Mint as SplTokenMint},
-    spl_token_2022::instruction::initialize_mint,
+    spl_token_2022_interface::instruction::initialize_mint,
     std::{error::Error, path::PathBuf, process::Command, sync::Arc},
     tempfile::NamedTempFile,
 };
@@ -247,7 +247,7 @@ pub async fn create_token_account(
                 account_size as u64,
                 token_program,
             ),
-            spl_token_2022::instruction::initialize_account(
+            spl_token_2022_interface::instruction::initialize_account(
                 token_program,
                 &token_account.pubkey(),
                 mint,
@@ -323,12 +323,13 @@ pub async fn create_test_multisig(
         token_program,
     );
 
-    let initialize_multisig_instruction = spl_token_2022::instruction::initialize_multisig(
-        token_program,
-        &multisig_pubkey,
-        &multisig_member_pubkeys,
-        2,
-    )?;
+    let initialize_multisig_instruction =
+        spl_token_2022_interface::instruction::initialize_multisig(
+            token_program,
+            &multisig_pubkey,
+            &multisig_member_pubkeys,
+            2,
+        )?;
     let mut transaction = Transaction::new_with_payer(
         &[create_account_instruction, initialize_multisig_instruction],
         Some(&env.payer.pubkey()),

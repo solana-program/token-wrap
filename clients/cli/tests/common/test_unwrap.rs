@@ -8,7 +8,7 @@ use {
     solana_pubkey::Pubkey,
     solana_signer::Signer,
     spl_token::{self},
-    spl_token_2022::{extension::PodStateWithExtensions, pod::PodAccount},
+    spl_token_2022_interface::{extension::PodStateWithExtensions, pod::PodAccount},
     spl_token_wrap::{get_wrapped_mint_address, get_wrapped_mint_authority},
     std::process::Command,
     tempfile::NamedTempFile,
@@ -38,7 +38,7 @@ async fn setup_for_unwrap(
 ) -> UnwrapSetup {
     // --- Create Mints ---
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
     execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 
@@ -326,7 +326,7 @@ pub async fn test_unwrap_fail_invalid_unwrapped_token_program(env: &TestEnv) {
     let setup = setup_for_unwrap(env, initial_unwrapped_balance, setup_wrap_amount, None).await;
 
     // Pass the wrong token program ID for the unwrapped mint
-    let wrong_unwrapped_token_program = spl_token_2022::id();
+    let wrong_unwrapped_token_program = spl_token_2022_interface::id();
 
     let output = Command::new(TOKEN_WRAP_CLI_BIN)
         .args(vec![
@@ -354,9 +354,10 @@ pub async fn test_unwrap_fail_invalid_unwrapped_token_program(env: &TestEnv) {
 }
 
 pub async fn test_unwrap_with_multisig(env: &TestEnv) {
-    let (multisig_pubkey, multisig_members) = create_test_multisig(env, &spl_token_2022::id())
-        .await
-        .unwrap();
+    let (multisig_pubkey, multisig_members) =
+        create_test_multisig(env, &spl_token_2022_interface::id())
+            .await
+            .unwrap();
 
     let initial_unwrapped_balance = 200;
     let setup_wrap_amount = 100;

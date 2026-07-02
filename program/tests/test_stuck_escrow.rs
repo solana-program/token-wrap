@@ -18,7 +18,7 @@ use {
         address::get_associated_token_address_with_program_id,
         instruction::create_associated_token_account,
     },
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             transfer_fee::instruction::initialize_transfer_fee_config,
             BaseStateWithExtensionsMut,
@@ -61,7 +61,7 @@ fn test_close_stuck_escrow_fails_wrapped_mint_mismatch() {
     let incorrect_wrapped_mint = KeyedAccount {
         key: Pubkey::new_unique(),
         account: Account {
-            owner: spl_token_2022::id(),
+            owner: spl_token_2022_interface::id(),
             ..Default::default()
         },
     };
@@ -87,8 +87,9 @@ fn test_close_stuck_escrow_fails_escrow_mismatch() {
     let incorrect_escrow = KeyedAccount {
         key: Pubkey::new_unique(), // Not the derived ATA
         account: Account {
-            owner: spl_token_2022::id(),
-            lamports: Rent::default().minimum_balance(spl_token_2022::state::Account::LEN),
+            owner: spl_token_2022_interface::id(),
+            lamports: Rent::default()
+                .minimum_balance(spl_token_2022_interface::state::Account::LEN),
             ..Default::default()
         },
     };
@@ -127,7 +128,7 @@ fn test_close_stuck_escrow_fails_escrow_owner_mismatch() {
 
     // Create an escrow account at the correct ATA, but set its internal owner field
     // to a random, incorrect public key.
-    let account_size = spl_token_2022::state::Account::LEN;
+    let account_size = spl_token_2022_interface::state::Account::LEN;
     let mut account_data = vec![0; account_size];
     let mut state =
         PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut account_data).unwrap();
@@ -142,7 +143,7 @@ fn test_close_stuck_escrow_fails_escrow_owner_mismatch() {
         account: Account {
             lamports: Rent::default().minimum_balance(account_size),
             data: account_data,
-            owner: spl_token_2022::id(),
+            owner: spl_token_2022_interface::id(),
             ..Default::default()
         },
     };
@@ -185,7 +186,7 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
     );
 
     // Create the escrow account with a non-zero balance
-    let account_size = spl_token_2022::state::Account::LEN;
+    let account_size = spl_token_2022_interface::state::Account::LEN;
     let mut account_data = vec![0; account_size];
     let mut state =
         PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut account_data).unwrap();
@@ -200,7 +201,7 @@ fn test_close_stuck_escrow_fails_with_non_zero_balance() {
         account: Account {
             lamports: Rent::default().minimum_balance(account_size),
             data: account_data,
-            owner: spl_token_2022::id(),
+            owner: spl_token_2022_interface::id(),
             ..Default::default()
         },
     };
@@ -331,7 +332,7 @@ fn test_close_stuck_escrow_succeeds() {
     );
 
     // The "old" escrow, initialized for a mint with no extensions, making it stuck.
-    let account_size = spl_token_2022::state::Account::LEN;
+    let account_size = spl_token_2022_interface::state::Account::LEN;
     let mut account_data = vec![0; account_size];
     let mut state =
         PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut account_data).unwrap();
@@ -346,7 +347,7 @@ fn test_close_stuck_escrow_succeeds() {
         account: Account {
             lamports: Rent::default().minimum_balance(account_size),
             data: account_data,
-            owner: spl_token_2022::id(),
+            owner: spl_token_2022_interface::id(),
             ..Default::default()
         },
     };
@@ -435,13 +436,14 @@ fn test_end_to_end_close_mint_case() {
         .build();
 
     // Derive all necessary PDAs
-    let wrapped_mint_address = get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
     let backpointer_address = get_wrapped_mint_backpointer_address(&wrapped_mint_address);
     let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
     let escrow_address = get_escrow_address(
         &unwrapped_mint.key,
         &TokenProgram::SplToken2022.id(),
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     );
 
     let create_mint_ix = spl_token_wrap::instruction::create_mint(
@@ -449,7 +451,7 @@ fn test_end_to_end_close_mint_case() {
         &wrapped_mint_address,
         &backpointer_address,
         &unwrapped_mint.key,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         false,
     );
 
@@ -458,11 +460,11 @@ fn test_end_to_end_close_mint_case() {
         &payer,
         &wrapped_mint_authority,
         &unwrapped_mint.key,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     );
 
-    let close_unwrapped_mint_ix = spl_token_2022::instruction::close_account(
-        &spl_token_2022::id(),
+    let close_unwrapped_mint_ix = spl_token_2022_interface::instruction::close_account(
+        &spl_token_2022_interface::id(),
         &unwrapped_mint.key,
         &payer,
         &close_authority,
@@ -478,11 +480,11 @@ fn test_end_to_end_close_mint_case() {
         &unwrapped_mint_addr,
         Rent::default().minimum_balance(mint_space),
         mint_space as u64,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     );
 
     let init_mint_ix = initialize_mint2(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint_addr,
         &payer,
         None,
@@ -491,7 +493,7 @@ fn test_end_to_end_close_mint_case() {
     .unwrap();
 
     let init_transfer_fee_ix = initialize_transfer_fee_config(
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_mint_addr,
         Some(&payer),
         Some(&payer),
@@ -513,12 +515,12 @@ fn test_end_to_end_close_mint_case() {
         &payer,
         &payer,
         &wrapped_mint_address,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     );
     let recipient_wrapped_addr = get_associated_token_address_with_program_id(
         &payer,
         &wrapped_mint_address,
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
     );
 
     let wrap_amount: u64 = 5_000;
@@ -538,8 +540,8 @@ fn test_end_to_end_close_mint_case() {
         &recipient_wrapped_addr,
         &wrapped_mint_address,
         &wrapped_mint_authority,
-        &spl_token_2022::id(),
-        &spl_token_2022::id(),
+        &spl_token_2022_interface::id(),
+        &spl_token_2022_interface::id(),
         &unwrapped_token_account_addr,
         &unwrapped_mint.key,
         &escrow_address,

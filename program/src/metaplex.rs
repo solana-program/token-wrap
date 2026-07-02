@@ -9,8 +9,9 @@ use {
         },
     },
     solana_account_info::AccountInfo,
+    solana_nullable::MaybeNull,
     solana_program_error::ProgramError,
-    spl_pod::optional_keys::OptionalNonZeroPubkey,
+    solana_pubkey::Pubkey,
     spl_token_metadata_interface::state::TokenMetadata,
 };
 
@@ -103,7 +104,7 @@ pub fn metaplex_to_token_2022_metadata(
     let additional_metadata = extract_additional_metadata(&metaplex_metadata)?;
 
     Ok(TokenMetadata {
-        update_authority: OptionalNonZeroPubkey(metaplex_metadata.update_authority),
+        update_authority: MaybeNull::<Pubkey>::from(metaplex_metadata.update_authority),
         mint: *unwrapped_mint_info.key,
         name: metaplex_metadata.name,
         symbol: metaplex_metadata.symbol,

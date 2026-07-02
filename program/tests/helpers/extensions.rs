@@ -1,8 +1,9 @@
 use {
+    solana_nullable::MaybeNull,
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    spl_pod::{optional_keys::OptionalNonZeroPubkey, primitives::PodU64},
-    spl_token_2022::{
+    solana_zero_copy::unaligned::U64,
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::ConfidentialTransferMint,
             immutable_owner::ImmutableOwner,
@@ -65,20 +66,20 @@ pub fn init_mint_extensions(
             MintExtension::TransferHook => {
                 let extension = state.init_extension::<TransferHook>(false).unwrap();
                 extension.program_id =
-                    OptionalNonZeroPubkey::try_from(Some(test_transfer_hook::id())).unwrap();
+                    MaybeNull::<Pubkey>::try_from(Some(test_transfer_hook::id())).unwrap();
             }
             MintExtension::TransferFeeConfig => {
                 let extension = state.init_extension::<TransferFeeConfig>(false).unwrap();
                 *extension = TransferFeeConfig {
-                    transfer_fee_config_authority: OptionalNonZeroPubkey::try_from(Some(
+                    transfer_fee_config_authority: MaybeNull::<Pubkey>::try_from(Some(
                         Pubkey::new_unique(),
                     ))
                     .unwrap(),
-                    withdraw_withheld_authority: OptionalNonZeroPubkey::try_from(Some(
+                    withdraw_withheld_authority: MaybeNull::<Pubkey>::try_from(Some(
                         Pubkey::new_unique(),
                     ))
                     .unwrap(),
-                    withheld_amount: PodU64::from(0),
+                    withheld_amount: U64::from(0),
                     older_transfer_fee: TransferFee {
                         epoch: 0.into(),
                         maximum_fee: 50_000.into(),
@@ -94,7 +95,7 @@ pub fn init_mint_extensions(
             MintExtension::MintCloseAuthority(authority) => {
                 let extension = state.init_extension::<MintCloseAuthority>(false).unwrap();
                 extension.close_authority =
-                    OptionalNonZeroPubkey::try_from(Some(*authority)).unwrap();
+                    MaybeNull::<Pubkey>::try_from(Some(*authority)).unwrap();
             }
             MintExtension::ConfidentialTransfer => {
                 state

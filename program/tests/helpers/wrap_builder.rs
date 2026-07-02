@@ -8,7 +8,7 @@ use {
     solana_account::Account,
     solana_instruction::AccountMeta,
     solana_pubkey::Pubkey,
-    spl_token_2022::extension::ExtensionType::ImmutableOwner,
+    spl_token_2022_interface::extension::ExtensionType::ImmutableOwner,
     spl_token_wrap::{
         get_escrow_address, get_wrapped_mint_address, get_wrapped_mint_authority, instruction::wrap,
     },

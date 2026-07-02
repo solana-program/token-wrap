@@ -6,7 +6,7 @@ use {
     solana_account_info::AccountInfo,
     solana_cpi::{get_return_data, invoke},
     solana_program_error::ProgramError,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             metadata_pointer::MetadataPointer, BaseStateWithExtensions, PodStateWithExtensions,
         },
@@ -92,7 +92,7 @@ pub fn resolve_token_2022_source_metadata<'a>(
         return Err(TokenWrapError::MetadataPointerMismatch.into());
     }
 
-    if metadata_info.owner == &spl_token_2022::id() {
+    if metadata_info.owner == &spl_token_2022_interface::id() {
         // This is explicitly unsupported. A metadata pointer should not point to
         // another mint account.
         Err(ProgramError::InvalidAccountData)
@@ -116,7 +116,7 @@ pub fn extract_token_metadata<'a>(
     source_metadata_info: Option<&AccountInfo<'a>>,
     owner_program_info: Option<&AccountInfo<'a>>,
 ) -> Result<TokenMetadata, ProgramError> {
-    if *unwrapped_mint_info.owner == spl_token_2022::id() {
+    if *unwrapped_mint_info.owner == spl_token_2022_interface::id() {
         // Source is Token-2022: resolve metadata pointer
         resolve_token_2022_source_metadata(
             unwrapped_mint_info,

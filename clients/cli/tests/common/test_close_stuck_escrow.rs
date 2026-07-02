@@ -7,7 +7,7 @@ use {
     solana_signer::Signer,
     solana_system_interface::instruction::create_account,
     solana_transaction::Transaction,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{transfer_fee::instruction::initialize_transfer_fee_config, ExtensionType},
         instruction::{initialize_mint2, initialize_mint_close_authority},
         pod::PodMint,
@@ -19,7 +19,7 @@ use {
 pub async fn test_only_token_2022_allowed(env: &TestEnv) {
     // Create unwrapped mint with spl-token (not spl-token-2022)
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     let output = Command::new(TOKEN_WRAP_CLI_BIN)
@@ -41,8 +41,8 @@ pub async fn test_only_token_2022_allowed(env: &TestEnv) {
 
 pub async fn test_create_mint_close_stuck_escrow_fails(env: &TestEnv) {
     // 1. Create unwrapped mint with spl-token-2022
-    let unwrapped_token_program = spl_token_2022::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let unwrapped_token_program = spl_token_2022_interface::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     // 2. Create wrapped mint
@@ -76,8 +76,8 @@ pub async fn test_create_mint_close_stuck_escrow_fails(env: &TestEnv) {
 }
 
 pub async fn test_successful_close(env: &TestEnv) {
-    let unwrapped_token_program = spl_token_2022::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let unwrapped_token_program = spl_token_2022_interface::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let close_authority = env.payer.pubkey();
     let unwrapped_mint_keypair = Keypair::new();
     let unwrapped_mint = unwrapped_mint_keypair.pubkey();
@@ -143,7 +143,7 @@ pub async fn test_successful_close(env: &TestEnv) {
 
     // 4. Close the unwrapped mint
     let blockhash = env.rpc_client.get_latest_blockhash().await.unwrap();
-    let close_ix = spl_token_2022::instruction::close_account(
+    let close_ix = spl_token_2022_interface::instruction::close_account(
         &unwrapped_token_program,
         &unwrapped_mint,
         &env.payer.pubkey(),

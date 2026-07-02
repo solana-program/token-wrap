@@ -8,7 +8,7 @@ use {
     solana_account::Account,
     solana_instruction::AccountMeta,
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             transfer_fee::TransferFeeConfig,
             BaseStateWithExtensions,

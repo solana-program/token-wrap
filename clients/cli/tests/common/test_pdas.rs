@@ -8,7 +8,7 @@ use {
 };
 
 pub async fn test_pdas(env: &TestEnv) {
-    let unwrapped_token_program = spl_token_2022::id();
+    let unwrapped_token_program = spl_token_2022_interface::id();
     let wrapped_token_program = spl_token::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;

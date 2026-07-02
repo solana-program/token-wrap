@@ -15,7 +15,7 @@ use {
     helpers::common::TransferAuthority,
     mollusk_svm::{program::create_program_account_loader_v3, result::Check},
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         error::TokenError,
         extension::{
             transfer_fee::{TransferFeeAmount, TransferFeeConfig},
@@ -305,13 +305,13 @@ fn test_unwrap_with_transfer_hook() {
 
     let escrow_account = {
         let wrapped_mint_addr =
-            get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+            get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
         let mint_authority = get_wrapped_mint_authority(&wrapped_mint_addr);
         KeyedAccount {
             key: get_escrow_address(
                 &unwrapped_mint.key,
                 &unwrapped_mint.account.owner,
-                &spl_token_2022::id(),
+                &spl_token_2022_interface::id(),
             ),
             account: TokenAccountBuilder::new()
                 .token_program(TokenProgram::SplToken2022)
@@ -379,7 +379,7 @@ fn test_successfully_unwraps_to_native_mint() {
     let native_mint = MintBuilder::new()
         .token_program(TokenProgram::SplToken2022)
         .mint_authority(Pubkey::new_unique())
-        .mint_key(spl_token_2022::native_mint::id())
+        .mint_key(spl_token_2022_interface::native_mint::id())
         .build();
 
     let native_token_account = TokenAccountBuilder::new()

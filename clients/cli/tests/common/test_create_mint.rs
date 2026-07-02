@@ -3,7 +3,7 @@ use {
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
     spl_token::{self, state::Mint as SplTokenMint},
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::ConfidentialTransferMint, metadata_pointer::MetadataPointer,
             BaseStateWithExtensions, PodStateWithExtensions,
@@ -18,7 +18,7 @@ use {
 
 pub async fn test_create_mint(env: &TestEnv) {
     let unwrapped_token_program = spl_token::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
     execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
 

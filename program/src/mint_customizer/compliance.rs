@@ -4,8 +4,8 @@ use {
     solana_cpi::invoke,
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
-    solana_zk_sdk::encryption::pod::elgamal::PodElGamalPubkey,
-    spl_token_2022::{
+    solana_zk_sdk_pod::encryption::elgamal::PodElGamalPubkey,
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
             default_account_state::instruction::initialize_default_account_state,

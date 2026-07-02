@@ -7,7 +7,7 @@ use {
     solana_signer::Signer,
     solana_transaction::Transaction,
     spl_token::{self},
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::PodStateWithExtensions,
         pod::PodAccount,
         {self},
@@ -58,7 +58,7 @@ async fn assert_escrow_creation(
 
 pub async fn test_create_ata_escrow_account_for_spl_token_mint(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
-    let wrapped_token_program_id = spl_token_2022::id();
+    let wrapped_token_program_id = spl_token_2022_interface::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
@@ -94,7 +94,7 @@ pub async fn test_create_ata_escrow_account_for_spl_token_mint(env: &TestEnv) {
 }
 
 pub async fn test_create_ata_escrow_account_for_token2022_mint(env: &TestEnv) {
-    let unwrapped_token_program_id = spl_token_2022::id();
+    let unwrapped_token_program_id = spl_token_2022_interface::id();
     let wrapped_token_program_id = spl_token::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
@@ -132,7 +132,7 @@ pub async fn test_create_ata_escrow_account_for_token2022_mint(env: &TestEnv) {
 
 pub async fn test_create_escrow_account_with_signer(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
-    let wrapped_token_program_id = spl_token_2022::id();
+    let wrapped_token_program_id = spl_token_2022_interface::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
@@ -182,7 +182,7 @@ pub async fn test_create_escrow_account_with_signer(env: &TestEnv) {
 
 pub async fn test_create_escrow_account_signer_idempotent(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
-    let wrapped_token_program_id = spl_token_2022::id();
+    let wrapped_token_program_id = spl_token_2022_interface::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
@@ -228,7 +228,7 @@ pub async fn test_create_escrow_account_signer_idempotent(env: &TestEnv) {
 
 pub async fn test_create_escrow_account_ata_idempotent(env: &TestEnv) {
     let unwrapped_token_program_id = spl_token::id();
-    let wrapped_token_program_id = spl_token_2022::id();
+    let wrapped_token_program_id = spl_token_2022_interface::id();
 
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program_id).await;
 
@@ -278,7 +278,7 @@ pub async fn test_create_escrow_account_with_wrong_mint_owner(env: &TestEnv) {
             "-C",
             &env.config_file_path,
             &keypair.pubkey().to_string(),
-            &spl_token_2022::id().to_string(),
+            &spl_token_2022_interface::id().to_string(),
         ])
         .output()
         .unwrap();
@@ -292,7 +292,7 @@ pub async fn test_create_escrow_account_with_wrong_account_type(env: &TestEnv) {
     let keypair = Keypair::new();
 
     // note no data in account
-    create_account(env, &keypair, &spl_token_2022::id()).await;
+    create_account(env, &keypair, &spl_token_2022_interface::id()).await;
 
     let mut command = Command::new(TOKEN_WRAP_CLI_BIN);
     let output = command
@@ -301,7 +301,7 @@ pub async fn test_create_escrow_account_with_wrong_account_type(env: &TestEnv) {
             "-C",
             &env.config_file_path,
             &keypair.pubkey().to_string(),
-            &spl_token_2022::id().to_string(),
+            &spl_token_2022_interface::id().to_string(),
         ])
         .output()
         .unwrap();

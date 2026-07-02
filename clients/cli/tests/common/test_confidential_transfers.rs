@@ -1,7 +1,9 @@
 use {
     crate::common::helpers::{create_unwrapped_mint, execute_create_mint, TestEnv},
-    spl_pod::optional_keys::{OptionalNonZeroElGamalPubkey, OptionalNonZeroPubkey},
-    spl_token_2022::{
+    solana_nullable::MaybeNull,
+    solana_pubkey::Pubkey,
+    solana_zk_sdk_pod::encryption::elgamal::PodElGamalPubkey,
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::ConfidentialTransferMint, BaseStateWithExtensions,
             PodStateWithExtensions,
@@ -11,8 +13,8 @@ use {
 };
 
 pub async fn test_confidential_transfer_with_wrap_and_deposit(env: &TestEnv) {
-    let unwrapped_token_program = spl_token_2022::id();
-    let wrapped_token_program = spl_token_2022::id();
+    let unwrapped_token_program = spl_token_2022_interface::id();
+    let wrapped_token_program = spl_token_2022_interface::id();
     let unwrapped_mint = create_unwrapped_mint(env, &unwrapped_token_program).await;
 
     execute_create_mint(env, &unwrapped_mint, &wrapped_token_program).await;
@@ -31,10 +33,10 @@ pub async fn test_confidential_transfer_with_wrap_and_deposit(env: &TestEnv) {
         .get_extension::<ConfidentialTransferMint>()
         .unwrap();
 
-    assert_eq!(ct_mint.authority, OptionalNonZeroPubkey::default());
+    assert_eq!(ct_mint.authority, MaybeNull::<Pubkey>::default());
     assert!(bool::from(ct_mint.auto_approve_new_accounts));
     assert_eq!(
         ct_mint.auditor_elgamal_pubkey,
-        OptionalNonZeroElGamalPubkey::default()
+        MaybeNull::<PodElGamalPubkey>::default()
     );
 }

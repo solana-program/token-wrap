@@ -4,9 +4,9 @@ use {
     crate::helpers::create_mint_builder::CreateMintBuilder,
     helpers::common::TokenProgram,
     solana_pubkey::Pubkey,
-    solana_zk_sdk::encryption::pod::elgamal::PodElGamalPubkey,
-    spl_pod::primitives::PodBool,
-    spl_token_2022::{
+    solana_zero_copy::unaligned::Bool,
+    solana_zk_sdk_pod::encryption::elgamal::PodElGamalPubkey,
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::ConfidentialTransferMint,
             default_account_state::DefaultAccountState, pausable::PausableConfig,
@@ -66,7 +66,7 @@ fn test_create_mint_with_compliance_customizer() {
         Option::<Pubkey>::from(ct_ext.authority).unwrap(),
         CONFIDENTIAL_TRANSFER_AUTHORITY
     );
-    assert_eq!(ct_ext.auto_approve_new_accounts, PodBool::from_bool(true));
+    assert_eq!(ct_ext.auto_approve_new_accounts, Bool::from_bool(true));
     assert_eq!(
         Option::<PodElGamalPubkey>::from(ct_ext.auditor_elgamal_pubkey).unwrap(),
         PodElGamalPubkey::from_str(AUDITOR_ELGAMAL_PUBKEY_B64).unwrap()

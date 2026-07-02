@@ -85,7 +85,7 @@ impl<'a> SyncToToken2022Builder<'a> {
         });
 
         let wrapped_mint_address =
-            get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022::id());
+            get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
 
         let wrapped_mint_authority = self
             .wrapped_mint_authority
@@ -107,7 +107,7 @@ impl<'a> SyncToToken2022Builder<'a> {
         let owner_program_opt = self.source_metadata.as_ref().and_then(|k| {
             let owner = k.account.owner;
             let is_metaplex = owner == mpl_token_metadata::ID;
-            let is_token2022 = owner == spl_token_2022::id();
+            let is_token2022 = owner == spl_token_2022_interface::id();
             if !is_metaplex && !is_token2022 {
                 Some(owner)
             } else {

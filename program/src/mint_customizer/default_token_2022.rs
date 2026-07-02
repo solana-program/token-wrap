@@ -4,7 +4,7 @@ use {
     solana_cpi::invoke,
     solana_program_error::{ProgramError, ProgramResult},
     solana_pubkey::Pubkey,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{
             confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
             metadata_pointer::instruction::initialize as initialize_metadata_pointer,

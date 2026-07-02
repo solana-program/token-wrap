@@ -33,15 +33,16 @@ use {
     solana_system_interface::instruction::{allocate, assign},
     solana_sysvar::{clock::Clock, Sysvar},
     spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
-    spl_token_2022::{
+    spl_token_2022::onchain::{
+        extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
+    },
+    spl_token_2022_interface::{
         extension::{
+            account_len::try_for_each_required_init_account_extension,
             transfer_fee::TransferFeeConfig, BaseStateWithExtensions, ExtensionType,
             PodStateWithExtensions,
         },
         instruction::initialize_mint2,
-        onchain::{
-            extract_multisig_accounts, invoke_transfer_checked, invoke_transfer_checked_with_fee,
-        },
         pod::{PodAccount, PodMint},
         state::AccountState,
     },
@@ -86,7 +87,7 @@ pub fn process_create_mint<M: MintCustomizer>(
 
     // The *unwrapped mint* must itself be a real SPL‑Token mint
     if unwrapped_mint_account.owner != &spl_token::id()
-        && unwrapped_mint_account.owner != &spl_token_2022::id()
+        && unwrapped_mint_account.owner != &spl_token_2022_interface::id()
     {
         Err(ProgramError::InvalidAccountOwner)?
     }
@@ -116,7 +117,7 @@ pub fn process_create_mint<M: MintCustomizer>(
         &bump_seed,
     );
 
-    let space = if *wrapped_token_program_account.key == spl_token_2022::id() {
+    let space = if *wrapped_token_program_account.key == spl_token_2022_interface::id() {
         M::get_token_2022_mint_space()?
     } else {
         spl_token::state::Mint::get_packed_len()
@@ -145,7 +146,7 @@ pub fn process_create_mint<M: MintCustomizer>(
         &[&signer_seeds],
     )?;
 
-    if *wrapped_token_program_account.key == spl_token_2022::id() {
+    if *wrapped_token_program_account.key == spl_token_2022_interface::id() {
         M::initialize_extensions(wrapped_mint_account, wrapped_token_program_account)?;
     }
 
@@ -263,7 +264,7 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         .checked_sub(fee)
         .ok_or(ProgramError::ArithmeticOverflow)?;
 
-    if unwrapped_token_program.key == &spl_token_2022::id() {
+    if unwrapped_token_program.key == &spl_token_2022_interface::id() {
         // This invoke fn does extra validation on calculated fee
         invoke_transfer_checked_with_fee(
             unwrapped_token_program.key,
@@ -296,7 +297,7 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 
     invoke_signed(
-        &spl_token_2022::instruction::mint_to(
+        &spl_token_2022_interface::instruction::mint_to(
             wrapped_token_program.key,
             wrapped_mint.key,
             recipient_wrapped_token_account.key,
@@ -364,7 +365,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         .collect::<Vec<_>>();
 
     invoke(
-        &spl_token_2022::instruction::burn(
+        &spl_token_2022_interface::instruction::burn(
             wrapped_token_program.key,
             wrapped_token_account.key,
             wrapped_mint.key,
@@ -410,8 +411,8 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
 
     // This instruction is only for spl-token-2022 accounts because only they
     // can have extensions that lead to size changes.
-    if *escrow_account.owner != spl_token_2022::id()
-        || unwrapped_mint.owner != &spl_token_2022::id()
+    if *escrow_account.owner != spl_token_2022_interface::id()
+        || unwrapped_mint.owner != &spl_token_2022_interface::id()
     {
         return Err(ProgramError::IncorrectProgramId);
     }
@@ -459,9 +460,11 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
 
     let mint_data = unwrapped_mint.try_borrow_data()?;
     let mint_state = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
-    let mint_extensions = mint_state.get_extension_types()?;
-    let mut required_account_extensions =
-        ExtensionType::get_required_init_account_extensions(&mint_extensions);
+    let mut required_account_extensions = vec![];
+    try_for_each_required_init_account_extension(mint_state.get_tlv_data(), |extension_type| {
+        required_account_extensions.push(extension_type);
+        Ok(())
+    })?;
 
     // ATAs always have the ImmutableOwner extension
     if !required_account_extensions.contains(&ExtensionType::ImmutableOwner) {
@@ -484,7 +487,7 @@ pub fn process_close_stuck_escrow(accounts: &[AccountInfo]) -> ProgramResult {
     let signer_seeds = get_wrapped_mint_authority_signer_seeds(wrapped_mint.key, &bump_seed);
 
     invoke_signed(
-        &spl_token_2022::instruction::close_account(
+        &spl_token_2022_interface::instruction::close_account(
             escrow_account.owner,
             escrow_account.key,
             destination_account.key,
@@ -544,16 +547,18 @@ pub fn process_sync_metadata_to_token_2022(accounts: &[AccountInfo]) -> ProgramR
     let source_metadata_info = account_info_iter.next();
     let owner_program_info = account_info_iter.next();
 
-    if *token_program_info.key != spl_token_2022::id() {
+    if *token_program_info.key != spl_token_2022_interface::id() {
         return Err(ProgramError::IncorrectProgramId);
     }
 
-    if *wrapped_mint_info.owner != spl_token_2022::id() {
+    if *wrapped_mint_info.owner != spl_token_2022_interface::id() {
         return Err(ProgramError::IncorrectProgramId);
     }
 
-    let (expected_wrapped_mint, _) =
-        get_wrapped_mint_address_with_seed(unwrapped_mint_info.key, &spl_token_2022::id());
+    let (expected_wrapped_mint, _) = get_wrapped_mint_address_with_seed(
+        unwrapped_mint_info.key,
+        &spl_token_2022_interface::id(),
+    );
     if *wrapped_mint_info.key != expected_wrapped_mint {
         return Err(TokenWrapError::WrappedMintMismatch.into());
     }
@@ -812,7 +817,7 @@ pub fn process_set_canonical_pointer(
     }
 
     if unwrapped_mint_info.owner != &spl_token::id()
-        && unwrapped_mint_info.owner != &spl_token_2022::id()
+        && unwrapped_mint_info.owner != &spl_token_2022_interface::id()
     {
         return Err(ProgramError::InvalidAccountOwner);
     }

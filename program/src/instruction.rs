@@ -378,7 +378,7 @@ pub fn close_stuck_escrow(
         AccountMeta::new_readonly(*unwrapped_mint_address, false),
         AccountMeta::new_readonly(*wrapped_mint_address, false),
         AccountMeta::new_readonly(*wrapped_mint_authority_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(spl_token_2022_interface::id(), false),
     ];
     let data = TokenWrapInstruction::CloseStuckEscrow.pack();
     Instruction::new_with_bytes(*program_id, &data, accounts)
@@ -397,7 +397,7 @@ pub fn sync_metadata_to_token_2022(
         AccountMeta::new(*wrapped_mint, false),
         AccountMeta::new_readonly(*wrapped_mint_authority, false),
         AccountMeta::new_readonly(*unwrapped_mint, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(spl_token_2022_interface::id(), false),
     ];
 
     if let Some(pubkey) = source_metadata {
