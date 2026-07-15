@@ -6,7 +6,7 @@
     "devDependencies": {
         "@changesets/cli": "^2.31.0",
         "@codama/renderers-js": "^2.3.0",
-        "@solana-program/system": "^0.12.2",
+        "@solana-program/system": "^0.13.0",
         "@solana/sysvars": "^7.0.0",
         "@solana/prettier-config-solana": "0.0.7",
         "@types/node": "^26.1.1",
