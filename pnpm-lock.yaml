@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(typescript@6.0.3)
       '@solana-program/system':
-        specifier: ^0.12.2
-        version: 0.12.2(@solana/kit@7.0.0(typescript@6.0.3))
+        specifier: ^0.13.0
+        version: 0.13.0(@solana/kit@7.0.0(typescript@6.0.3))
       '@solana/prettier-config-solana':
         specifier: 0.0.7
         version: 0.0.7(prettier@3.9.5)
@@ -39,8 +39,8 @@ importers:
   clients/js:
     dependencies:
       '@solana-program/system':
-        specifier: ^0.12.2
-        version: 0.12.2(@solana/kit@7.0.0(typescript@6.0.3))
+        specifier: ^0.13.0
+        version: 0.13.0(@solana/kit@7.0.0(typescript@6.0.3))
       '@solana-program/token':
         specifier: ^0.14.0
         version: 0.14.0(@solana/kit@7.0.0(typescript@6.0.3))
@@ -748,6 +748,11 @@ packages:
     resolution: {integrity: sha512-MaBeOxlvTruQhA7UYkOb3hVTEHPPagOtd+PvTm6a8rGgvEAP0kD4BbC37NceOaR4ABNqdaCmD5OMVRKgrE6KAg==}
     peerDependencies:
       '@solana/kit': ^6.4.0
+
+  '@solana-program/system@0.13.0':
+    resolution: {integrity: sha512-Id6QQxCG7ByImXPD5X/c3Ag2kySD+49aJ9waIkfxyUFyokhMQgxYQAx2rKuaygaBlaBQY6VVfBS46pqxZV+99A==}
+    peerDependencies:
+      '@solana/kit': ^7.0.0
 
   '@solana-program/token-2022@0.12.0':
     resolution: {integrity: sha512-SXkN6Epy9sC3OEELJLhc0hZtUijsAlR2Nb5gP6jcc0WVrtj5wEAmksWxF/yYrAB8AisJVgxvODkhIAnrd02DIw==}
@@ -2705,6 +2710,10 @@ snapshots:
   '@shikijs/vscode-textmate@10.0.2': {}
 
   '@solana-program/system@0.12.2(@solana/kit@7.0.0(typescript@6.0.3))':
+    dependencies:
+      '@solana/kit': 7.0.0(typescript@6.0.3)
+
+  '@solana-program/system@0.13.0(@solana/kit@7.0.0(typescript@6.0.3))':
     dependencies:
       '@solana/kit': 7.0.0(typescript@6.0.3)
 
