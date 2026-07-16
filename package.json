@@ -4,7 +4,7 @@
         "generate:clients": "tsx program/idl.ts && codama run --all"
     },
     "devDependencies": {
-        "@changesets/cli": "^2.31.0",
+        "@changesets/cli": "^2.31.1",
         "@codama/renderers-js": "^2.3.0",
         "@solana-program/system": "^0.13.0",
         "@solana/sysvars": "^7.0.0",
