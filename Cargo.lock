@@ -11009,7 +11009,7 @@ dependencies = [
  "solana-pubkey 4.2.0",
  "solana-rent 3.1.0",
  "solana-system-interface 3.2.0",
- "solana-sysvar 3.1.1",
+ "solana-sysvar 4.1.0",
  "solana-zero-copy",
  "solana-zk-sdk-pod",
  "spl-associated-token-account-interface",
