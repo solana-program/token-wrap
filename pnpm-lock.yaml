@@ -30,8 +30,8 @@ importers:
         specifier: ^1.8.0
         version: 1.9.0
       tsx:
-        specifier: ^4.23.10
-        version: 4.23.10
+        specifier: ^4.23.11
+        version: 4.23.11
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -74,10 +74,10 @@ importers:
         version: 3.9.6
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(tsx@4.23.10)(typescript@6.0.3)(yaml@2.9.0)
+        version: 8.5.1(tsx@4.23.11)(typescript@6.0.3)(yaml@2.9.0)
       tsx:
-        specifier: ^4.23.10
-        version: 4.23.10
+        specifier: ^4.23.11
+        version: 4.23.11
       typedoc:
         specifier: ^0.28.20
         version: 0.28.20(typescript@6.0.3)
@@ -2034,8 +2034,8 @@ packages:
       typescript:
         optional: true
 
-  tsx@4.23.10:
-    resolution: {integrity: sha512-0Vb9eKU47njkxv/6B8CRZRDsxNDT/Pz+BIU+M5jw7xL3TdzAjSxlZUxu0xFL/kLpaG3sHZ0LH2wbK1T1yo7CUQ==}
+  tsx@4.23.11:
+    resolution: {integrity: sha512-Ry2oTEUnhBdeEdWIztY8kf3/nBGnPnjMLVGL0YfdRXMORuPER5NlKmayqxtxRxwB1xBN+RivRaJfe7PM1rtiyw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -3938,11 +3938,11 @@ snapshots:
       mlly: 1.8.2
       pathe: 2.0.3
 
-  postcss-load-config@6.0.1(tsx@4.23.10)(yaml@2.9.0):
+  postcss-load-config@6.0.1(tsx@4.23.11)(yaml@2.9.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
-      tsx: 4.23.10
+      tsx: 4.23.11
       yaml: 2.9.0
 
   prelude-ls@1.2.1: {}
@@ -4091,7 +4091,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  tsup@8.5.1(tsx@4.23.10)(typescript@6.0.3)(yaml@2.9.0):
+  tsup@8.5.1(tsx@4.23.11)(typescript@6.0.3)(yaml@2.9.0):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -4102,7 +4102,7 @@ snapshots:
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(tsx@4.23.10)(yaml@2.9.0)
+      postcss-load-config: 6.0.1(tsx@4.23.11)(yaml@2.9.0)
       resolve-from: 5.0.0
       rollup: 4.62.2
       source-map: 0.7.6
@@ -4118,7 +4118,7 @@ snapshots:
       - tsx
       - yaml
 
-  tsx@4.23.10:
+  tsx@4.23.11:
     dependencies:
       esbuild: 0.28.2
     optionalDependencies:
