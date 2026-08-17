@@ -45,8 +45,8 @@ importers:
         specifier: ^0.15.0
         version: 0.15.0(@solana/kit@7.0.0(typescript@6.0.3))
       '@solana-program/token-2022':
-        specifier: ^0.14.1
-        version: 0.14.1(@solana/kit@7.0.0(typescript@6.0.3))(@solana/sysvars@7.1.0(typescript@6.0.3))
+        specifier: ^0.15.0
+        version: 0.15.0(@solana/kit@7.0.0(typescript@6.0.3))(@solana/sysvars@7.1.0(typescript@6.0.3))
       '@solana/program-client-core':
         specifier: ^7.0.0
         version: 7.0.0(typescript@6.0.3)
@@ -767,13 +767,13 @@ packages:
     peerDependencies:
       '@solana/kit': ^7.0.0
 
-  '@solana-program/token-2022@0.14.1':
-    resolution: {integrity: sha512-8yDF8xgEYU3HyfT4o7nLKHKMWQr3r2+1zBFojWYMkRyVh6YjuPO6Sxzf+p9trvL9Ddwp0d8SvqmMdYeErBZROA==}
+  '@solana-program/token-2022@0.15.0':
+    resolution: {integrity: sha512-Q9vR9kzP+l9AVWt2Uj5nH44BrnotiLFmX3AYDgsFQfuTla9n66RokNPGaSrCMUvQS0xRBv/u9BhH4p39qdB9Hw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@solana/kit': ^7.0.0
       '@solana/sysvars': ^7.0.0
-      '@solana/zk-sdk': ^0.4.2
+      '@solana/zk-sdk': ^0.5.1
     peerDependenciesMeta:
       '@solana/zk-sdk':
         optional: true
@@ -2623,7 +2623,7 @@ snapshots:
     dependencies:
       '@solana/kit': 7.0.0(typescript@6.0.3)
 
-  '@solana-program/token-2022@0.14.1(@solana/kit@7.0.0(typescript@6.0.3))(@solana/sysvars@7.1.0(typescript@6.0.3))':
+  '@solana-program/token-2022@0.15.0(@solana/kit@7.0.0(typescript@6.0.3))(@solana/sysvars@7.1.0(typescript@6.0.3))':
     dependencies:
       '@noble/curves': 1.9.7
       '@solana-program/record': 0.3.0(@solana/kit@7.0.0(typescript@6.0.3))
