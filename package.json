@@ -10,7 +10,7 @@
         "@solana/sysvars": "^7.0.0",
         "@solana/prettier-config-solana": "0.0.7",
         "@types/node": "^26.2.0",
-        "codama": "^1.8.0",
+        "codama": "^1.10.1",
         "tsx": "^4.23.12",
         "typescript": "^6.0.3"
     },
