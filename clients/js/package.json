@@ -50,7 +50,7 @@
         "@solana-program/system": "^0.13.0",
         "@solana-program/token": "^0.15.0",
         "@solana-program/token-2022": "^0.15.0",
-        "@solana/program-client-core": "^7.0.0"
+        "@solana/program-client-core": "^7.1.1"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
