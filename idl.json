@@ -1,7 +1,7 @@
 {
   "kind": "rootNode",
   "standard": "codama",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "program": {
     "kind": "programNode",
     "name": "tokenWrap",
@@ -824,7 +824,6 @@
         ]
       }
     ],
-    "definedTypes": [],
     "pdas": [
       {
         "kind": "pdaNode",
@@ -906,7 +905,6 @@
         ]
       }
     ],
-    "events": [],
     "errors": [
       {
         "kind": "errorNode",
@@ -1004,8 +1002,6 @@
         "code": 15,
         "message": "Instruction can only be used with spl-token wrapped mints"
       }
-    ],
-    "constants": []
-  },
-  "additionalPrograms": []
+    ]
+  }
 }

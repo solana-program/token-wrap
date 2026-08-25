@@ -28,7 +28,7 @@ import {
     type MaybeAccount,
     type MaybeEncodedAccount,
 } from '@solana/kit';
-import { BackpointerSeeds, findBackpointerPda } from '../pdas';
+import { findBackpointerPda, type BackpointerSeeds } from '../pdas';
 
 /** Account to store the address of the unwrapped mint. */
 export type Backpointer = { unwrappedMint: Address };
