@@ -55,7 +55,7 @@
     "devDependencies": {
         "@solana/kit": "^8.2.0",
         "@tsconfig/strictest": "^2.0.8",
-        "@types/node": "^26.4.0",
+        "@types/node": "^26.4.1",
         "oxfmt": "^0.65.0",
         "oxlint": "^1.75.0",
         "tsup": "^8.5.1",
