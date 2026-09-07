@@ -24,8 +24,8 @@ importers:
         specifier: ^8.2.0
         version: 8.2.0(typescript@6.0.3)
       '@types/node':
-        specifier: ^26.3.0
-        version: 26.4.0
+        specifier: ^26.4.1
+        version: 26.4.1
       codama:
         specifier: ^1.8.0
         version: 1.8.0
@@ -58,8 +58,8 @@ importers:
         specifier: ^2.0.8
         version: 2.0.8
       '@types/node':
-        specifier: ^26.4.0
-        version: 26.4.0
+        specifier: ^26.4.1
+        version: 26.4.1
       oxfmt:
         specifier: ^0.65.0
         version: 0.65.0
@@ -1394,8 +1394,8 @@ packages:
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
 
-  '@types/node@26.4.0':
-    resolution: {integrity: sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ==}
+  '@types/node@26.4.1':
+    resolution: {integrity: sha512-k97ENvZWtvA6yqz5/FS6a7duDgOPEeOQOc2iKS/nY6mX6qJUKtLnWzQS+Xj6tXweyj6ZcTAK2Qecetnvi9nCLA==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -1843,8 +1843,8 @@ packages:
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
 
-  undici-types@8.10.1:
-    resolution: {integrity: sha512-ZpkgovMu+ALwfuo6Bgys8H82gHJ25d4ARMB51FD2BeLnUCDRgY6N3caWk3N6CtKR77gHmRKYHnLF723owNYPNA==}
+  undici-types@8.10.2:
+    resolution: {integrity: sha512-7/+aSjzkUoLc92hV22bTW4aGanXf800zbwguhcICs0OAoCF9wDOE4wkopQ+SqfhXZm8mCK8gHpdTs7pZUWzK3w==}
 
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
@@ -2890,7 +2890,7 @@ snapshots:
       '@solana/errors': 8.2.0(typescript@6.0.3)
       '@solana/rpc-spec': 8.2.0(typescript@6.0.3)
       '@solana/rpc-spec-types': 8.2.0(typescript@6.0.3)
-      undici-types: 8.10.1
+      undici-types: 8.10.2
     optionalDependencies:
       typescript: 6.0.3
 
@@ -3037,7 +3037,7 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
-  '@types/node@26.4.0':
+  '@types/node@26.4.1':
     dependencies:
       undici-types: 8.3.0
 
@@ -3536,7 +3536,7 @@ snapshots:
 
   ufo@1.6.4: {}
 
-  undici-types@8.10.1: {}
+  undici-types@8.10.2: {}
 
   undici-types@8.3.0: {}
 
