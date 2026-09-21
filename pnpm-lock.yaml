@@ -45,8 +45,8 @@ importers:
         specifier: ^0.16.1
         version: 0.16.1(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana-program/token-2022':
-        specifier: ^0.17.0
-        version: 0.17.0(@solana/kit@8.3.0(typescript@6.0.3))(@solana/sysvars@8.3.0(typescript@6.0.3))
+        specifier: ^0.18.0
+        version: 0.18.0(@solana/kit@8.3.0(typescript@6.0.3))(@solana/sysvars@8.3.0(typescript@6.0.3))
       '@solana/program-client-core':
         specifier: ^8.3.0
         version: 8.3.0(typescript@6.0.3)
@@ -926,8 +926,8 @@ packages:
     peerDependencies:
       '@solana/kit': ^8.0.0
 
-  '@solana-program/token-2022@0.17.0':
-    resolution: {integrity: sha512-LAtSQVLuWLSANAzvyOURR4yDik3eVHtgYiAMADmcayX4ljeN3CEdOtQvbfmB95wDa4R/N0PUhbyXTMWsELKkpw==}
+  '@solana-program/token-2022@0.18.0':
+    resolution: {integrity: sha512-G6eY4553qiKsNJwwrcqSCIsSGShGoJ1wCvHRFkBSyD/EWsJyqs3WG7p7EnFH0UdKHi4IgvIbb9IbkZFOud49Ow==}
     peerDependencies:
       '@solana/kit': ^8.0.0
       '@solana/sysvars': ^8.0.0
@@ -2488,7 +2488,7 @@ snapshots:
     dependencies:
       '@solana/kit': 8.3.0(typescript@6.0.3)
 
-  '@solana-program/token-2022@0.17.0(@solana/kit@8.3.0(typescript@6.0.3))(@solana/sysvars@8.3.0(typescript@6.0.3))':
+  '@solana-program/token-2022@0.18.0(@solana/kit@8.3.0(typescript@6.0.3))(@solana/sysvars@8.3.0(typescript@6.0.3))':
     dependencies:
       '@noble/curves': 2.4.0
       '@solana-program/record': 0.4.1(@solana/kit@8.3.0(typescript@6.0.3))
