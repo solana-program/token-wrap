@@ -10720,12 +10720,12 @@ dependencies = [
 
 [[package]]
 name = "spl-memo-interface"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d4e2aedd58f858337fa609af5ad7100d4a243fdaf6a40d6eb4c28c5f19505d3"
+checksum = "3745d384b0afee980d43d62b66c27bdcbbd03507732b8d3626d3413cb72084f2"
 dependencies = [
  "solana-instruction",
- "solana-pubkey 3.0.0",
+ "solana-pubkey 4.2.1",
 ]
 
 [[package]]
@@ -10826,9 +10826,9 @@ dependencies = [
 
 [[package]]
 name = "spl-token-2022"
-version = "11.0.0"
+version = "11.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f0e045d23300c8c9f57e52fa7a1103a20a707cc02080db929c2ff09044aa06a"
+checksum = "8c9029f079d1e374e7a895b9b3b4113247f68953cf5342f5bfd4ec82d94e7c03"
 dependencies = [
  "bytemuck",
  "num_enum",
