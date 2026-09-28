@@ -10854,7 +10854,7 @@ dependencies = [
  "solana-zk-sdk-pod",
  "spl-elgamal-registry-interface",
  "spl-memo-interface",
- "spl-token-2022-interface 3.1.1",
+ "spl-token-2022-interface 3.1.2",
  "spl-token-confidential-transfer-ciphertext-arithmetic",
  "spl-token-confidential-transfer-proof-extraction 0.6.1",
  "spl-token-group-interface",
@@ -10892,14 +10892,14 @@ dependencies = [
 
 [[package]]
 name = "spl-token-2022-interface"
-version = "3.1.1"
+version = "3.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "821d96d034ea31c4965d182c742153c491ae0abee531331b55771086c5030d86"
+checksum = "3c8b75ca59053d3a79bb8cbaaef12c63ec08f6f1f0b8292352a39b56c455a248"
 dependencies = [
  "arrayref",
  "bytemuck",
  "getrandom 0.2.16",
- "num-derive 0.4.2",
+ "num-derive 0.5.1",
  "num-traits",
  "num_enum",
  "solana-account-info",
@@ -11091,7 +11091,7 @@ dependencies = [
  "spl-tlv-account-resolution",
  "spl-token",
  "spl-token-2022",
- "spl-token-2022-interface 3.1.1",
+ "spl-token-2022-interface 3.1.2",
  "spl-token-metadata-interface 1.0.1",
  "spl-transfer-hook-interface",
  "spl-type-length-value",
@@ -11137,7 +11137,7 @@ dependencies = [
  "solana-zk-sdk-pod",
  "spl-associated-token-account-interface",
  "spl-token",
- "spl-token-2022-interface 3.1.1",
+ "spl-token-2022-interface 3.1.2",
  "spl-token-metadata-interface 1.0.1",
  "spl-token-wrap",
  "tempfile",
@@ -11460,7 +11460,7 @@ dependencies = [
  "solana-program-entrypoint",
  "solana-program-error",
  "solana-pubkey 4.2.1",
- "spl-token-2022-interface 3.1.1",
+ "spl-token-2022-interface 3.1.2",
  "spl-token-metadata-interface 1.0.1",
 ]
 
