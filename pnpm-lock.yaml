@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.1
         version: 2.4.0(typescript@6.0.3)
       '@solana-program/system':
-        specifier: ^0.14.1
-        version: 0.14.1(@solana/kit@8.3.0(typescript@6.0.3))
+        specifier: ^0.15.0
+        version: 0.15.0(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana/prettier-config-solana':
         specifier: 0.0.7
         version: 0.0.7(prettier@3.9.4)
@@ -39,8 +39,8 @@ importers:
   clients/js:
     dependencies:
       '@solana-program/system':
-        specifier: ^0.14.1
-        version: 0.14.1(@solana/kit@8.3.0(typescript@6.0.3))
+        specifier: ^0.15.0
+        version: 0.15.0(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana-program/token':
         specifier: ^0.16.1
         version: 0.16.1(@solana/kit@8.3.0(typescript@6.0.3))
@@ -925,6 +925,11 @@ packages:
     resolution: {integrity: sha512-K6ZiIrAKoJAfcwfUdsoFvfSAxeRJaRrV7BPFTJvUVRS4m3zszN+nLcdaNMMe2F1/zTriZqC+xh+Kgw6ziGUqpQ==}
     peerDependencies:
       '@solana/kit': ^8.0.0
+
+  '@solana-program/system@0.15.0':
+    resolution: {integrity: sha512-xE08wZCyNRhOaO/XNRd9A3kSLfUrTe/BnmAHhql8uqc2eriNy2ZmnvaGRrs0m+kOSihvUbANzHljmJsTzGL5kg==}
+    peerDependencies:
+      '@solana/kit': ^8.3.0
 
   '@solana-program/token-2022@0.17.0':
     resolution: {integrity: sha512-LAtSQVLuWLSANAzvyOURR4yDik3eVHtgYiAMADmcayX4ljeN3CEdOtQvbfmB95wDa4R/N0PUhbyXTMWsELKkpw==}
@@ -2638,6 +2643,10 @@ snapshots:
       '@solana/kit': 8.3.0(typescript@6.0.3)
 
   '@solana-program/system@0.14.1(@solana/kit@8.3.0(typescript@6.0.3))':
+    dependencies:
+      '@solana/kit': 8.3.0(typescript@6.0.3)
+
+  '@solana-program/system@0.15.0(@solana/kit@8.3.0(typescript@6.0.3))':
     dependencies:
       '@solana/kit': 8.3.0(typescript@6.0.3)
 
