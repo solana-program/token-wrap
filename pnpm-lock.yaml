@@ -42,8 +42,8 @@ importers:
         specifier: ^0.15.0
         version: 0.15.0(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana-program/token':
-        specifier: ^0.16.1
-        version: 0.16.1(@solana/kit@8.3.0(typescript@6.0.3))
+        specifier: ^0.17.0
+        version: 0.17.0(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana-program/token-2022':
         specifier: ^0.17.0
         version: 0.17.0(@solana/kit@8.3.0(typescript@6.0.3))(@solana/sysvars@8.4.0(typescript@6.0.3))
@@ -941,10 +941,10 @@ packages:
       '@solana/zk-sdk':
         optional: true
 
-  '@solana-program/token@0.16.1':
-    resolution: {integrity: sha512-X9dsvbh+VDq4SuCfvxn95P1DCvtBYHJOBiVmgBJMfW8l/lp8uSwEhy9IurpcdltnGi5kNIkCm4sk4YOXKAMiCw==}
+  '@solana-program/token@0.17.0':
+    resolution: {integrity: sha512-l7EhF3lCWXXdOllGI8qnbF4Pj7pCT/5zJTW2lPsNUQfa7G28pnFhSssHW2GCW7dzGttSHgPdJYdQRB5rvQoN9Q==}
     peerDependencies:
-      '@solana/kit': ^8.0.0
+      '@solana/kit': ^8.3.0
 
   '@solana-program/zk-elgamal-proof@0.4.0':
     resolution: {integrity: sha512-bf2Q3f25xcCNaLm/MR4lwoAguJzEW2eeLdrJb6rUjMcA63qcgyJOWl6To7Bn4e+0OyWBa+J7YP2BUhi//VPz3g==}
@@ -2659,9 +2659,9 @@ snapshots:
       '@solana/kit': 8.3.0(typescript@6.0.3)
       '@solana/sysvars': 8.4.0(typescript@6.0.3)
 
-  '@solana-program/token@0.16.1(@solana/kit@8.3.0(typescript@6.0.3))':
+  '@solana-program/token@0.17.0(@solana/kit@8.3.0(typescript@6.0.3))':
     dependencies:
-      '@solana-program/system': 0.14.1(@solana/kit@8.3.0(typescript@6.0.3))
+      '@solana-program/system': 0.15.0(@solana/kit@8.3.0(typescript@6.0.3))
       '@solana/kit': 8.3.0(typescript@6.0.3)
 
   '@solana-program/zk-elgamal-proof@0.4.0(@solana/kit@8.3.0(typescript@6.0.3))':
