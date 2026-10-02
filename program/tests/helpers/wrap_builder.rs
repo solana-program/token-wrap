@@ -147,6 +147,7 @@ impl<'a> WrapBuilder<'a> {
             account: MintBuilder::new()
                 .token_program(token_program)
                 .mint_authority(mint_authority)
+                .supply(0)
                 .build()
                 .account,
         })
