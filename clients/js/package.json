@@ -58,7 +58,7 @@
         "@tsconfig/strictest": "^2.0.8",
         "@types/node": "^26.6.3",
         "oxfmt": "^0.70.0",
-        "oxlint": "^1.85.0",
+        "oxlint": "^1.86.0",
         "tsup": "^8.5.1",
         "tsx": "^4.23.15",
         "typedoc": "^0.28.20",
