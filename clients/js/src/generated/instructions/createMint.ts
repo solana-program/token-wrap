@@ -29,7 +29,13 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
-import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
+import {
+    getAccountMetaFactory,
+    type InstructionAccountInput,
+    type InstructionAccountInputAddress,
+    type ResolvedInstructionAccount,
+    type ResolvedInstructionAccountMeta,
+} from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const CREATE_MINT_DISCRIMINATOR = 0;
@@ -97,37 +103,37 @@ export function getCreateMintInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CreateMintInput<
-    TAccountWrappedMint extends string = string,
-    TAccountBackpointer extends string = string,
-    TAccountUnwrappedMint extends string = string,
-    TAccountSystemProgram extends string = string,
-    TAccountWrappedTokenProgram extends string = string,
+    TAccountWrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountBackpointer extends InstructionAccountInput = InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedTokenProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
     /**
      *  Unallocated wrapped mint account to create (PDA), address must be:
      * `get_wrapped_mint_address(unwrapped_mint_address, wrapped_token_program_id)`
      */
-    wrappedMint: Address<TAccountWrappedMint>;
+    wrappedMint: TAccountWrappedMint;
     /**
      * Unallocated wrapped backpointer account to create (PDA)
      * `get_wrapped_mint_backpointer_address(wrapped_mint_address)`
      */
-    backpointer: Address<TAccountBackpointer>;
+    backpointer: TAccountBackpointer;
     /** The existing mint */
-    unwrappedMint: Address<TAccountUnwrappedMint>;
+    unwrappedMint: TAccountUnwrappedMint;
     /** The system program */
-    systemProgram?: Address<TAccountSystemProgram>;
+    systemProgram?: TAccountSystemProgram;
     /** The token program used to create the wrapped mint */
-    wrappedTokenProgram: Address<TAccountWrappedTokenProgram>;
+    wrappedTokenProgram: TAccountWrappedTokenProgram;
     idempotent?: CreateMintInstructionDataArgs['idempotent'];
 };
 
 export function getCreateMintInstruction<
-    TAccountWrappedMint extends string,
-    TAccountBackpointer extends string,
-    TAccountUnwrappedMint extends string,
-    TAccountSystemProgram extends string,
-    TAccountWrappedTokenProgram extends string,
+    TAccountWrappedMint extends InstructionAccountInput,
+    TAccountBackpointer extends InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput,
+    TAccountSystemProgram extends InstructionAccountInput,
+    TAccountWrappedTokenProgram extends InstructionAccountInput,
     TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
     input: CreateMintInput<
@@ -137,25 +143,32 @@ export function getCreateMintInstruction<
         TAccountSystemProgram,
         TAccountWrappedTokenProgram
     >,
-    config?: { programAddress?: TProgramAddress },
+    config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): CreateMintInstruction<
     TProgramAddress,
-    TAccountWrappedMint,
-    TAccountBackpointer,
-    TAccountUnwrappedMint,
-    TAccountSystemProgram,
-    TAccountWrappedTokenProgram
+    ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountBackpointer, InstructionAccountInputAddress<TAccountBackpointer>>,
+    ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>,
+    ResolvedInstructionAccountMeta<
+        TAccountWrappedTokenProgram,
+        InstructionAccountInputAddress<TAccountWrappedTokenProgram>
+    >
 > {
     // Program address.
-    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddressInput = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddress = typeof programAddressInput === 'string' ? programAddressInput : programAddressInput.address;
+
+    // Account meta helper.
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
 
     // Original accounts.
     const originalAccounts = {
-        wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
-        backpointer: { value: input.backpointer ?? null, isWritable: true },
-        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-        systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-        wrappedTokenProgram: { value: input.wrappedTokenProgram ?? null, isWritable: false },
+        wrappedMint: { value: input.wrappedMint ?? null, isSigner: false, isWritable: true },
+        backpointer: { value: input.backpointer ?? null, isSigner: false, isWritable: true },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isSigner: false, isWritable: false },
+        systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
+        wrappedTokenProgram: { value: input.wrappedTokenProgram ?? null, isSigner: false, isWritable: false },
     };
     const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
@@ -168,7 +181,6 @@ export function getCreateMintInstruction<
             '11111111111111111111111111111111' as Address<'11111111111111111111111111111111'>;
     }
 
-    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
             getAccountMeta('wrappedMint', accounts.wrappedMint),
@@ -181,11 +193,14 @@ export function getCreateMintInstruction<
         programAddress,
     } as CreateMintInstruction<
         TProgramAddress,
-        TAccountWrappedMint,
-        TAccountBackpointer,
-        TAccountUnwrappedMint,
-        TAccountSystemProgram,
-        TAccountWrappedTokenProgram
+        ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+        ResolvedInstructionAccountMeta<TAccountBackpointer, InstructionAccountInputAddress<TAccountBackpointer>>,
+        ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+        ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>,
+        ResolvedInstructionAccountMeta<
+            TAccountWrappedTokenProgram,
+            InstructionAccountInputAddress<TAccountWrappedTokenProgram>
+        >
     >);
 }
 

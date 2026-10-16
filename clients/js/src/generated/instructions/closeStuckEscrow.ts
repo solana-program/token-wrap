@@ -27,7 +27,13 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
-import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
+import {
+    getAccountMetaFactory,
+    type InstructionAccountInput,
+    type InstructionAccountInputAddress,
+    type ResolvedInstructionAccount,
+    type ResolvedInstructionAccountMeta,
+} from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const CLOSE_STUCK_ESCROW_DISCRIMINATOR = 3;
@@ -86,34 +92,34 @@ export function getCloseStuckEscrowInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CloseStuckEscrowInput<
-    TAccountEscrow extends string = string,
-    TAccountDestination extends string = string,
-    TAccountUnwrappedMint extends string = string,
-    TAccountWrappedMint extends string = string,
-    TAccountWrappedMintAuthority extends string = string,
-    TAccountToken2022Program extends string = string,
+    TAccountEscrow extends InstructionAccountInput = InstructionAccountInput,
+    TAccountDestination extends InstructionAccountInput = InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput = InstructionAccountInput,
+    TAccountToken2022Program extends InstructionAccountInput = InstructionAccountInput,
 > = {
     /** Escrow account to close (ATA) */
-    escrow: Address<TAccountEscrow>;
+    escrow: TAccountEscrow;
     /** Destination for lamports from closed account */
-    destination: Address<TAccountDestination>;
+    destination: TAccountDestination;
     /** Unwrapped mint */
-    unwrappedMint: Address<TAccountUnwrappedMint>;
+    unwrappedMint: TAccountUnwrappedMint;
     /** Wrapped mint */
-    wrappedMint: Address<TAccountWrappedMint>;
+    wrappedMint: TAccountWrappedMint;
     /** Wrapped mint authority (PDA) */
-    wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
+    wrappedMintAuthority: TAccountWrappedMintAuthority;
     /** Token-2022 program */
-    token2022Program?: Address<TAccountToken2022Program>;
+    token2022Program?: TAccountToken2022Program;
 };
 
 export function getCloseStuckEscrowInstruction<
-    TAccountEscrow extends string,
-    TAccountDestination extends string,
-    TAccountUnwrappedMint extends string,
-    TAccountWrappedMint extends string,
-    TAccountWrappedMintAuthority extends string,
-    TAccountToken2022Program extends string,
+    TAccountEscrow extends InstructionAccountInput,
+    TAccountDestination extends InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput,
+    TAccountWrappedMint extends InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput,
+    TAccountToken2022Program extends InstructionAccountInput,
     TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
     input: CloseStuckEscrowInput<
@@ -124,27 +130,34 @@ export function getCloseStuckEscrowInstruction<
         TAccountWrappedMintAuthority,
         TAccountToken2022Program
     >,
-    config?: { programAddress?: TProgramAddress },
+    config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): CloseStuckEscrowInstruction<
     TProgramAddress,
-    TAccountEscrow,
-    TAccountDestination,
-    TAccountUnwrappedMint,
-    TAccountWrappedMint,
-    TAccountWrappedMintAuthority,
-    TAccountToken2022Program
+    ResolvedInstructionAccountMeta<TAccountEscrow, InstructionAccountInputAddress<TAccountEscrow>>,
+    ResolvedInstructionAccountMeta<TAccountDestination, InstructionAccountInputAddress<TAccountDestination>>,
+    ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+    ResolvedInstructionAccountMeta<
+        TAccountWrappedMintAuthority,
+        InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+    >,
+    ResolvedInstructionAccountMeta<TAccountToken2022Program, InstructionAccountInputAddress<TAccountToken2022Program>>
 > {
     // Program address.
-    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddressInput = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddress = typeof programAddressInput === 'string' ? programAddressInput : programAddressInput.address;
+
+    // Account meta helper.
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
 
     // Original accounts.
     const originalAccounts = {
-        escrow: { value: input.escrow ?? null, isWritable: true },
-        destination: { value: input.destination ?? null, isWritable: true },
-        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-        wrappedMint: { value: input.wrappedMint ?? null, isWritable: false },
-        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: false },
-        token2022Program: { value: input.token2022Program ?? null, isWritable: false },
+        escrow: { value: input.escrow ?? null, isSigner: false, isWritable: true },
+        destination: { value: input.destination ?? null, isSigner: false, isWritable: true },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isSigner: false, isWritable: false },
+        wrappedMint: { value: input.wrappedMint ?? null, isSigner: false, isWritable: false },
+        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isSigner: false, isWritable: false },
+        token2022Program: { value: input.token2022Program ?? null, isSigner: false, isWritable: false },
     };
     const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
@@ -154,7 +167,6 @@ export function getCloseStuckEscrowInstruction<
             'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' as Address<'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'>;
     }
 
-    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
             getAccountMeta('escrow', accounts.escrow),
@@ -168,12 +180,18 @@ export function getCloseStuckEscrowInstruction<
         programAddress,
     } as CloseStuckEscrowInstruction<
         TProgramAddress,
-        TAccountEscrow,
-        TAccountDestination,
-        TAccountUnwrappedMint,
-        TAccountWrappedMint,
-        TAccountWrappedMintAuthority,
-        TAccountToken2022Program
+        ResolvedInstructionAccountMeta<TAccountEscrow, InstructionAccountInputAddress<TAccountEscrow>>,
+        ResolvedInstructionAccountMeta<TAccountDestination, InstructionAccountInputAddress<TAccountDestination>>,
+        ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+        ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+        ResolvedInstructionAccountMeta<
+            TAccountWrappedMintAuthority,
+            InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+        >,
+        ResolvedInstructionAccountMeta<
+            TAccountToken2022Program,
+            InstructionAccountInputAddress<TAccountToken2022Program>
+        >
     >);
 }
 

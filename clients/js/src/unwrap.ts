@@ -6,6 +6,7 @@ import {
     createTransactionMessage,
     fetchEncodedAccount,
     GetAccountInfoApi,
+    HasAddress,
     Instruction,
     pipe,
     Rpc,
@@ -16,20 +17,22 @@ import {
     TransactionMessageWithFeePayerSigner,
     TransactionSigner,
 } from '@solana/kit';
+import { type InstructionAccountInput, type InstructionSignerInput } from '@solana/program-client-core';
 import { findWrappedMintAuthorityPda, getUnwrapInstruction, UnwrapInput } from './generated';
+import { toAddress } from './internal';
 import { getMintFromTokenAccount, getOwnerFromAccount } from './utilities';
 
 export interface SingleSignerUnwrapArgs {
     rpc: Rpc<GetAccountInfoApi>;
     payer: TransactionSigner; // Fee payer and default transfer authority
-    wrappedTokenAccount: Address;
+    wrappedTokenAccount: Address | HasAddress;
     amount: bigint | number;
-    recipientUnwrappedToken: Address;
+    recipientUnwrappedToken: Address | HasAddress;
     // Optional arguments below (will be derived/defaulted if not provided)
-    transferAuthority?: Address | TransactionSigner; // Defaults to payer
-    unwrappedMint?: Address; // Will derive from unwrappedEscrow if not provided
-    wrappedTokenProgram?: Address; // Will derive from wrappedTokenAccount if not provided
-    unwrappedTokenProgram?: Address; // Will derive from unwrappedEscrow if not provided
+    transferAuthority?: InstructionAccountInput | InstructionSignerInput; // Defaults to payer
+    unwrappedMint?: Address | HasAddress; // Will derive from unwrappedEscrow if not provided
+    wrappedTokenProgram?: Address | HasAddress; // Will derive from wrappedTokenAccount if not provided
+    unwrappedTokenProgram?: Address | HasAddress; // Will derive from unwrappedEscrow if not provided
 }
 
 async function resolveUnwrapAddrs({
@@ -47,7 +50,7 @@ async function resolveUnwrapAddrs({
     wrappedTokenAccount: Address;
     recipientUnwrappedToken: Address;
     inputUnwrappedMint?: Address;
-    inputTransferAuthority?: Address | TransactionSigner;
+    inputTransferAuthority?: InstructionAccountInput | InstructionSignerInput;
     inputWrappedTokenProgram?: Address;
     inputUnwrappedTokenProgram?: Address;
 }) {
@@ -79,15 +82,15 @@ async function resolveUnwrapAddrs({
 }
 
 interface UnwrapTxBuilderArgs {
-    wrappedTokenAccount: Address;
+    wrappedTokenAccount: Address | HasAddress;
     amount: bigint | number;
-    wrappedMint: Address;
-    wrappedMintAuthority: Address;
-    unwrappedMint: Address;
-    recipientUnwrappedToken: Address;
-    unwrappedTokenProgram: Address;
-    wrappedTokenProgram: Address;
-    transferAuthority: Address | TransactionSigner;
+    wrappedMint: Address | HasAddress;
+    wrappedMintAuthority: Address | HasAddress;
+    unwrappedMint: Address | HasAddress;
+    recipientUnwrappedToken: Address | HasAddress;
+    unwrappedTokenProgram: Address | HasAddress;
+    wrappedTokenProgram: Address | HasAddress;
+    transferAuthority: InstructionAccountInput | InstructionSignerInput;
     multiSigners?: TransactionSigner[];
 }
 
@@ -139,14 +142,16 @@ export interface SingleSignerUnwrapResult {
 export async function singleSignerUnwrap({
     rpc,
     payer,
-    wrappedTokenAccount,
+    wrappedTokenAccount: inputWrappedTokenAccount,
     amount,
-    recipientUnwrappedToken,
+    recipientUnwrappedToken: inputRecipientUnwrappedToken,
     transferAuthority: inputTransferAuthority,
     unwrappedMint: inputUnwrappedMint,
     wrappedTokenProgram: inputWrappedTokenProgram,
     unwrappedTokenProgram: inputUnwrappedTokenProgram,
 }: SingleSignerUnwrapArgs): Promise<SingleSignerUnwrapResult> {
+    const wrappedTokenAccount = toAddress(inputWrappedTokenAccount);
+    const recipientUnwrappedToken = toAddress(inputRecipientUnwrappedToken);
     const {
         wrappedMint,
         wrappedMintAuthority,
@@ -159,10 +164,10 @@ export async function singleSignerUnwrap({
         payer,
         wrappedTokenAccount,
         recipientUnwrappedToken,
-        inputUnwrappedMint,
+        inputUnwrappedMint: inputUnwrappedMint && toAddress(inputUnwrappedMint),
         inputTransferAuthority,
-        inputWrappedTokenProgram,
-        inputUnwrappedTokenProgram,
+        inputWrappedTokenProgram: inputWrappedTokenProgram && toAddress(inputWrappedTokenProgram),
+        inputUnwrappedTokenProgram: inputUnwrappedTokenProgram && toAddress(inputUnwrappedTokenProgram),
     });
 
     const ix = await buildUnwrapTransaction({
