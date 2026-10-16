@@ -27,7 +27,13 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
-import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
+import {
+    getAccountMetaFactory,
+    type InstructionAccountInput,
+    type InstructionAccountInputAddress,
+    type ResolvedInstructionAccount,
+    type ResolvedInstructionAccountMeta,
+} from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const SYNC_METADATA_TO_SPL_TOKEN_DISCRIMINATOR = 5;
@@ -95,53 +101,53 @@ export function getSyncMetadataToSplTokenInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type SyncMetadataToSplTokenInput<
-    TAccountMetaplexMetadata extends string = string,
-    TAccountWrappedMintAuthority extends string = string,
-    TAccountWrappedMint extends string = string,
-    TAccountUnwrappedMint extends string = string,
-    TAccountMetaplexProgram extends string = string,
-    TAccountSystemProgram extends string = string,
-    TAccountRentSysvar extends string = string,
-    TAccountSourceMetadata extends string = string,
-    TAccountOwnerProgram extends string = string,
+    TAccountMetaplexMetadata extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountMetaplexProgram extends InstructionAccountInput = InstructionAccountInput,
+    TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
+    TAccountRentSysvar extends InstructionAccountInput = InstructionAccountInput,
+    TAccountSourceMetadata extends InstructionAccountInput = InstructionAccountInput,
+    TAccountOwnerProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
     /** `Metaplex` metadata account */
-    metaplexMetadata: Address<TAccountMetaplexMetadata>;
+    metaplexMetadata: TAccountMetaplexMetadata;
     /** Wrapped mint authority (PDA) */
-    wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
+    wrappedMintAuthority: TAccountWrappedMintAuthority;
     /** Wrapped SPL Token mint */
-    wrappedMint: Address<TAccountWrappedMint>;
+    wrappedMint: TAccountWrappedMint;
     /** Unwrapped mint */
-    unwrappedMint: Address<TAccountUnwrappedMint>;
+    unwrappedMint: TAccountUnwrappedMint;
     /** `Metaplex` Token Metadata Program */
-    metaplexProgram?: Address<TAccountMetaplexProgram>;
+    metaplexProgram?: TAccountMetaplexProgram;
     /** System program */
-    systemProgram?: Address<TAccountSystemProgram>;
+    systemProgram?: TAccountSystemProgram;
     /** Rent sysvar */
-    rentSysvar?: Address<TAccountRentSysvar>;
+    rentSysvar?: TAccountRentSysvar;
     /**
      * Source metadata account. Required if unwrapped mint
      * is an SPL-Token or, if a Token-2022, its metadata pointer indicates
      * an external account.
      */
-    sourceMetadata?: Address<TAccountSourceMetadata>;
+    sourceMetadata?: TAccountSourceMetadata;
     /**
      * Owner program. Required when metadata account is
      * owned by a third-party program.
      */
-    ownerProgram?: Address<TAccountOwnerProgram>;
+    ownerProgram?: TAccountOwnerProgram;
 };
 
 export function getSyncMetadataToSplTokenInstruction<
-    TAccountMetaplexMetadata extends string,
-    TAccountWrappedMintAuthority extends string,
-    TAccountWrappedMint extends string,
-    TAccountUnwrappedMint extends string,
-    TAccountMetaplexProgram extends string,
-    TAccountSystemProgram extends string,
-    TAccountRentSysvar extends string,
-    TAccountSourceMetadata extends string,
-    TAccountOwnerProgram extends string,
+    TAccountMetaplexMetadata extends InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput,
+    TAccountWrappedMint extends InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput,
+    TAccountMetaplexProgram extends InstructionAccountInput,
+    TAccountSystemProgram extends InstructionAccountInput,
+    TAccountRentSysvar extends InstructionAccountInput,
+    TAccountSourceMetadata extends InstructionAccountInput,
+    TAccountOwnerProgram extends InstructionAccountInput,
     TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
     input: SyncMetadataToSplTokenInput<
@@ -155,33 +161,40 @@ export function getSyncMetadataToSplTokenInstruction<
         TAccountSourceMetadata,
         TAccountOwnerProgram
     >,
-    config?: { programAddress?: TProgramAddress },
+    config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): SyncMetadataToSplTokenInstruction<
     TProgramAddress,
-    TAccountMetaplexMetadata,
-    TAccountWrappedMintAuthority,
-    TAccountWrappedMint,
-    TAccountUnwrappedMint,
-    TAccountMetaplexProgram,
-    TAccountSystemProgram,
-    TAccountRentSysvar,
-    TAccountSourceMetadata,
-    TAccountOwnerProgram
+    ResolvedInstructionAccountMeta<TAccountMetaplexMetadata, InstructionAccountInputAddress<TAccountMetaplexMetadata>>,
+    ResolvedInstructionAccountMeta<
+        TAccountWrappedMintAuthority,
+        InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+    >,
+    ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountMetaplexProgram, InstructionAccountInputAddress<TAccountMetaplexProgram>>,
+    ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>,
+    ResolvedInstructionAccountMeta<TAccountRentSysvar, InstructionAccountInputAddress<TAccountRentSysvar>>,
+    ResolvedInstructionAccountMeta<TAccountSourceMetadata, InstructionAccountInputAddress<TAccountSourceMetadata>>,
+    ResolvedInstructionAccountMeta<TAccountOwnerProgram, InstructionAccountInputAddress<TAccountOwnerProgram>>
 > {
     // Program address.
-    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddressInput = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddress = typeof programAddressInput === 'string' ? programAddressInput : programAddressInput.address;
+
+    // Account meta helper.
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
 
     // Original accounts.
     const originalAccounts = {
-        metaplexMetadata: { value: input.metaplexMetadata ?? null, isWritable: true },
-        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: true },
-        wrappedMint: { value: input.wrappedMint ?? null, isWritable: false },
-        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-        metaplexProgram: { value: input.metaplexProgram ?? null, isWritable: false },
-        systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-        rentSysvar: { value: input.rentSysvar ?? null, isWritable: false },
-        sourceMetadata: { value: input.sourceMetadata ?? null, isWritable: false },
-        ownerProgram: { value: input.ownerProgram ?? null, isWritable: false },
+        metaplexMetadata: { value: input.metaplexMetadata ?? null, isSigner: false, isWritable: true },
+        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isSigner: false, isWritable: true },
+        wrappedMint: { value: input.wrappedMint ?? null, isSigner: false, isWritable: false },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isSigner: false, isWritable: false },
+        metaplexProgram: { value: input.metaplexProgram ?? null, isSigner: false, isWritable: false },
+        systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
+        rentSysvar: { value: input.rentSysvar ?? null, isSigner: false, isWritable: false },
+        sourceMetadata: { value: input.sourceMetadata ?? null, isSigner: false, isWritable: false },
+        ownerProgram: { value: input.ownerProgram ?? null, isSigner: false, isWritable: false },
     };
     const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
@@ -199,7 +212,6 @@ export function getSyncMetadataToSplTokenInstruction<
             'SysvarRent111111111111111111111111111111111' as Address<'SysvarRent111111111111111111111111111111111'>;
     }
 
-    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
             getAccountMeta('metaplexMetadata', accounts.metaplexMetadata),
@@ -216,15 +228,24 @@ export function getSyncMetadataToSplTokenInstruction<
         programAddress,
     } as SyncMetadataToSplTokenInstruction<
         TProgramAddress,
-        TAccountMetaplexMetadata,
-        TAccountWrappedMintAuthority,
-        TAccountWrappedMint,
-        TAccountUnwrappedMint,
-        TAccountMetaplexProgram,
-        TAccountSystemProgram,
-        TAccountRentSysvar,
-        TAccountSourceMetadata,
-        TAccountOwnerProgram
+        ResolvedInstructionAccountMeta<
+            TAccountMetaplexMetadata,
+            InstructionAccountInputAddress<TAccountMetaplexMetadata>
+        >,
+        ResolvedInstructionAccountMeta<
+            TAccountWrappedMintAuthority,
+            InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+        >,
+        ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+        ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+        ResolvedInstructionAccountMeta<
+            TAccountMetaplexProgram,
+            InstructionAccountInputAddress<TAccountMetaplexProgram>
+        >,
+        ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>,
+        ResolvedInstructionAccountMeta<TAccountRentSysvar, InstructionAccountInputAddress<TAccountRentSysvar>>,
+        ResolvedInstructionAccountMeta<TAccountSourceMetadata, InstructionAccountInputAddress<TAccountSourceMetadata>>,
+        ResolvedInstructionAccountMeta<TAccountOwnerProgram, InstructionAccountInputAddress<TAccountOwnerProgram>>
     >);
 }
 

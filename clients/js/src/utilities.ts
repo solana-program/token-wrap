@@ -22,6 +22,7 @@ import {
     generateKeyPairSigner,
     GetAccountInfoApi,
     GetMinimumBalanceForRentExemptionApi,
+    HasAddress,
     Instruction,
     KeyPairSigner,
     Rpc,
@@ -31,6 +32,7 @@ import {
     TransactionWithinSizeLimit,
 } from '@solana/kit';
 import { findWrappedMintAuthorityPda, findWrappedMintPda } from './generated';
+import { toAddress } from './internal';
 
 function getInitializeTokenFn(tokenProgram: Address): (input: InitializeAccountInput) => Instruction {
     if (tokenProgram === TOKEN_PROGRAM_ADDRESS) return initializeToken;
@@ -79,8 +81,8 @@ export async function createTokenAccount({
 export interface CreateEscrowAccountArgs {
     rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
     payer: KeyPairSigner;
-    unwrappedMint: Address;
-    wrappedTokenProgram: Address;
+    unwrappedMint: Address | HasAddress;
+    wrappedTokenProgram: Address | HasAddress;
 }
 
 export type CreateEscrowAccountResult =
@@ -99,7 +101,7 @@ export async function createEscrowAccount({
 }: CreateEscrowAccountArgs): Promise<CreateEscrowAccountResult> {
     const [wrappedMint] = await findWrappedMintPda({ unwrappedMint, wrappedTokenProgram });
     const [wrappedMintAuthority] = await findWrappedMintAuthorityPda({ wrappedMint });
-    const unwrappedTokenProgram = await getOwnerFromAccount(rpc, unwrappedMint);
+    const unwrappedTokenProgram = await getOwnerFromAccount(rpc, toAddress(unwrappedMint));
 
     const [escrowAta] = await findAssociatedTokenPda({
         owner: wrappedMintAuthority,

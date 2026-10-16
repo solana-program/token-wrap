@@ -5,6 +5,7 @@ import {
     Blockhash,
     createTransactionMessage,
     GetAccountInfoApi,
+    HasAddress,
     Instruction,
     pipe,
     Rpc,
@@ -15,19 +16,21 @@ import {
     TransactionMessageWithFeePayerSigner,
     TransactionSigner,
 } from '@solana/kit';
+import { type InstructionAccountInput, type InstructionSignerInput } from '@solana/program-client-core';
 import { findWrappedMintAuthorityPda, findWrappedMintPda, getWrapInstruction, WrapInput } from './generated';
+import { toAddress } from './internal';
 import { getMintFromTokenAccount, getOwnerFromAccount } from './utilities';
 
 interface IxBuilderArgs {
-    unwrappedTokenAccount: Address;
-    wrappedTokenProgram: Address;
+    unwrappedTokenAccount: Address | HasAddress;
+    wrappedTokenProgram: Address | HasAddress;
     amount: bigint | number;
-    wrappedMint: Address;
-    wrappedMintAuthority: Address;
-    transferAuthority: Address | TransactionSigner;
-    unwrappedMint: Address;
-    recipientWrappedTokenAccount: Address;
-    unwrappedTokenProgram: Address;
+    wrappedMint: Address | HasAddress;
+    wrappedMintAuthority: Address | HasAddress;
+    transferAuthority: InstructionAccountInput | InstructionSignerInput;
+    unwrappedMint: Address | HasAddress;
+    recipientWrappedTokenAccount: Address | HasAddress;
+    unwrappedTokenProgram: Address | HasAddress;
     multiSigners?: TransactionSigner[];
 }
 
@@ -57,13 +60,13 @@ export async function multisigOfflineSignWrap(
 export interface SingleSignerWrapArgs {
     rpc: Rpc<GetAccountInfoApi>;
     payer: TransactionSigner; // Fee payer and default transfer authority
-    unwrappedTokenAccount: Address;
-    wrappedTokenProgram: Address;
+    unwrappedTokenAccount: Address | HasAddress;
+    wrappedTokenProgram: Address | HasAddress;
     amount: bigint | number;
-    transferAuthority?: Address | TransactionSigner; // Defaults to payer if not provided
-    unwrappedMint?: Address; // Will fetch from unwrappedTokenAccount if not provided
-    recipientWrappedTokenAccount?: Address; // Defaults to payer's ATA if not provided
-    unwrappedTokenProgram?: Address; // Will fetch from unwrappedTokenAccount owner if not provided
+    transferAuthority?: InstructionAccountInput | InstructionSignerInput; // Defaults to payer if not provided
+    unwrappedMint?: Address | HasAddress; // Will fetch from unwrappedTokenAccount if not provided
+    recipientWrappedTokenAccount?: Address | HasAddress; // Defaults to payer's ATA if not provided
+    unwrappedTokenProgram?: Address | HasAddress; // Will fetch from unwrappedTokenAccount owner if not provided
 }
 
 export interface SingleSignerWrapResult {
@@ -76,14 +79,16 @@ export interface SingleSignerWrapResult {
 export async function singleSignerWrap({
     rpc,
     payer,
-    unwrappedTokenAccount,
-    wrappedTokenProgram,
+    unwrappedTokenAccount: inputUnwrappedTokenAccount,
+    wrappedTokenProgram: inputWrappedTokenProgram,
     amount,
     transferAuthority: inputTransferAuthority,
     unwrappedMint: inputUnwrappedMint,
     recipientWrappedTokenAccount: inputRecipientTokenAccount,
     unwrappedTokenProgram: inputUnwrappedTokenProgram,
 }: SingleSignerWrapArgs): Promise<SingleSignerWrapResult> {
+    const unwrappedTokenAccount = toAddress(inputUnwrappedTokenAccount);
+    const wrappedTokenProgram = toAddress(inputWrappedTokenProgram);
     const {
         unwrappedMint,
         unwrappedTokenProgram,
@@ -96,11 +101,11 @@ export async function singleSignerWrap({
         rpc,
         payer,
         inputTransferAuthority,
-        inputUnwrappedMint,
+        inputUnwrappedMint: inputUnwrappedMint && toAddress(inputUnwrappedMint),
         unwrappedTokenAccount,
-        inputUnwrappedTokenProgram,
+        inputUnwrappedTokenProgram: inputUnwrappedTokenProgram && toAddress(inputUnwrappedTokenProgram),
         wrappedTokenProgram,
-        inputRecipientTokenAccount,
+        inputRecipientTokenAccount: inputRecipientTokenAccount && toAddress(inputRecipientTokenAccount),
     });
 
     const ix = await buildWrapIx({
@@ -138,7 +143,7 @@ async function resolveAddrs({
     payer: TransactionSigner;
     unwrappedTokenAccount: Address;
     wrappedTokenProgram: Address;
-    inputTransferAuthority?: Address | TransactionSigner;
+    inputTransferAuthority?: InstructionAccountInput | InstructionSignerInput;
     inputUnwrappedMint?: Address;
     inputRecipientTokenAccount?: Address;
     inputUnwrappedTokenProgram?: Address;

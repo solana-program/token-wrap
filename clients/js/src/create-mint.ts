@@ -3,6 +3,7 @@ import {
     fetchEncodedAccount,
     GetAccountInfoApi,
     GetMinimumBalanceForRentExemptionApi,
+    HasAddress,
     Instruction,
     KeyPairSigner,
     Rpc,
@@ -10,11 +11,12 @@ import {
 import { getMintSize, TOKEN_2022_PROGRAM_ADDRESS, extension } from '@solana-program/token-2022';
 import { getTransferSolInstruction } from '@solana-program/system';
 import { findBackpointerPda, findWrappedMintPda, getBackpointerSize, getCreateMintInstruction } from './generated';
+import { toAddress } from './internal';
 
 export interface CreateMintArgs {
     rpc: Rpc<GetAccountInfoApi & GetMinimumBalanceForRentExemptionApi>;
-    unwrappedMint: Address;
-    wrappedTokenProgram: Address;
+    unwrappedMint: Address | HasAddress;
+    wrappedTokenProgram: Address | HasAddress;
     payer: KeyPairSigner;
     idempotent?: boolean;
 }
@@ -62,7 +64,7 @@ export async function createMint({
     let fundedWrappedMintLamports = 0n;
 
     let mintSize = BigInt(getMintSize());
-    if (wrappedTokenProgram === TOKEN_2022_PROGRAM_ADDRESS) {
+    if (toAddress(wrappedTokenProgram) === TOKEN_2022_PROGRAM_ADDRESS) {
         mintSize = BigInt(getMintSize(DEFAULT_EXTENSIONS));
     }
 

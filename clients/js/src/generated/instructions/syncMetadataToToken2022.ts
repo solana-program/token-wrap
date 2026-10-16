@@ -27,7 +27,13 @@ import {
     type ReadonlyUint8Array,
     type WritableAccount,
 } from '@solana/kit';
-import { getAccountMetaFactory, type ResolvedInstructionAccount } from '@solana/program-client-core';
+import {
+    getAccountMetaFactory,
+    type InstructionAccountInput,
+    type InstructionAccountInputAddress,
+    type ResolvedInstructionAccount,
+    type ResolvedInstructionAccountMeta,
+} from '@solana/program-client-core';
 import { TOKEN_WRAP_PROGRAM_ADDRESS } from '../programs';
 
 export const SYNC_METADATA_TO_TOKEN2022_DISCRIMINATOR = 4;
@@ -89,40 +95,40 @@ export function getSyncMetadataToToken2022InstructionDataCodec(): FixedSizeCodec
 }
 
 export type SyncMetadataToToken2022Input<
-    TAccountWrappedMint extends string = string,
-    TAccountWrappedMintAuthority extends string = string,
-    TAccountUnwrappedMint extends string = string,
-    TAccountToken2022Program extends string = string,
-    TAccountSourceMetadata extends string = string,
-    TAccountOwnerProgram extends string = string,
+    TAccountWrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput = InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput = InstructionAccountInput,
+    TAccountToken2022Program extends InstructionAccountInput = InstructionAccountInput,
+    TAccountSourceMetadata extends InstructionAccountInput = InstructionAccountInput,
+    TAccountOwnerProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
     /** Wrapped mint */
-    wrappedMint: Address<TAccountWrappedMint>;
+    wrappedMint: TAccountWrappedMint;
     /** Wrapped mint authority PDA */
-    wrappedMintAuthority: Address<TAccountWrappedMintAuthority>;
+    wrappedMintAuthority: TAccountWrappedMintAuthority;
     /** Unwrapped mint */
-    unwrappedMint: Address<TAccountUnwrappedMint>;
+    unwrappedMint: TAccountUnwrappedMint;
     /** Token-2022 program */
-    token2022Program?: Address<TAccountToken2022Program>;
+    token2022Program?: TAccountToken2022Program;
     /**
      * Source metadata account. Required if metadata pointer
      * indicates external account.
      */
-    sourceMetadata?: Address<TAccountSourceMetadata>;
+    sourceMetadata?: TAccountSourceMetadata;
     /**
      * Owner program. Required when metadata account is
      * owned by a third-party program.
      */
-    ownerProgram?: Address<TAccountOwnerProgram>;
+    ownerProgram?: TAccountOwnerProgram;
 };
 
 export function getSyncMetadataToToken2022Instruction<
-    TAccountWrappedMint extends string,
-    TAccountWrappedMintAuthority extends string,
-    TAccountUnwrappedMint extends string,
-    TAccountToken2022Program extends string,
-    TAccountSourceMetadata extends string,
-    TAccountOwnerProgram extends string,
+    TAccountWrappedMint extends InstructionAccountInput,
+    TAccountWrappedMintAuthority extends InstructionAccountInput,
+    TAccountUnwrappedMint extends InstructionAccountInput,
+    TAccountToken2022Program extends InstructionAccountInput,
+    TAccountSourceMetadata extends InstructionAccountInput,
+    TAccountOwnerProgram extends InstructionAccountInput,
     TProgramAddress extends Address = typeof TOKEN_WRAP_PROGRAM_ADDRESS,
 >(
     input: SyncMetadataToToken2022Input<
@@ -133,27 +139,34 @@ export function getSyncMetadataToToken2022Instruction<
         TAccountSourceMetadata,
         TAccountOwnerProgram
     >,
-    config?: { programAddress?: TProgramAddress },
+    config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): SyncMetadataToToken2022Instruction<
     TProgramAddress,
-    TAccountWrappedMint,
-    TAccountWrappedMintAuthority,
-    TAccountUnwrappedMint,
-    TAccountToken2022Program,
-    TAccountSourceMetadata,
-    TAccountOwnerProgram
+    ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+    ResolvedInstructionAccountMeta<
+        TAccountWrappedMintAuthority,
+        InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+    >,
+    ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+    ResolvedInstructionAccountMeta<TAccountToken2022Program, InstructionAccountInputAddress<TAccountToken2022Program>>,
+    ResolvedInstructionAccountMeta<TAccountSourceMetadata, InstructionAccountInputAddress<TAccountSourceMetadata>>,
+    ResolvedInstructionAccountMeta<TAccountOwnerProgram, InstructionAccountInputAddress<TAccountOwnerProgram>>
 > {
     // Program address.
-    const programAddress = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddressInput = config?.programAddress ?? TOKEN_WRAP_PROGRAM_ADDRESS;
+    const programAddress = typeof programAddressInput === 'string' ? programAddressInput : programAddressInput.address;
+
+    // Account meta helper.
+    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
 
     // Original accounts.
     const originalAccounts = {
-        wrappedMint: { value: input.wrappedMint ?? null, isWritable: true },
-        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isWritable: false },
-        unwrappedMint: { value: input.unwrappedMint ?? null, isWritable: false },
-        token2022Program: { value: input.token2022Program ?? null, isWritable: false },
-        sourceMetadata: { value: input.sourceMetadata ?? null, isWritable: false },
-        ownerProgram: { value: input.ownerProgram ?? null, isWritable: false },
+        wrappedMint: { value: input.wrappedMint ?? null, isSigner: false, isWritable: true },
+        wrappedMintAuthority: { value: input.wrappedMintAuthority ?? null, isSigner: false, isWritable: false },
+        unwrappedMint: { value: input.unwrappedMint ?? null, isSigner: false, isWritable: false },
+        token2022Program: { value: input.token2022Program ?? null, isSigner: false, isWritable: false },
+        sourceMetadata: { value: input.sourceMetadata ?? null, isSigner: false, isWritable: false },
+        ownerProgram: { value: input.ownerProgram ?? null, isSigner: false, isWritable: false },
     };
     const accounts = originalAccounts as Record<keyof typeof originalAccounts, ResolvedInstructionAccount>;
 
@@ -163,7 +176,6 @@ export function getSyncMetadataToToken2022Instruction<
             'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' as Address<'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'>;
     }
 
-    const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
     return Object.freeze({
         accounts: [
             getAccountMeta('wrappedMint', accounts.wrappedMint),
@@ -177,12 +189,18 @@ export function getSyncMetadataToToken2022Instruction<
         programAddress,
     } as SyncMetadataToToken2022Instruction<
         TProgramAddress,
-        TAccountWrappedMint,
-        TAccountWrappedMintAuthority,
-        TAccountUnwrappedMint,
-        TAccountToken2022Program,
-        TAccountSourceMetadata,
-        TAccountOwnerProgram
+        ResolvedInstructionAccountMeta<TAccountWrappedMint, InstructionAccountInputAddress<TAccountWrappedMint>>,
+        ResolvedInstructionAccountMeta<
+            TAccountWrappedMintAuthority,
+            InstructionAccountInputAddress<TAccountWrappedMintAuthority>
+        >,
+        ResolvedInstructionAccountMeta<TAccountUnwrappedMint, InstructionAccountInputAddress<TAccountUnwrappedMint>>,
+        ResolvedInstructionAccountMeta<
+            TAccountToken2022Program,
+            InstructionAccountInputAddress<TAccountToken2022Program>
+        >,
+        ResolvedInstructionAccountMeta<TAccountSourceMetadata, InstructionAccountInputAddress<TAccountSourceMetadata>>,
+        ResolvedInstructionAccountMeta<TAccountOwnerProgram, InstructionAccountInputAddress<TAccountOwnerProgram>>
     >);
 }
 

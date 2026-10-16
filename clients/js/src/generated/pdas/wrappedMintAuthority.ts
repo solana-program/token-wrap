@@ -11,20 +11,23 @@ import {
     getProgramDerivedAddress,
     getUtf8Encoder,
     type Address,
+    type HasAddress,
     type ProgramDerivedAddress,
 } from '@solana/kit';
 
 export type WrappedMintAuthoritySeeds = {
-    wrappedMint: Address;
+    wrappedMint: Address | HasAddress;
 };
 
 export async function findWrappedMintAuthorityPda(
     seeds: WrappedMintAuthoritySeeds,
-    config: { programAddress?: Address | undefined } = {},
+    config: { programAddress?: Address | HasAddress | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
     const {
-        programAddress = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
+        programAddress:
+            programAddressInput = 'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR' as Address<'TwRapQCDhWkZRrDaHfZGuHxkZ91gHDRkyuzNqeU5MgR'>,
     } = config;
+    const programAddress = typeof programAddressInput === 'string' ? programAddressInput : programAddressInput.address;
     return await getProgramDerivedAddress({
         programAddress,
         seeds: [getUtf8Encoder().encode('authority'), getAddressEncoder().encode(seeds.wrappedMint)],

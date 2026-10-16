@@ -21,6 +21,7 @@ import {
     type ExtendedClient,
     type GetAccountInfoApi,
     type GetMultipleAccountsApi,
+    type HasAddress,
     type Instruction,
     type InstructionWithData,
     type ReadonlyUint8Array,
@@ -175,17 +176,29 @@ export type TokenWrapPluginAccounts = {
 };
 
 export type TokenWrapPluginInstructions = {
-    createMint: (input: CreateMintInput) => ReturnType<typeof getCreateMintInstruction> & SelfPlanAndSendFunctions;
-    wrap: (input: WrapInput) => ReturnType<typeof getWrapInstruction> & SelfPlanAndSendFunctions;
-    unwrap: (input: UnwrapInput) => ReturnType<typeof getUnwrapInstruction> & SelfPlanAndSendFunctions;
+    createMint: (
+        input: CreateMintInput,
+        config?: { programAddress?: Address | HasAddress },
+    ) => ReturnType<typeof getCreateMintInstruction> & SelfPlanAndSendFunctions;
+    wrap: (
+        input: WrapInput,
+        config?: { programAddress?: Address | HasAddress },
+    ) => ReturnType<typeof getWrapInstruction> & SelfPlanAndSendFunctions;
+    unwrap: (
+        input: UnwrapInput,
+        config?: { programAddress?: Address | HasAddress },
+    ) => ReturnType<typeof getUnwrapInstruction> & SelfPlanAndSendFunctions;
     closeStuckEscrow: (
         input: CloseStuckEscrowInput,
+        config?: { programAddress?: Address | HasAddress },
     ) => ReturnType<typeof getCloseStuckEscrowInstruction> & SelfPlanAndSendFunctions;
     syncMetadataToToken2022: (
         input: SyncMetadataToToken2022Input,
+        config?: { programAddress?: Address | HasAddress },
     ) => ReturnType<typeof getSyncMetadataToToken2022Instruction> & SelfPlanAndSendFunctions;
     syncMetadataToSplToken: (
         input: SyncMetadataToSplTokenInput,
+        config?: { programAddress?: Address | HasAddress },
     ) => ReturnType<typeof getSyncMetadataToSplTokenInstruction> & SelfPlanAndSendFunctions;
 };
 
@@ -199,26 +212,68 @@ export type TokenWrapPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetM
     ClientWithTransactionPlanning &
     ClientWithTransactionSending;
 
-export function tokenWrapProgram() {
+export function tokenWrapProgram(config: { programAddress?: Address | HasAddress } = {}) {
     return <T extends TokenWrapPluginRequirements>(client: T): ExtendedClient<T, { tokenWrap: TokenWrapPlugin }> => {
         return extendClient(client, {
             tokenWrap: <TokenWrapPlugin>{
                 accounts: { backpointer: addSelfFetchFunctions(client, getBackpointerCodec()) },
                 instructions: {
-                    createMint: input => addSelfPlanAndSendFunctions(client, getCreateMintInstruction(input)),
-                    wrap: input => addSelfPlanAndSendFunctions(client, getWrapInstruction(input)),
-                    unwrap: input => addSelfPlanAndSendFunctions(client, getUnwrapInstruction(input)),
-                    closeStuckEscrow: input =>
-                        addSelfPlanAndSendFunctions(client, getCloseStuckEscrowInstruction(input)),
-                    syncMetadataToToken2022: input =>
-                        addSelfPlanAndSendFunctions(client, getSyncMetadataToToken2022Instruction(input)),
-                    syncMetadataToSplToken: input =>
-                        addSelfPlanAndSendFunctions(client, getSyncMetadataToSplTokenInstruction(input)),
+                    createMint: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getCreateMintInstruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
+                    wrap: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getWrapInstruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
+                    unwrap: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getUnwrapInstruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
+                    closeStuckEscrow: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getCloseStuckEscrowInstruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
+                    syncMetadataToToken2022: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getSyncMetadataToToken2022Instruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
+                    syncMetadataToSplToken: (input, instructionConfig) =>
+                        addSelfPlanAndSendFunctions(
+                            client,
+                            getSyncMetadataToSplTokenInstruction(input, {
+                                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+                            }),
+                        ),
                 },
                 pdas: {
-                    backpointer: findBackpointerPda,
-                    wrappedMint: findWrappedMintPda,
-                    wrappedMintAuthority: findWrappedMintAuthorityPda,
+                    backpointer: (seeds, pdaConfig) =>
+                        findBackpointerPda(seeds, {
+                            programAddress: pdaConfig?.programAddress ?? config.programAddress,
+                        }),
+                    wrappedMint: (seeds, pdaConfig) =>
+                        findWrappedMintPda(seeds, {
+                            programAddress: pdaConfig?.programAddress ?? config.programAddress,
+                        }),
+                    wrappedMintAuthority: (seeds, pdaConfig) =>
+                        findWrappedMintAuthorityPda(seeds, {
+                            programAddress: pdaConfig?.programAddress ?? config.programAddress,
+                        }),
                 },
                 identifyInstruction: identifyTokenWrapInstruction,
                 parseInstruction: parseTokenWrapInstruction,
