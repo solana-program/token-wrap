@@ -8,7 +8,7 @@
         "@codama/renderers-js": "^2.7.0",
         "@solana-program/system": "^0.16.0",
         "@solana/prettier-config-solana": "0.0.7",
-        "@solana/sysvars": "^8.4.0",
+        "@solana/sysvars": "^8.5.0",
         "@types/node": "^26.6.5",
         "codama": "^1.11.0",
         "tsx": "^4.23.15",
