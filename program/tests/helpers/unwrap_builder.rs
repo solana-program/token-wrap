@@ -165,6 +165,7 @@ impl<'a> UnwrapBuilder<'a> {
             account: MintBuilder::new()
                 .token_program(token_program)
                 .mint_authority(mint_authority)
+                .supply(self.escrow_starting_amount.unwrap_or(100_000))
                 .build()
                 .account,
         })
