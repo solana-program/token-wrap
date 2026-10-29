@@ -35,8 +35,8 @@ pub enum TokenWrapInstruction {
 
     /// Wrap tokens
     ///
-    /// Move a user's unwrapped tokens into an escrow account and mint the same
-    /// number of wrapped tokens into the provided account.
+    /// Move a user's unwrapped tokens into an escrow account and mint wrapped
+    /// tokens into the provided account at the wrapped supply / escrow rate.
     ///
     /// Accounts expected by this instruction:
     ///
@@ -65,8 +65,8 @@ pub enum TokenWrapInstruction {
 
     /// Unwrap tokens
     ///
-    /// Burn user wrapped tokens and transfer the same amount of unwrapped
-    /// tokens from the escrow account to the provided account.
+    /// Burn user wrapped tokens and transfer unwrapped tokens from the escrow
+    /// account to the provided account at the escrow / wrapped supply rate.
     ///
     /// Accounts expected by this instruction:
     /// 0. `[w]` Escrow of unwrapped tokens, address must be an `ATA`:
