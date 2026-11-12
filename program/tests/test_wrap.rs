@@ -2,7 +2,7 @@ use {
     crate::helpers::{
         common::{
             setup_counter, setup_multisig, setup_validation_state_account, KeyedAccount,
-            TokenProgram, DEFAULT_MINT_SUPPLY,
+            TokenProgram,
         },
         create_mint_builder::CreateMintBuilder,
         extensions::MintExtension::{
@@ -112,10 +112,7 @@ fn assert_wrap_result(starting_amount: u64, wrap_amount: u64, wrap_result: &Wrap
     // Verify wrapped mint supply increased
     let mint =
         PodStateWithExtensions::<PodMint>::unpack(&wrap_result.wrapped_mint.account.data).unwrap();
-    assert_eq!(
-        u64::from(mint.base.supply),
-        DEFAULT_MINT_SUPPLY.checked_add(wrap_amount).unwrap()
-    );
+    assert_eq!(u64::from(mint.base.supply), wrap_amount);
 }
 
 #[test]
@@ -429,4 +426,45 @@ fn test_wrap_with_confidential_transfer_mint() {
         .execute();
 
     assert_wrap_result(starting_amount, wrap_amount, &wrap_result);
+}
+
+#[test]
+fn test_wrap_mints_at_supply_per_escrow_rate() {
+    let unwrapped_mint = KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: MintBuilder::new().build().account,
+    };
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
+    let wrapped_mint_authority = get_wrapped_mint_authority(&wrapped_mint_address);
+    let wrapped_mint = KeyedAccount {
+        key: wrapped_mint_address,
+        account: MintBuilder::new()
+            .token_program(TokenProgram::SplToken2022)
+            .mint_authority(wrapped_mint_authority)
+            .supply(100_000)
+            .build()
+            .account,
+    };
+    let escrow = TokenAccountBuilder::new()
+        .mint(unwrapped_mint.clone())
+        .owner(wrapped_mint_authority)
+        .amount(150_001)
+        .build()
+        .account;
+
+    let wrap_result = WrapBuilder::default()
+        .unwrapped_mint(unwrapped_mint)
+        .wrapped_mint(wrapped_mint)
+        .unwrapped_escrow_account(escrow)
+        .wrap_amount(750)
+        .check(Check::success())
+        .execute();
+
+    // 750 * 100_000 / 150_001 rounds down
+    let recipient = PodStateWithExtensions::<PodAccount>::unpack(
+        &wrap_result.recipient_wrapped_token.account.data,
+    )
+    .unwrap();
+    assert_eq!(u64::from(recipient.base.amount), 499);
 }
