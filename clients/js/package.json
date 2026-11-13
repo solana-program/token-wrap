@@ -57,7 +57,7 @@
         "@solana/kit": "^8.6.0",
         "@tsconfig/strictest": "^2.0.8",
         "@types/node": "^26.6.6",
-        "oxfmt": "^0.76.0",
+        "oxfmt": "^0.78.0",
         "oxlint": "^1.91.0",
         "tsup": "^9.0.0",
         "tsx": "^4.23.15",
