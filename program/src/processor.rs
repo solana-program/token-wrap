@@ -199,6 +199,33 @@ pub fn process_create_mint<M: MintCustomizer>(
     Ok(())
 }
 
+/// Returns the escrowed reserve and the wrapped supply
+fn reserve_and_supply(
+    escrow: &AccountInfo,
+    wrapped_mint: &AccountInfo,
+) -> Result<(u128, u128), ProgramError> {
+    let escrow_data = escrow.try_borrow_data()?;
+    let mint_data = wrapped_mint.try_borrow_data()?;
+    let reserve = PodStateWithExtensions::<PodAccount>::unpack(&escrow_data)?
+        .base
+        .amount;
+    let supply = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?
+        .base
+        .supply;
+    Ok((u64::from(reserve).into(), u64::from(supply).into()))
+}
+
+/// Converts `amount` at `numerator / denominator`, rounding down so that
+/// reserve per wrapped token never falls
+fn convert(amount: u64, numerator: u128, denominator: u128) -> Result<u64, ProgramError> {
+    u128::from(amount)
+        .checked_mul(numerator)
+        .and_then(|product| product.checked_div(denominator))
+        .and_then(|converted| u64::try_from(converted).ok())
+        .filter(|converted| *converted != 0)
+        .ok_or(ProgramError::ArithmeticOverflow)
+}
+
 /// Processes [`Wrap`](enum.TokenWrapInstruction.html) instruction.
 pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     if amount == 0 {
@@ -263,6 +290,10 @@ pub fn process_wrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let net_amount = amount
         .checked_sub(fee)
         .ok_or(ProgramError::ArithmeticOverflow)?;
+    let net_amount = match reserve_and_supply(unwrapped_escrow, wrapped_mint)? {
+        (_, 0) => net_amount,
+        (reserve, supply) => convert(net_amount, supply, reserve)?,
+    };
 
     if unwrapped_token_program.key == &spl_token_2022_interface::id() {
         // This invoke fn does extra validation on calculated fee
@@ -357,6 +388,9 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         Err(TokenWrapError::EscrowMismatch)?
     }
 
+    let (reserve, supply) = reserve_and_supply(unwrapped_escrow, wrapped_mint)?;
+    let unwrapped_amount = convert(amount, reserve, supply)?;
+
     // Burn wrapped tokens
 
     let multisig_signer_keys = extract_multisig_accounts(transfer_authority, additional_accounts)?
@@ -390,7 +424,7 @@ pub fn process_unwrap(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
         recipient_unwrapped_token.clone(),
         wrapped_mint_authority.clone(),
         additional_accounts,
-        amount,
+        unwrapped_amount,
         unwrapped_mint_state.base.decimals,
         &[&signer_seeds],
     )?;

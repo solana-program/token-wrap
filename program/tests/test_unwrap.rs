@@ -2,7 +2,7 @@ use {
     crate::helpers::{
         common::{
             setup_counter, setup_multisig, setup_validation_state_account, KeyedAccount,
-            TokenProgram, DEFAULT_MINT_SUPPLY,
+            TokenProgram,
         },
         create_mint_builder::CreateMintBuilder,
         extensions::MintExtension::{
@@ -112,7 +112,7 @@ fn assert_unwrap_result(
         .unwrap();
     assert_eq!(
         u64::from(mint.base.supply),
-        DEFAULT_MINT_SUPPLY.checked_sub(unwrap_amount).unwrap()
+        escrow_starting_amount.checked_sub(unwrap_amount).unwrap()
     );
 
     // Verify escrow was debited
@@ -494,4 +494,38 @@ fn test_unwrap_with_confidential_transfer_mint() {
         unwrap_amount,
         &unwrap_result,
     );
+}
+
+#[test]
+fn test_unwrap_pays_at_escrow_per_supply_rate() {
+    let unwrapped_mint = KeyedAccount {
+        key: Pubkey::new_unique(),
+        account: MintBuilder::new().build().account,
+    };
+    let wrapped_mint_address =
+        get_wrapped_mint_address(&unwrapped_mint.key, &spl_token_2022_interface::id());
+    let wrapped_mint = KeyedAccount {
+        key: wrapped_mint_address,
+        account: MintBuilder::new()
+            .token_program(TokenProgram::SplToken2022)
+            .mint_authority(get_wrapped_mint_authority(&wrapped_mint_address))
+            .supply(100_000)
+            .build()
+            .account,
+    };
+
+    let unwrap_result = UnwrapBuilder::default()
+        .unwrapped_mint(unwrapped_mint)
+        .wrapped_mint(wrapped_mint)
+        .escrow_starting_amount(150_001)
+        .unwrap_amount(500)
+        .check(Check::success())
+        .execute();
+
+    // 500 * 150_001 / 100_000 rounds down
+    let recipient = PodStateWithExtensions::<PodAccount>::unpack(
+        &unwrap_result.recipient_unwrapped_token.account.data,
+    )
+    .unwrap();
+    assert_eq!(u64::from(recipient.base.amount), 750);
 }
