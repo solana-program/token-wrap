@@ -679,7 +679,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.5.10",
+ "socket2 0.6.5",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -3307,7 +3307,7 @@ dependencies = [
  "libc",
  "percent-encoding 2.3.2",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.5",
  "tokio",
  "tower-service",
  "tracing",
@@ -5177,7 +5177,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.5.10",
+ "socket2 0.6.5",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -5215,7 +5215,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.5",
  "tracing",
  "windows-sys 0.61.2",
 ]
@@ -6455,9 +6455,9 @@ dependencies = [
 
 [[package]]
 name = "solana-account-info"
-version = "3.1.1"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9cf16495d9eb53e3d04e72366a33bb1c20c24e78c171d8b8f5978357b63ae95"
+checksum = "57ad0fe88ccbdba196bb7657534e9caf69397e9b503371261eebd9ad1d7a9ed7"
 dependencies = [
  "bincode",
  "serde_core",
@@ -11002,16 +11002,16 @@ dependencies = [
  "solana-account",
  "solana-account-info",
  "solana-cpi",
- "solana-instruction 3.5.1",
+ "solana-instruction 4.0.0",
  "solana-msg",
  "solana-nullable",
  "solana-program-entrypoint",
  "solana-program-error",
  "solana-program-pack",
  "solana-pubkey 4.4.0",
- "solana-rent 3.1.0",
+ "solana-rent 4.5.0",
  "solana-system-interface 3.3.0",
- "solana-sysvar 3.1.1",
+ "solana-sysvar 5.0.0",
  "solana-zero-copy",
  "solana-zk-sdk-pod",
  "spl-associated-token-account-interface",
@@ -11048,7 +11048,7 @@ dependencies = [
  "solana-client",
  "solana-commitment-config",
  "solana-hash 4.7.0",
- "solana-instruction 3.5.1",
+ "solana-instruction 4.0.0",
  "solana-keypair",
  "solana-nullable",
  "solana-presigner",
