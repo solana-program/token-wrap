@@ -89,7 +89,7 @@ spl-associated-token-account-interface = "2.0.0"
 spl-tlv-account-resolution = "0.11.1"
 spl-token = { version = "9.0.0", features = ["no-entrypoint"] }
 spl-token-2022 = { version = "12.0.0", features = ["no-entrypoint"] }
-spl-token-2022-interface = "3.0.0"
+spl-token-2022-interface = "4.0.0"
 spl-token-metadata-interface = "1.0.0"
 spl-token-wrap = { version = "1.0.0", path = "program", features = ["no-entrypoint"] }
 spl-transfer-hook-interface = "2.1.0"
