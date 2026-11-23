@@ -13,6 +13,7 @@ export {
     type SingleSignerUnwrapArgs,
     type SingleSignerUnwrapResult,
     multisigOfflineSignUnwrap,
+    type MultiSignerUnWrapTxBuilderArgs,
 } from './unwrap';
 export {
     createEscrowAccount,
