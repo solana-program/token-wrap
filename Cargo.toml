@@ -82,7 +82,7 @@ solana-signer = "4.0.0"
 solana-system-interface = { version = "3.3.0", features = ["bincode"] }
 solana-sysvar = "5.0.0"
 solana-test-validator = { version = "4.4.1", features = ["agave-unstable-api"] }
-solana-transaction = "5.1.0"
+solana-transaction = "6.0.0"
 solana-zero-copy = "1.3.0"
 solana-zk-sdk-pod = "0.1.2"
 spl-associated-token-account-interface = "2.0.0"
