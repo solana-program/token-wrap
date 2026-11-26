@@ -41,6 +41,7 @@ async fn main() {
         async_trial!(test_create_escrow_account_with_wrong_mint_owner, env),
         async_trial!(test_create_escrow_account_with_wrong_account_type, env),
         async_trial!(test_create_mint, env),
+        async_trial!(test_create_mint_dry_run_fails_on_simulation_error, env),
         async_trial!(test_pdas, env),
         async_trial!(test_sync_metadata_from_token2022_to_spl_token, env),
         async_trial!(test_sync_metadata_from_spl_token_to_spl_token, env),
