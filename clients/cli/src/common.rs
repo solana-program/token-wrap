@@ -53,12 +53,18 @@ pub async fn process_transaction(
         let simulation_data = config.rpc_client.simulate_transaction(&transaction).await?;
 
         if config.verbose() {
-            if let Some(logs) = simulation_data.value.logs {
+            if let Some(logs) = &simulation_data.value.logs {
                 for log in logs {
                     println!("    {}", log);
                 }
             }
+        }
 
+        if let Some(err) = simulation_data.value.err {
+            return Err(format!("Simulation failed: {}", err).into());
+        }
+
+        if config.verbose() {
             println!(
                 "\nSimulation succeeded, consumed {} compute units",
                 simulation_data.value.units_consumed.unwrap()
